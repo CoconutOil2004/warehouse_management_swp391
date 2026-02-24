@@ -17,5 +17,7 @@ public class Shipment {
     private LocalDateTime pickedUpAt;
     private LocalDateTime deliveredAt;
     private String trackingCode;
+    private String carrierName; // Added for display
+    private String gdnNumber; // Added for display
     private String note;
 }

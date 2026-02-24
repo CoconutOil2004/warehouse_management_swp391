@@ -7,18 +7,64 @@
 <script src="${root}/assets/vendor/jquery-easing/jquery.easing.min.js"></script>
 <script src="${root}/assets/js/sb-admin-2.min.js"></script>
 <script src="${root}/assets/vendor/chart.js/Chart.min.js"></script>
-<script>
-// Chỉ load chart demo scripts nếu có chart elements trên trang
+// Logic cập nhật thời gian tương đối (Time Ago)
 document.addEventListener('DOMContentLoaded', function() {
+    function updateTimeAgo() {
+        const elements = document.querySelectorAll('.time-ago');
+        const now = new Date();
+
+        elements.forEach(el => {
+            const timestampStr = el.getAttribute('data-timestamp');
+            if (!timestampStr) return;
+
+            // Chuyển đổi timestamp từ Java (ISO format thường thấy) sang JS Date
+            // Ví dụ: 2026-02-25T04:11:08
+            const timestamp = new Date(timestampStr);
+            const diffInSeconds = Math.floor((now - timestamp) / 1000);
+
+            let timeAgoText = '';
+
+            if (diffInSeconds < 60) {
+                timeAgoText = 'vừa xong';
+            } else if (diffInSeconds < 3600) {
+                const minutes = Math.floor(diffInSeconds / 60);
+                timeAgoText = minutes + ' phút trước';
+            } else if (diffInSeconds < 86400) {
+                const hours = Math.floor(diffInSeconds / 3600);
+                timeAgoText = hours + ' giờ trước';
+            } else if (diffInSeconds < 2592000) {
+                const days = Math.floor(diffInSeconds / 86400);
+                timeAgoText = days + ' ngày trước';
+            } else {
+                // Nếu quá lâu thì hiển thị ngày gốc
+                timeAgoText = timestamp.toLocaleDateString('vi-VN');
+            }
+
+            // Tìm thẻ small bên trong hoặc cập nhật trực tiếp
+            const target = el.querySelector('small') || el;
+            if (target.innerText !== timeAgoText) {
+                target.innerText = timeAgoText;
+                // Thêm tooltip để xem giờ chính xác
+                if (!el.getAttribute('title')) {
+                    el.setAttribute('title', timestamp.toLocaleString('vi-VN'));
+                }
+            }
+        });
+    }
+
+    // Chạy ngay lập tức và sau đó mỗi phút
+    updateTimeAgo();
+    setInterval(updateTimeAgo, 60000);
+
+    // Xử lý Charts (đã có sẵn)
     if (document.getElementById('myAreaChart') || document.getElementById('myPieChart')) {
+        // ... (giữ nguyên logic cũ)
         var script1 = document.createElement('script');
         script1.src = '${root}/assets/js/demo/chart-area-demo.js';
-        script1.onerror = function() { console.log('Chart area demo not found'); };
         document.body.appendChild(script1);
         
         var script2 = document.createElement('script');
         script2.src = '${root}/assets/js/demo/chart-pie-demo.js';
-        script2.onerror = function() { console.log('Chart pie demo not found'); };
         document.body.appendChild(script2);
     }
 });

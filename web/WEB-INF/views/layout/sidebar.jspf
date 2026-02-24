@@ -46,6 +46,22 @@
                 </div>
             </li>
 
+            <!-- Nav Item - Outbound -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseOutbound"
+                    aria-expanded="true" aria-controls="collapseOutbound">
+                    <i class="fas fa-fw fa-file-export"></i>
+                    <span>Outbound</span>
+                </a>
+                <div id="collapseOutbound" class="collapse" aria-labelledby="headingOutbound" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Shipping:</h6>
+                        <a class="collapse-item" href="${pageContext.request.contextPath}/shipment?action=list">Shipment List</a>
+                        <a class="collapse-item" href="${pageContext.request.contextPath}/outbound/sales-orders">Sales Orders</a>
+                    </div>
+                </div>
+            </li>
+
             <!-- Divider -->
             <hr class="sidebar-divider" />
 

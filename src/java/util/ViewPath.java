@@ -36,6 +36,12 @@ public class ViewPath {
     public static final String GRN_CREATE = "/WEB-INF/views/inbound/goods-receipt-create.jsp";
     public static final String GRN_PUTAWAY = "/WEB-INF/views/inbound/goods-receipt-putaway.jsp";
 
+    // Shipment
+    public static final String SHIPMENT_LIST = "/WEB-INF/views/outbound/shipment-list.jsp";
+    public static final String SHIPMENT_DETAIL = "/WEB-INF/views/outbound/shipment-detail.jsp";
+    public static final String SHIPMENT_CREATE = "/WEB-INF/views/outbound/shipment-create.jsp";
+    public static final String SHIPMENT_EDIT = "/WEB-INF/views/outbound/shipment-update.jsp";
+
     // supplier
     public static final String SUPPLIER_LIST = "/WEB-INF/views/admin/supplier/list.jsp";
     public static final String SUPPLIER_CREATE = "/WEB-INF/views/admin/supplier/create.jsp";
