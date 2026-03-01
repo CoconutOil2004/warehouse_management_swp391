@@ -4,6 +4,12 @@
 <%@taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
 <t:layout title="Goods Delivery Note List">
     <div class="container-fluid">
+        <c:if test="${not empty param.created}">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                Successfully created ${param.created} GDN(s).
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+        </c:if>
 
         <!-- Filter Form -->
         <div class="card mb-4 shadow-sm">

@@ -11,6 +11,22 @@ import java.util.List;
 public class GoodsDeliveryNoteDAO extends DBContext {
 
     /**
+     * Returns so_id list that already have a GDN (one SO = one GDN only).
+     */
+    public List<Long> getSoIdsThatHaveGdn() throws Exception {
+        String sql = "SELECT DISTINCT so_id FROM goods_delivery_note WHERE so_id IS NOT NULL";
+        List<Long> list = new ArrayList<>();
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(rs.getLong("so_id"));
+            }
+        }
+        return list;
+    }
+
+    /**
      * Get list of GDN with pagination and filters
      */
     public List<GDNListDTO> getGDNList(String gdnNumber, String soNumber, String status,
@@ -193,7 +209,7 @@ public class GoodsDeliveryNoteDAO extends DBContext {
     }
 
     /**
-     * Get GDN lines with inventory availability
+     * Get GDN lines with inventory availability (per GDN warehouse).
      */
     private List<GDNLineDTO> getGDNLines(Long gdnId) throws Exception {
         String sql = """
@@ -210,11 +226,12 @@ public class GoodsDeliveryNoteDAO extends DBContext {
                     gdl.qty_packed,
                     COALESCE(SUM(ib.qty_available), 0) AS qty_available
                 FROM goods_delivery_line gdl
+                JOIN goods_delivery_note gdn ON gdl.gdn_id = gdn.gdn_id
                 JOIN product_variant pv ON gdl.variant_id = pv.variant_id
                 JOIN product p ON pv.product_id = p.product_id
-                LEFT JOIN inventory_balance ib ON ib.variant_id = gdl.variant_id
+                LEFT JOIN inventory_balance ib ON ib.variant_id = gdl.variant_id AND ib.warehouse_id = gdn.warehouse_id
                 WHERE gdl.gdn_id = ?
-                GROUP BY gdl.gdn_line_id, gdl.so_line_id, gdl.variant_id, 
+                GROUP BY gdl.gdn_line_id, gdl.so_line_id, gdl.variant_id,
                          pv.variant_sku, p.name, pv.color, pv.size,
                          gdl.qty_required, gdl.qty_picked, gdl.qty_packed
                 ORDER BY gdl.gdn_line_id
@@ -349,6 +366,21 @@ public class GoodsDeliveryNoteDAO extends DBContext {
             ps.setBigDecimal(2, qtyPacked);
             ps.setLong(3, gdnLineId);
             return ps.executeUpdate() > 0;
+        }
+    }
+
+    /**
+     * Deduct inventory when GDN is confirmed (qty_picked per line from warehouse).
+     */
+    public void deductInventoryOnConfirm(Long gdnId) throws Exception {
+        GDNDetailDTO gdn = getGDNDetailById(gdnId);
+        if (gdn == null || gdn.getWarehouseId() == null || gdn.getLines() == null) return;
+        InventoryBalanceDAO invDao = new InventoryBalanceDAO();
+        for (GDNLineDTO line : gdn.getLines()) {
+            java.math.BigDecimal qty = line.getQtyPicked() != null ? line.getQtyPicked() : java.math.BigDecimal.ZERO;
+            if (qty.signum() > 0 && line.getVariantId() != null) {
+                invDao.deductQtyFromWarehouseVariant(gdn.getWarehouseId(), line.getVariantId(), qty);
+            }
         }
     }
 

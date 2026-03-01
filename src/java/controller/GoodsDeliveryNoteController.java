@@ -83,13 +83,17 @@ public class GoodsDeliveryNoteController extends HttpServlet {
 
     private void handleCreateForm(HttpServletRequest request, HttpServletResponse response) throws Exception {
         SaleOrderDAO soDao = new SaleOrderDAO();
+        GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
         WarehouseDAO warehouseDao = new WarehouseDAO();
-        
-        // Get list of sales orders with status CREATED (can be used to create GDN)
-        // Note: We filter by CREATED status since new SOs are created with CREATED status
-        List<dto.SaleOrderListDTO> salesOrders = soDao.searchSalesOrders(
-            null, "CREATED", null, null, 100, 0);
-        
+
+        // SOs with status CREATED that do NOT have a GDN yet (one SO = one GDN only)
+        List<dto.SaleOrderListDTO> allCreated = soDao.searchSalesOrders(
+            null, "CREATED", null, null, 500, 0);
+        java.util.Set<Long> soIdsWithGdn = new java.util.HashSet<>(gdnDao.getSoIdsThatHaveGdn());
+        List<dto.SaleOrderListDTO> salesOrders = allCreated.stream()
+            .filter(so -> !soIdsWithGdn.contains(so.getSoId()))
+            .collect(java.util.stream.Collectors.toList());
+
         request.setAttribute("salesOrders", salesOrders);
         request.setAttribute("warehouses", warehouseDao.getAll());
 
@@ -212,26 +216,18 @@ public class GoodsDeliveryNoteController extends HttpServlet {
     private void handleCreate(HttpServletRequest request, HttpServletResponse response) throws Exception {
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
         SaleOrderDAO soDao = new SaleOrderDAO();
-        
-        String soNumber = request.getParameter("soNumber");
+
+        String[] soNumbers = request.getParameterValues("soNumbers");
         Long warehouseId = getWarehouseId(request);
-        
+
         if (warehouseId == null) {
             request.setAttribute("error", "No warehouse found");
             handleCreateForm(request, response);
             return;
         }
 
-        if (soNumber == null || soNumber.isBlank()) {
-            request.setAttribute("error", "Please select a Sales Order");
-            handleCreateForm(request, response);
-            return;
-        }
-
-        dto.SaleOrderHeaderDTO so = soDao.getSaleOrderByNumber(soNumber);
-        
-        if (so == null) {
-            request.setAttribute("error", "Sales Order not found: " + soNumber);
+        if (soNumbers == null || soNumbers.length == 0) {
+            request.setAttribute("error", "Please select at least one Sales Order");
             handleCreateForm(request, response);
             return;
         }
@@ -239,9 +235,32 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         User user = (User) request.getSession().getAttribute("USER");
         Long createdBy = user != null ? user.getUserId() : null;
 
-        Long gdnId = gdnDao.createGDNFromSO(so.getSoId(), warehouseId, createdBy);
-        
-        response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
+        java.util.Set<Long> soIdsWithGdn = new java.util.HashSet<>(gdnDao.getSoIdsThatHaveGdn());
+        List<Long> createdGdnIds = new java.util.ArrayList<>();
+
+        for (String soNumber : soNumbers) {
+            if (soNumber == null || soNumber.isBlank()) continue;
+            dto.SaleOrderHeaderDTO so = soDao.getSaleOrderByNumber(soNumber.trim());
+            if (so == null) continue;
+            if (soIdsWithGdn.contains(so.getSoId())) continue; // already has GDN, skip
+            Long gdnId = gdnDao.createGDNFromSO(so.getSoId(), warehouseId, createdBy);
+            if (gdnId != null) {
+                createdGdnIds.add(gdnId);
+                soIdsWithGdn.add(so.getSoId());
+            }
+        }
+
+        if (createdGdnIds.isEmpty()) {
+            request.setAttribute("error", "No GDN created. Selected SO(s) may already have a GDN or were not found.");
+            handleCreateForm(request, response);
+            return;
+        }
+
+        if (createdGdnIds.size() == 1) {
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + createdGdnIds.get(0));
+        } else {
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list&created=" + createdGdnIds.size());
+        }
     }
 
     private void handleUpdate(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -254,16 +273,40 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             return;
         }
 
-        if (status != null && !status.isBlank()) {
-            gdnDao.updateGDNStatus(gdnId, status);
-        }
-
-        // Update line quantities: lineIds[], qtyPicked[], qtyPacked[]
         String[] lineIds = request.getParameterValues("lineIds");
         String[] qtyPickedStrs = request.getParameterValues("qtyPicked");
         String[] qtyPackedStrs = request.getParameterValues("qtyPacked");
+
+        // 1) Validate line quantities before save: Qty Packed <= Qty Picked, Qty Picked <= Available
         if (lineIds != null && qtyPickedStrs != null && qtyPackedStrs != null
                 && lineIds.length == qtyPickedStrs.length && lineIds.length == qtyPackedStrs.length) {
+            dto.GDNDetailDTO gdnForValidation = gdnDao.getGDNDetailById(gdnId);
+            if (gdnForValidation != null && gdnForValidation.getLines() != null) {
+                java.util.Map<Long, dto.GDNLineDTO> lineMap = new java.util.HashMap<>();
+                for (dto.GDNLineDTO line : gdnForValidation.getLines()) {
+                    lineMap.put(line.getGdnLineId(), line);
+                }
+                for (int i = 0; i < lineIds.length; i++) {
+                    Long lineId = parseLong(lineIds[i], -1);
+                    if (lineId <= 0) continue;
+                    java.math.BigDecimal qtyPicked = parseBigDecimal(qtyPickedStrs[i], java.math.BigDecimal.ZERO);
+                    java.math.BigDecimal qtyPacked = parseBigDecimal(qtyPackedStrs[i], java.math.BigDecimal.ZERO);
+                    if (qtyPacked.compareTo(qtyPicked) > 0) {
+                        response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Qty+Packed+cannot+exceed+Qty+Picked");
+                        return;
+                    }
+                    dto.GDNLineDTO line = lineMap.get(lineId);
+                    if (line != null) {
+                        java.math.BigDecimal available = line.getQtyAvailable() != null ? line.getQtyAvailable() : java.math.BigDecimal.ZERO;
+                        if (qtyPicked.compareTo(available) > 0) {
+                            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Insufficient+inventory+for+" + (line.getVariantSku() != null ? line.getVariantSku() : "line"));
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // 2) Save line quantities
             for (int i = 0; i < lineIds.length; i++) {
                 Long lineId = parseLong(lineIds[i], -1);
                 if (lineId > 0) {
@@ -272,6 +315,26 @@ public class GoodsDeliveryNoteController extends HttpServlet {
                     gdnDao.updateGDNLineQuantities(lineId, qtyPicked, qtyPacked);
                 }
             }
+        }
+
+        // 3) If switching to CONFIRMED: require Qty Picked = Qty Required and Qty Packed = Qty Required for all lines
+        if ("CONFIRMED".equals(status)) {
+            dto.GDNDetailDTO gdnAfterUpdate = gdnDao.getGDNDetailById(gdnId);
+            if (gdnAfterUpdate != null && gdnAfterUpdate.getLines() != null) {
+                for (dto.GDNLineDTO line : gdnAfterUpdate.getLines()) {
+                    java.math.BigDecimal req = line.getQtyRequired() != null ? line.getQtyRequired() : java.math.BigDecimal.ZERO;
+                    java.math.BigDecimal picked = line.getQtyPicked() != null ? line.getQtyPicked() : java.math.BigDecimal.ZERO;
+                    java.math.BigDecimal packed = line.getQtyPacked() != null ? line.getQtyPacked() : java.math.BigDecimal.ZERO;
+                    if (picked.compareTo(req) != 0 || packed.compareTo(req) != 0) {
+                        response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+confirm%3A+Qty+Picked+and+Qty+Packed+must+equal+Qty+Required+for+all+lines");
+                        return;
+                    }
+                }
+            }
+            gdnDao.updateGDNStatus(gdnId, "CONFIRMED");
+            gdnDao.deductInventoryOnConfirm(gdnId);
+        } else if (status != null && !status.isBlank()) {
+            gdnDao.updateGDNStatus(gdnId, status);
         }
 
         response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);

@@ -21,20 +21,41 @@
                             <h5 class="card-title mb-0"><i class="fas fa-file-invoice me-2"></i>Header Information</h5>
                         </div>
                         <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Sales Order Number</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-light"><i class="fas fa-shopping-cart"></i></span>
-                                        <select class="form-control" name="soNumber" id="soSelect" required>
-                                            <option value="">-- Choose Sales Order --</option>
-                                            <c:forEach var="so" items="${salesOrders}">
-                                                <option value="${so.soNumber}">${so.soNumber} - ${so.customerName}</option>
-                                            </c:forEach>
-                                        </select>
-                                    </div>
-                                </div>
-                                <!-- Status set to PENDING when created (same as GRN) -->
+                            <p class="text-muted small mb-2">Select one or more sales orders (SO without GDN). Each SO can only have one GDN.</p>
+                            <div class="table-responsive border rounded">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr class="align-middle">
+                                            <th style="width: 52px;" class="text-center align-middle py-3">
+                                                <div class="d-flex align-items-center justify-content-center">
+                                                    <input type="checkbox" id="selectAllSo" class="form-check-input m-0" title="Select all" />
+                                                </div>
+                                            </th>
+                                            <th class="align-middle">SO Number</th>
+                                            <th class="align-middle">Customer</th>
+                                            <th class="align-middle">Requested Ship Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <c:forEach var="so" items="${salesOrders}">
+                                            <tr class="align-middle">
+                                                <td class="text-center align-middle py-2">
+                                                    <div class="d-flex align-items-center justify-content-center">
+                                                        <input type="checkbox" name="soNumbers" value="${so.soNumber}" class="form-check-input m-0 so-checkbox" />
+                                                    </div>
+                                                </td>
+                                                <td class="fw-semibold align-middle">${so.soNumber}</td>
+                                                <td class="align-middle">${so.customerName}</td>
+                                                <td class="align-middle">${so.requestedShipDate != null ? so.requestedShipDate : '—'}</td>
+                                            </tr>
+                                        </c:forEach>
+                                        <c:if test="${empty salesOrders}">
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted py-4">No sales orders (CREATED) available without GDN.</td>
+                                            </tr>
+                                        </c:if>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -50,6 +71,7 @@
                                 <table class="table table-hover align-middle mb-0" id="itemsTable">
                                     <thead class="table-light">
                                         <tr class="text-center">
+                                            <th id="thSoNumber" class="d-none">SO Number</th>
                                             <th>Variant SKU</th>
                                             <th>Product Name</th>
                                             <th>Color</th>
@@ -60,8 +82,8 @@
                                     </thead>
                                     <tbody id="itemsTableBody">
                                         <tr>
-                                            <td colspan="6" class="text-center text-muted py-4">
-                                                Please select a Sales Order to view items
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                Please select Sales Order(s) to view items
                                             </td>
                                         </tr>
                                     </tbody>
@@ -75,7 +97,7 @@
                     <div class="d-flex justify-content-end gap-2">
                         <a href="${pageContext.request.contextPath}/goods-delivery-note?action=list"
                             class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="btnCreateGdn">
                             <i class="fas fa-save me-1"></i> Create GDN
                         </button>
                     </div>
@@ -85,39 +107,106 @@
     </div>
 
     <script>
-        document.getElementById('soSelect').addEventListener('change', function() {
-            const soNumber = this.value;
-            if (!soNumber) {
-                document.getElementById('itemsTableBody').innerHTML = 
-                    '<tr><td colspan="6" class="text-center text-muted py-4">Please select a Sales Order to view items</td></tr>';
-                return;
+        (function() {
+            var baseUrl = '${pageContext.request.contextPath}/goods-delivery-note';
+            var soCheckboxes = document.querySelectorAll('.so-checkbox');
+            var selectAll = document.getElementById('selectAllSo');
+            var itemsBody = document.getElementById('itemsTableBody');
+            var thSoNumber = document.getElementById('thSoNumber');
+
+            function getCheckedSoNumbers() {
+                var checked = document.querySelectorAll('.so-checkbox:checked');
+                return Array.prototype.map.call(checked, function(c) { return c.value; });
             }
 
-            fetch('${pageContext.request.contextPath}/goods-delivery-note?action=getSoDetails&soNumber=' + soNumber)
-                .then(response => response.json())
-                .then(data => {
-                    let html = '';
-                    if (data.lines && data.lines.length > 0) {
-                        data.lines.forEach(line => {
-                            html += '<tr class="text-center">';
-                            html += '<td>' + (line.variantSku || 'N/A') + '</td>';
-                            html += '<td>' + (line.productName || 'N/A') + '</td>';
-                            html += '<td>' + (line.color || 'N/A') + '</td>';
-                            html += '<td>' + (line.size || 'N/A') + '</td>';
-                            html += '<td><strong>' + (line.qtyOrdered || 0) + '</strong></td>';
-                            html += '<td>' + (line.qtyAvailable || 0) + '</td>';
-                            html += '</tr>';
-                        });
-                    } else {
-                        html = '<tr><td colspan="6" class="text-center text-muted py-4">No items found</td></tr>';
+            function escapeHtml(s) {
+                if (s == null) return 'N/A';
+                var div = document.createElement('div');
+                div.textContent = s;
+                return div.innerHTML;
+            }
+
+            function renderRows(rows, showSoColumn) {
+                if (rows.length === 0) {
+                    itemsBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No items</td></tr>';
+                    return;
+                }
+                var html = '';
+                rows.forEach(function(row) {
+                    html += '<tr class="text-center">';
+                    if (showSoColumn) {
+                        html += '<td class="fw-semibold">' + escapeHtml(row.soNumber) + '</td>';
                     }
-                    document.getElementById('itemsTableBody').innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    document.getElementById('itemsTableBody').innerHTML = 
-                        '<tr><td colspan="6" class="text-center text-danger py-4">Error loading items</td></tr>';
+                    html += '<td>' + escapeHtml(row.variantSku) + '</td><td>' + escapeHtml(row.productName) + '</td>';
+                    html += '<td>' + escapeHtml(row.color) + '</td><td>' + escapeHtml(row.size) + '</td>';
+                    html += '<td><strong>' + (row.qtyOrdered != null ? row.qtyOrdered : 0) + '</strong></td>';
+                    html += '<td>' + (row.qtyAvailable != null ? row.qtyAvailable : 0) + '</td></tr>';
                 });
-        });
+                itemsBody.innerHTML = html;
+            }
+
+            function loadSoItems() {
+                var soNumbers = getCheckedSoNumbers();
+                if (soNumbers.length === 0) {
+                    thSoNumber.classList.add('d-none');
+                    itemsBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Please select Sales Order(s) to view items.</td></tr>';
+                    return;
+                }
+
+                var showSoColumn = soNumbers.length > 1;
+                if (showSoColumn) {
+                    thSoNumber.classList.remove('d-none');
+                } else {
+                    thSoNumber.classList.add('d-none');
+                }
+
+                var promises = soNumbers.map(function(soNumber) {
+                    return fetch(baseUrl + '?action=getSoDetails&soNumber=' + encodeURIComponent(soNumber))
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) {
+                            var soNum = data.soNumber || soNumber;
+                            return (data.lines || []).map(function(line) {
+                                return {
+                                    soNumber: soNum,
+                                    variantSku: line.variantSku,
+                                    productName: line.productName,
+                                    color: line.color,
+                                    size: line.size,
+                                    qtyOrdered: line.qtyOrdered,
+                                    qtyAvailable: line.qtyAvailable
+                                };
+                            });
+                        })
+                        .catch(function() { return []; });
+                });
+
+                itemsBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i> Loading...</td></tr>';
+
+                Promise.all(promises).then(function(results) {
+                    var allRows = [];
+                    results.forEach(function(rows) { allRows = allRows.concat(rows); });
+                    renderRows(allRows, showSoColumn);
+                }).catch(function() {
+                    itemsBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error loading items.</td></tr>';
+                });
+            }
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    soCheckboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
+                    loadSoItems();
+                });
+            }
+            soCheckboxes.forEach(function(cb) {
+                cb.addEventListener('change', loadSoItems);
+            });
+
+            document.getElementById('gdnForm').addEventListener('submit', function(e) {
+                if (getCheckedSoNumbers().length === 0) {
+                    e.preventDefault();
+                    alert('Please select at least one sales order.');
+                }
+            });
+        })();
     </script>
 </t:layout>
