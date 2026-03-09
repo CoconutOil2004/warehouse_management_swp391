@@ -244,6 +244,14 @@ public class PickTaskController extends HttpServlet {
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
         gdnDao.updateGDNStatus(task.getGdnId(), "CONFIRMED");
 
+        // Check if wave is completed
+        if (task.getWaveId() != null) {
+            if (pickTaskDao.isWaveComplete(task.getWaveId())) {
+                PickWaveDAO waveDao = new PickWaveDAO();
+                waveDao.updateWaveStatus(task.getWaveId(), "COMPLETED");
+            }
+        }
+
         request.getSession().setAttribute("message", "Hoàn thành task #" + pickTaskId + " thành công!");
         response.sendRedirect(request.getContextPath() + "/pick-task?action=myTasks");
     }

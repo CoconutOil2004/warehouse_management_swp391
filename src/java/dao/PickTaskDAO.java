@@ -364,6 +364,24 @@ public class PickTaskDAO extends DBContext {
     }
 
     /**
+     * Check if all tasks in a wave are completed.
+     */
+    public boolean isWaveComplete(Long waveId) throws Exception {
+        if (waveId == null) return false;
+        String sql = "SELECT COUNT(*) FROM pick_task WHERE wave_id = ? AND status != 'COMPLETED'";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, waveId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) == 0;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Get tasks by wave (for assign screen).
      */
     public List<PickTaskDTO> getTasksByWaveId(Long waveId) throws Exception {
