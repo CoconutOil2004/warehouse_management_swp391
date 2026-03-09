@@ -462,11 +462,23 @@ public class GoodsReceiptController extends HttpServlet {
         grn.setNote(note);
 
         Long resultGrnId = null;
+        dao.PurchaseOrderDAO poDao = new dao.PurchaseOrderDAO();
         if (existingId != null) {
             grnDao.updateGRN(grn, validLines);
             resultGrnId = existingId;
+
+            // Nếu đổi PO khác, mở lại PO cũ và đóng PO mới
+            GoodsReceipt oldGrn = grnDao.getById(existingId);
+            if (oldGrn != null && oldGrn.getPoId() != null && !oldGrn.getPoId().equals(poId)) {
+                poDao.updateStatus(oldGrn.getPoId(), "CREATED");
+            }
         } else {
             resultGrnId = grnDao.createGRN(grn, validLines);
+        }
+
+        // Đóng PO hiện tại
+        if (poId != null) {
+            poDao.updateStatus(poId, "CLOSED");
         }
 
         // Sau khi lưu thành công, chuyển đến màn hình Putaway
@@ -588,8 +600,8 @@ public class GoodsReceiptController extends HttpServlet {
                 grnDao.deleteGRN(id);
                 // Re-open PO if it was closed
                 if (grn.getPoId() != null) {
-                    PurchaseOrderDAO poDao = new PurchaseOrderDAO();
-                    poDao.updateStatus(grn.getPoId(), "CREATED"); // Or "IMPORTED", "CREATED" is safer
+                    dao.PurchaseOrderDAO poDao = new dao.PurchaseOrderDAO();
+                    poDao.updateStatus(grn.getPoId(), "CREATED");
                 }
             }
         }

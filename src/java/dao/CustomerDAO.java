@@ -16,9 +16,7 @@ public class CustomerDAO extends DBContext implements Dao<Customer> {
     public List<CustomerDTO> getActiveCustomers() throws SQLException {
         List<CustomerDTO> list = new ArrayList<>();
         String sql = "SELECT customer_id, code, name FROM customer WHERE status = 'ACTIVE' ORDER BY name";
-        try (Connection con = DBContext.getConnection();
-                PreparedStatement ps = con.prepareStatement(sql);
-                ResultSet rs = ps.executeQuery()) {
+        try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 CustomerDTO c = new CustomerDTO();
                 c.setCustomerId(rs.getLong("customer_id"));
@@ -28,11 +26,6 @@ public class CustomerDAO extends DBContext implements Dao<Customer> {
             }
         }
         return list;
-    }
-
-    @Override
-    public List<Customer> getList(Object[] parameters) throws SQLException {
-        return null;
     }
 
     public List<Customer> getList(String search, String sort, Long page, Long size) throws SQLException {
@@ -108,14 +101,15 @@ public class CustomerDAO extends DBContext implements Dao<Customer> {
         return null;
     }
 
-    /** Returns customer_id for the given code, or null if not found. */
+    /**
+     * Returns customer_id for the given code, or null if not found.
+     */
     public Long findIdByCode(String code) throws SQLException {
         if (code == null || code.isBlank()) {
             return null;
         }
         String sql = "SELECT customer_id FROM customer WHERE code = ?";
-        try (Connection con = DBContext.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+        try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, code.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -133,8 +127,7 @@ public class CustomerDAO extends DBContext implements Dao<Customer> {
                     VALUES (?, ?, ?, ?, ?, ?)
                 """;
 
-        try (Connection con = DBContext.getConnection();
-                PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, customer.getCode());
             ps.setString(2, customer.getName());
             ps.setString(3, customer.getEmail());

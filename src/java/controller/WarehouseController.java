@@ -213,7 +213,7 @@ public class WarehouseController extends HttpServlet {
         String error = validateWarehouse(warehouse, true);
 
         WarehouseDAO dao = new WarehouseDAO();
-        if (error == null && dao.codeExists(code, null)) {
+        if (error == null || dao.codeExists(code, null)) {
             error = "Warehouse code already exists.";
         }
 
@@ -240,7 +240,7 @@ public class WarehouseController extends HttpServlet {
 
         Long id = parseLong(request.getParameter("id"), -1L);
         Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Update warehouse ID: " + id);
-        
+
         if (id == null || id <= 0) {
             Logger.getLogger(WarehouseController.class.getName()).log(Level.WARNING, "Invalid warehouse id: " + id);
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid warehouse id");
@@ -252,8 +252,8 @@ public class WarehouseController extends HttpServlet {
         String address = trim(request.getParameter("address"));
         String status = trim(request.getParameter("status"));
 
-        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, 
-            String.format("Update params - code: %s, name: %s, address: %s, status: %s", code, name, address, status));
+        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO,
+                String.format("Update params - code: %s, name: %s, address: %s, status: %s", code, name, address, status));
 
         Warehouse warehouse = new Warehouse();
         warehouse.setWarehouseId(id);
@@ -279,7 +279,7 @@ public class WarehouseController extends HttpServlet {
 
         boolean updated = dao.update(warehouse);
         Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Update result: " + updated);
-        
+
         if (!updated) {
             request.setAttribute("error", "Failed to update warehouse. Please try again.");
             request.setAttribute("warehouse", warehouse);
@@ -295,7 +295,7 @@ public class WarehouseController extends HttpServlet {
 
         Long id = parseLong(request.getParameter("id"), -1L);
         Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Update warehouse ID: " + id);
-        
+
         if (id == null || id <= 0) {
             Logger.getLogger(WarehouseController.class.getName()).log(Level.WARNING, "Invalid warehouse id: " + id);
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid warehouse id");
@@ -307,8 +307,8 @@ public class WarehouseController extends HttpServlet {
         String address = trim(request.getParameter("address"));
         String status = trim(request.getParameter("status"));
 
-        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, 
-            String.format("Update params - code: %s, name: %s, address: %s, status: %s", code, name, address, status));
+        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO,
+                String.format("Update params - code: %s, name: %s, address: %s, status: %s", code, name, address, status));
 
         Warehouse warehouse = new Warehouse();
         warehouse.setWarehouseId(id);
@@ -332,7 +332,7 @@ public class WarehouseController extends HttpServlet {
 
         boolean updated = dao.update(warehouse);
         Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Update result: " + updated);
-        
+
         if (!updated) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Failed to update warehouse.");
             return;
@@ -346,7 +346,7 @@ public class WarehouseController extends HttpServlet {
 
         Long id = parseLong(request.getParameter("id"), -1L);
         Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Delete warehouse ID: " + id);
-        
+
         if (id == null || id <= 0) {
             Logger.getLogger(WarehouseController.class.getName()).log(Level.WARNING, "Invalid warehouse id: " + id);
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid warehouse id");
@@ -356,7 +356,7 @@ public class WarehouseController extends HttpServlet {
         WarehouseDAO dao = new WarehouseDAO();
         boolean deleted = dao.delete(id);
         Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Delete result: " + deleted);
-        
+
         if (!deleted) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Failed to delete warehouse.");
             return;
