@@ -248,7 +248,7 @@ public class PickTaskController extends HttpServlet {
         if (task.getWaveId() != null) {
             if (pickTaskDao.isWaveComplete(task.getWaveId())) {
                 PickWaveDAO waveDao = new PickWaveDAO();
-                waveDao.updateWaveStatus(task.getWaveId(), "COMPLETED");
+                waveDao.updateWaveStatus(task.getWaveId(), "DONE");
             }
         }
 

@@ -23,6 +23,7 @@
                     <select class="form-select" name="status" onchange="this.form.requestSubmit()">
                         <option value="">-- All Status --</option>
                         <option value="CREATED" ${param.status == 'CREATED' ? 'selected' : ''}>CREATED</option>
+                        <option value="DONE" ${param.status == 'DONE' ? 'selected' : ''}>DONE</option>
                     </select>
                 </form>
             </jsp:attribute>
@@ -48,9 +49,17 @@
                             </a>
                         </td>
                         <td>
-                            <span class="badge ${w.status == 'CREATED' ? 'bg-secondary' : 'bg-info'}">
-                                ${w.status}
-                            </span>
+                            <c:choose>
+                                <c:when test="${w.status == 'CREATED'}">
+                                    <span class="badge bg-secondary">CREATED</span>
+                                </c:when>
+                                <c:when test="${w.status == 'DONE'}">
+                                    <span class="badge bg-success">DONE</span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="badge bg-info">${w.status}</span>
+                                </c:otherwise>
+                            </c:choose>
                         </td>
                         <td>
                             ${w.createdByName != null ? w.createdByName : '-'}
