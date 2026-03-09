@@ -169,9 +169,23 @@ public class CustomerDAO extends DBContext implements Dao<Customer> {
         }
     }
 
+    /**
+     * Soft delete: set customer status to INACTIVE instead of removing the record.
+     */
     @Override
     public boolean delete(Long id) throws SQLException {
-        String sql = "DELETE FROM customer WHERE customer_id = ?";
+        String sql = "UPDATE customer SET status = 'INACTIVE' WHERE customer_id = ?";
+        try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    /**
+     * Set customer status back to ACTIVE.
+     */
+    public boolean activate(Long id) throws SQLException {
+        String sql = "UPDATE customer SET status = 'ACTIVE' WHERE customer_id = ?";
         try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setLong(1, id);
             return ps.executeUpdate() > 0;

@@ -63,4 +63,10 @@ public class ViewPath {
     public static final String SHIPMENT_CREATE = "/WEB-INF/views/outbound/shipment-create.jsp";
     public static final String SHIPMENT_DETAIL = "/WEB-INF/views/outbound/shipment-detail.jsp";
     public static final String SHIPMENT_EDIT = "/WEB-INF/views/outbound/shipment-edit.jsp";
+
+    // warehouse
+    public static final String WAREHOUSE_LIST = "/WEB-INF/views/admin/warehouse/list.jsp";
+    public static final String WAREHOUSE_CREATE = "/WEB-INF/views/admin/warehouse/create.jsp";
+    public static final String WAREHOUSE_UPDATE = "/WEB-INF/views/admin/warehouse/update.jsp";
+    public static final String WAREHOUSE_DETAIL = "/WEB-INF/views/admin/warehouse/detail.jsp";
 }
