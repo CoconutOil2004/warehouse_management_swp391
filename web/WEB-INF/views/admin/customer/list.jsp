@@ -12,7 +12,7 @@
                     </jsp:attribute>
 
                     <jsp:body>
-                        <c:set var="columns" value='${["Index", "Code", "Name", "Email", "Phone", "Action"]}' />
+                        <c:set var="columns" value='${["Index", "Code", "Name", "Email", "Phone", "Status", "Action"]}' />
                         <t:table columns="${columns}">
                             <jsp:attribute name="head">
                                 <form hx-get="${pageContext.request.contextPath}/admin/customer" hx-target="#wrapper"
@@ -40,6 +40,9 @@
                                         <td>${c.email}</td>
                                         <td>${c.phone}</td>
                                         <td>
+                                            <span class="badge bg-${c.status == 'ACTIVE' ? 'success' : 'secondary'}">${c.status}</span>
+                                        </td>
+                                        <td>
                                             <a href="${pageContext.request.contextPath}/admin/customer/detail?id=${c.customerId}"
                                                 class="btn btn-sm btn-circle btn-outline-info me-1" title="View Detail">
                                                 <i class="bi bi-eye fab"></i>
@@ -50,27 +53,38 @@
                                                 <i class="bi bi-pencil fab"></i>
                                             </a>
 
+                                            <c:if test="${c.status == 'ACTIVE'}">
                                             <button type="button" class="btn btn-sm btn-circle btn-outline-danger"
-                                                data-bs-toggle="modal" data-bs-target="#deleteModal${c.customerId}"
-                                                title="Delete">
-                                                <i class="bi bi-trash fab"></i>
+                                                data-bs-toggle="modal" data-bs-target="#deactivateModal${c.customerId}"
+                                                title="Deactivate">
+                                                <i class="bi bi-dash-circle fab"></i>
                                             </button>
 
-                                            <t:alert id="deleteModal${c.customerId}">
-                                                <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
+                                            <t:alert id="deactivateModal${c.customerId}">
+                                                <jsp:attribute name="title">Confirm Deactivate</jsp:attribute>
                                                 <jsp:attribute name="desciption">
-                                                    Are you sure you want to delete customer
-                                                    <strong>${c.name}</strong>? This action cannot be undone.
+                                                    Are you sure you want to deactivate customer
+                                                    <strong>${c.name}</strong>? The customer will be set to inactive.
                                                 </jsp:attribute>
                                                 <jsp:attribute name="action">
                                                     <button type="button" class="btn btn-danger"
                                                         hx-delete="${pageContext.request.contextPath}/admin/customer?id=${c.customerId}"
                                                         hx-target="#wrapper" hx-select="#wrapper" hx-swap="outerHTML"
                                                         data-bs-dismiss="modal">
-                                                        Delete
+                                                        Deactivate
                                                     </button>
                                                 </jsp:attribute>
                                             </t:alert>
+                                            </c:if>
+
+                                            <c:if test="${c.status == 'INACTIVE'}">
+                                            <button type="button" class="btn btn-sm btn-circle btn-outline-success"
+                                                hx-post="${pageContext.request.contextPath}/admin/customer/activate?id=${c.customerId}"
+                                                hx-target="#wrapper" hx-select="#wrapper" hx-swap="outerHTML"
+                                                title="Activate">
+                                                <i class="bi bi-check-circle fab"></i>
+                                            </button>
+                                            </c:if>
                                         </td>
                                     </tr>
                                 </c:forEach>
