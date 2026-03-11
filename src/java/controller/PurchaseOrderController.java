@@ -165,34 +165,11 @@ public class PurchaseOrderController extends HttpServlet {
         int offset = (page - 1) * size;
         List<PurchaseOrderListDTO> pos = poService.searchPurchaseOrders(keyword, status, expectedFrom, expectedTo, size,
                 offset);
-        // window pagination
-        //luôn hiển thị 2 trang trước 2 trang sau
-        int window = 2;
-        //dòng 1
-        int startPage = Math.max(1, page - window);
-        //không vượt quá total page
-        int endPage = Math.min(totalPages, page + window);
-        //Kiểm tra nếu số lượng trang hiển thị chưa đủ
-        if (endPage - startPage < window * 2) {
-            if (startPage == 1) {
-                endPage = Math.min(totalPages, startPage + window * 2);
-            }
-            if (endPage == totalPages) {
-                startPage = Math.max(1, endPage - window * 2);
-            }
-        }
-        // build baseUrl + queryString (để giữ filter khi bấm page)
-        String baseUrl = request.getContextPath() + "/purchase-orders";
-        String qs = RequestUtil.buildQueryString(
-                keyword, status, expectedFromStr, expectedToStr,
-                "expectedFrom", "expectedTo"); // bắt đầu bằng &
+
+        // UI dùng <t:pagination ... include="..."> để tự giữ filter khi bấm page
         request.setAttribute("pos", pos);
         request.setAttribute("page", page);
         request.setAttribute("totalPages", totalPages);
-        request.setAttribute("startPage", startPage);
-        request.setAttribute("endPage", endPage);
-        request.setAttribute("baseUrl", baseUrl);
-        request.setAttribute("qs", qs);
         request.setAttribute("size", size);
         request.setAttribute("total", totalRecords);
         request.getRequestDispatcher(ViewPath.PO_LIST).forward(request, response);
@@ -565,6 +542,7 @@ public class PurchaseOrderController extends HttpServlet {
             po.setSupplierId(supplierId);
             po.setExpectedDeliveryDate(expectedDate);
             po.setNote(note);
+            po.setStatus(current.getStatus()); // Giữ status để JSP không set readonly/disabled khi validation lỗi
 
             request.setAttribute("fieldErrors", fieldErrors);
             request.setAttribute("po", po);
@@ -592,6 +570,15 @@ public class PurchaseOrderController extends HttpServlet {
             throws Exception {
 
         long poId = Long.parseLong(request.getParameter("id"));
+        PurchaseOrderHeaderDTO po = poService.getPurchaseOrderHeader(poId);
+        if (po != null && "CLOSED".equalsIgnoreCase(po.getStatus())) {
+            String page = request.getParameter("page");
+            String redirectUrl = request.getContextPath() + "/purchase-orders";
+            redirectUrl += (page != null && !page.isBlank()) ? "?page=" + page + "&msg=cannotdelete" : "?msg=cannotdelete";
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
         boolean ok = poService.deletePurchaseOrder(poId);
         String msg = ok ? "deleted" : "notfound";
         String page = request.getParameter("page");

@@ -16,15 +16,21 @@
             <form action="${pageContext.request.contextPath}/purchase-orders" method="post" class="m-0 mr-2">
                 <input type="hidden" name="action" value="new">
                 <t:button type="submit" color="success">Add Purchase Order</t:button>
-            </form>
-            <form action="${pageContext.request.contextPath}/purchase-orders" method="get" class="m-0">
+                </form>
+                <form action="${pageContext.request.contextPath}/purchase-orders" method="get" class="m-0">
                 <input type="hidden" name="action" value="import">
                 <t:button type="submit" color="success">Import Purchase Order</t:button>
-            </form>
-        </div>
+                </form>
+            </div>
     </jsp:attribute>
 
     <jsp:body>
+        <c:if test="${param.msg == 'cannotdelete'}">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                Cannot delete Purchase Order with status CLOSED.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </c:if>
         <c:set var="columns" value='${["STT", "PO Number", "Supplier", "Expected Date", "Status", "Imported By", "Imported At", "Action"]}' />
         <t:table id="poTable" columns="${columns}">
             <jsp:attribute name="head">
@@ -72,9 +78,9 @@
 
             <jsp:body>
                 <c:if test="${not empty pos}">
-                    <c:forEach var="po" items="${pos}">
+                    <c:forEach var="po" items="${pos}" varStatus="status">
                         <tr>
-                            <td class="text-center">${po.poId}</td>
+                            <td class="text-center">${status.index + 1 + (page - 1) * size}</td>
                             <td><strong>${po.poNumber}</strong></td>
                             <td>${po.supplierName}</td>
                             <td>${po.expectedDeliveryDate}</td>
@@ -86,20 +92,22 @@
                                     <input type="hidden" name="action" value="detail">
                                     <input type="hidden" name="id" value="${po.poId}">
                                     <t:button type="submit" size="sm" variant="outline" color="primary">View</t:button>
-                                </form>
-                                <form action="${pageContext.request.contextPath}/purchase-orders" method="post" style="display:inline;" onsubmit="return confirm('Delete PO ${po.poNumber}?');">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="id" value="${po.poId}">
-                                    <input type="hidden" name="page" value="${page}">
-                                    <t:button type="submit" size="sm" variant="outline" color="danger">Delete</t:button>
-                                </form>
+                                    </form>
+                                <c:if test="${po.status != 'CLOSED'}">
+                                    <form action="${pageContext.request.contextPath}/purchase-orders" method="post" style="display:inline;" onsubmit="return confirm('Delete PO ${po.poNumber}?');">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="${po.poId}">
+                                        <input type="hidden" name="page" value="${page}">
+                                        <t:button type="submit" size="sm" variant="outline" color="danger">Delete</t:button>
+                                        </form>
+                                </c:if>
                                 <c:if test="${po.status == 'CREATED'}">
                                     <form action="${pageContext.request.contextPath}/purchase-orders" method="get" style="display:inline;">
                                         <input type="hidden" name="action" value="edit">
                                         <input type="hidden" name="id" value="${po.poId}">
                                         <input type="hidden" name="page" value="${page}">
                                         <t:button type="submit" size="sm" variant="outline" color="primary">Edit</t:button>
-                                    </form>
+                                        </form>
                                 </c:if>
                             </td>
                         </tr>

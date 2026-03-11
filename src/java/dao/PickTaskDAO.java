@@ -15,7 +15,7 @@ public class PickTaskDAO extends DBContext {
 
     private static final String SELECT_TASK_HEAD = """
                 SELECT pt.pick_task_id, pt.wave_id, COALESCE(pt.gdn_id, pw.gdn_id) AS gdn_id,
-                    gdn.gdn_number, so.so_number,
+                    gdn.gdn_number, so.so_number, so.so_id,
                     pt.assigned_to, u1.full_name AS assigned_to_name,
                     pt.assigned_by, u2.full_name AS assigned_by_name,
                     pt.status, pt.assigned_at, pt.started_at, pt.completed_at
@@ -30,21 +30,24 @@ public class PickTaskDAO extends DBContext {
     /**
      * Get pick tasks assigned to a user (for "My Tasks").
      */
-    public List<PickTaskDTO> getMyPickTasks(Long userId, String status) throws Exception {
+    public List<PickTaskDTO> getMyPickTasks(Long userId, String status, int limit, int offset) throws Exception {
         StringBuilder sql = new StringBuilder(SELECT_TASK_HEAD);
         sql.append(" WHERE pt.assigned_to = ?");
         if (status != null && !status.isBlank()) {
             sql.append(" AND pt.status = ?");
         }
-        sql.append(" ORDER BY pt.assigned_at DESC");
+        sql.append(" ORDER BY pt.assigned_at DESC LIMIT ? OFFSET ?");
 
         List<PickTaskDTO> list = new ArrayList<>();
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            ps.setLong(1, userId);
+            int paramIndex = 1;
+            ps.setLong(paramIndex++, userId);
             if (status != null && !status.isBlank()) {
-                ps.setString(2, status);
+                ps.setString(paramIndex++, status);
             }
+            ps.setInt(paramIndex++, limit);
+            ps.setInt(paramIndex++, offset);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     PickTaskDTO dto = mapTaskFromRs(rs);
@@ -54,6 +57,25 @@ public class PickTaskDAO extends DBContext {
             }
         }
         return list;
+    }
+
+    public int countMyPickTasks(Long userId, String status) throws Exception {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM pick_task pt WHERE pt.assigned_to = ?");
+        if (status != null && !status.isBlank()) {
+            sql.append(" AND pt.status = ?");
+        }
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int paramIndex = 1;
+            ps.setLong(paramIndex++, userId);
+            if (status != null && !status.isBlank()) {
+                ps.setString(paramIndex++, status);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
     }
 
     /**
@@ -82,6 +104,7 @@ public class PickTaskDAO extends DBContext {
         dto.setGdnId(rs.getLong("gdn_id"));
         dto.setGdnNumber(rs.getString("gdn_number"));
         dto.setSoNumber(rs.getString("so_number"));
+        dto.setSoId(rs.getObject("so_id") != null ? rs.getLong("so_id") : null);
         dto.setAssignedTo(rs.getObject("assigned_to") != null ? rs.getLong("assigned_to") : null);
         dto.setAssignedToName(rs.getString("assigned_to_name"));
         dto.setAssignedBy(rs.getObject("assigned_by") != null ? rs.getLong("assigned_by") : null);

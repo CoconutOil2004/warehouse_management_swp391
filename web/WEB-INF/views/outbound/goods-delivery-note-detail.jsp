@@ -1,4 +1,4 @@
-%@page contentType="text/html" pageEncoding="UTF-8" %>
+<%@page contentType="text/html" pageEncoding="UTF-8" %>
 <%@taglib tagdir="/WEB-INF/tags/" prefix="t" %>
 <%@taglib uri="jakarta.tags.core" prefix="c" %>
 <%@taglib uri="jakarta.tags.fmt" prefix="fmt" %>
@@ -137,26 +137,18 @@
             <%-- PENDING: Edit (popup) + Create wave & start picking --%>
             <c:if test="${gdn.status == 'PENDING'}">
                 <div class="d-flex gap-2 flex-wrap align-items-center">
-                    <button type="button" class="btn btn-warning shadow-sm text-dark" data-toggle="modal" data-target="#editGdnModal"
+                    <button type="button" class="btn btn-warning shadow-sm text-dark d-flex align-items-center" data-toggle="modal" data-target="#editGdnModal"
                         style="min-width: 100px; height: 38px;">
                         <i class="fas fa-edit me-2"></i>Edit
                     </button>
-<<<<<<< HEAD
-                    <form action="${pageContext.request.contextPath}/pick-wave" method="post" class="d-inline">
+                    <form action="${pageContext.request.contextPath}/pick-wave" method="post" class="d-flex align-items-center mb-0">
                         <input type="hidden" name="action" value="create"/>
                         <input type="hidden" name="gdnId" value="${gdn.gdnId}"/>
                         <button type="submit" class="btn btn-primary shadow-sm d-flex align-items-center justify-content-center"
                             style="min-width: 180px; height: 38px;">
-                            <i class="fas fa-box-open me-2"></i>Tạo wave & Bắt đầu picking
+                            <i class="fas fa-box-open me-2"></i>Create wave & Start picking
                         </button>
                     </form>
-=======
-                    <a href="${pageContext.request.contextPath}/pick-task?action=assign&gdnId=${gdn.gdnId}"
-                        class="btn btn-primary shadow-sm d-flex align-items-center justify-content-center"
-                        style="min-width: 165px; height: 38px; padding: 0;">
-                        <i class="fas fa-user-check me-2"></i>Assign Pick Task
-                    </a>
->>>>>>> nam
                 </div>
             </c:if>
 
@@ -165,33 +157,24 @@
                     <button type="button" class="btn btn-warning shadow-sm text-dark" data-toggle="modal" data-target="#editGdnModal">
                         <i class="fas fa-edit me-2"></i>Edit
                     </button>
-<<<<<<< HEAD
                     <c:if test="${wave != null}">
                         <a href="${pageContext.request.contextPath}/pick-task?action=assign&waveId=${wave.waveId}"
                             class="btn btn-primary shadow-sm">
                             <i class="fas fa-user-check me-2"></i>Assign tasks
-=======
-                    <c:if test="${gdn.status == 'DRAFT'}">
+                        </a>
+                    </c:if>
+                    <c:if test="${wave == null && gdn.status == 'DRAFT'}">
                         <a href="${pageContext.request.contextPath}/pick-task?action=assign&gdnId=${gdn.gdnId}"
                             class="btn btn-primary shadow-sm d-flex align-items-center justify-content-center"
                             style="min-width: 165px; height: 38px; padding: 0 1rem;">
                             <i class="fas fa-user-check me-2"></i>Assign Pick Task
->>>>>>> nam
                         </a>
                     </c:if>
-                    <a href="${pageContext.request.contextPath}/packing?action=form&gdnId=${gdn.gdnId}"
-                        class="btn btn-outline-primary shadow-sm">
-                        <i class="fas fa-box me-2"></i>Packing
-                    </a>
                 </div>
             </c:if>
 
             <c:if test="${gdn.status == 'CONFIRMED'}">
                 <div class="d-flex gap-2">
-                    <a href="${pageContext.request.contextPath}/packing?action=form&gdnId=${gdn.gdnId}"
-                        class="btn btn-outline-primary shadow-sm">
-                        <i class="fas fa-box me-2"></i>Packing
-                    </a>
                     <a href="${pageContext.request.contextPath}/shipment?action=create&gdnId=${gdn.gdnId}&soNumber=${gdn.soNumber}"
                         class="btn btn-success shadow-sm">
                         <i class="fas fa-truck me-2"></i>Create Shipment

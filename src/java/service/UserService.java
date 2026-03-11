@@ -13,9 +13,9 @@ public class UserService {
     private final UserDAO userDao = new UserDAO();
     private final dao.RoleDAO roleDao = new dao.RoleDAO();
 
-    public PageResponseDTO<UserDTO> getPagedList(String search, String sort, long page, long size, Long roleId, String status, Boolean isDeleted) throws SQLException {
-        long total = userDao.getPageCount(search, roleId, status, isDeleted);
-        List<User> users = userDao.getList(search, sort, page, size, roleId, status, isDeleted);
+    public PageResponseDTO<UserDTO> getPagedList(String search, String sort, long page, long size, Long roleId, String status, Boolean isDeleted, Long excludeUserId) throws SQLException {
+        long total = userDao.getPageCount(search, roleId, status, isDeleted, excludeUserId);
+        List<User> users = userDao.getList(search, sort, page, size, roleId, status, isDeleted, excludeUserId);
         
         List<UserDTO> dtos = users.stream()
             .map(this::mapToDTO)

@@ -66,4 +66,8 @@ public class SaleOrderService {
     public void updateSalesOrder(SaleOrderHeaderDTO header, List<SaleOrderLineDTO> lines, long userId) throws Exception {
         soDao.updateSalesOrderWithReservation(header, lines, userId);
     }
+
+    public boolean deleteSalesOrder(long soId) throws Exception {
+        return soDao.deleteSalesOrder(soId);
+    }
 }

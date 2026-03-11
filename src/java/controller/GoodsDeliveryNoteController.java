@@ -217,7 +217,7 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
         SaleOrderDAO soDao = new SaleOrderDAO();
 
-        String[] soNumbers = request.getParameterValues("soNumbers");
+        String soNumber = request.getParameter("soNumber");
         Long warehouseId = getWarehouseId(request);
 
         if (warehouseId == null) {
@@ -226,41 +226,36 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             return;
         }
 
-        if (soNumbers == null || soNumbers.length == 0) {
-            request.setAttribute("error", "Please select at least one Sales Order");
+        if (soNumber == null || soNumber.isBlank()) {
+            request.setAttribute("error", "Please select a Sales Order");
+            handleCreateForm(request, response);
+            return;
+        }
+
+        dto.SaleOrderHeaderDTO so = soDao.getSaleOrderByNumber(soNumber.trim());
+        if (so == null) {
+            request.setAttribute("error", "Sales Order not found.");
+            handleCreateForm(request, response);
+            return;
+        }
+
+        if (gdnDao.getSoIdsThatHaveGdn().contains(so.getSoId())) {
+            request.setAttribute("error", "This Sales Order already has a GDN.");
             handleCreateForm(request, response);
             return;
         }
 
         User user = (User) request.getSession().getAttribute("USER");
         Long createdBy = user != null ? user.getUserId() : null;
+        Long gdnId = gdnDao.createGDNFromSO(so.getSoId(), warehouseId, createdBy);
 
-        java.util.Set<Long> soIdsWithGdn = new java.util.HashSet<>(gdnDao.getSoIdsThatHaveGdn());
-        List<Long> createdGdnIds = new java.util.ArrayList<>();
-
-        for (String soNumber : soNumbers) {
-            if (soNumber == null || soNumber.isBlank()) continue;
-            dto.SaleOrderHeaderDTO so = soDao.getSaleOrderByNumber(soNumber.trim());
-            if (so == null) continue;
-            if (soIdsWithGdn.contains(so.getSoId())) continue; // already has GDN, skip
-            Long gdnId = gdnDao.createGDNFromSO(so.getSoId(), warehouseId, createdBy);
-            if (gdnId != null) {
-                createdGdnIds.add(gdnId);
-                soIdsWithGdn.add(so.getSoId());
-            }
-        }
-
-        if (createdGdnIds.isEmpty()) {
-            request.setAttribute("error", "No GDN created. Selected SO(s) may already have a GDN or were not found.");
+        if (gdnId == null) {
+            request.setAttribute("error", "Failed to create GDN.");
             handleCreateForm(request, response);
             return;
         }
 
-        if (createdGdnIds.size() == 1) {
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + createdGdnIds.get(0));
-        } else {
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list&created=" + createdGdnIds.size());
-        }
+        response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
     }
 
     private void handleUpdate(HttpServletRequest request, HttpServletResponse response) throws Exception {

@@ -210,13 +210,11 @@ public class PurchaseOrderDAO extends DBContext {
         try {
             conn.setAutoCommit(false);
 
-            // 1) Xóa lines trước để tránh FK constraint
             try (PreparedStatement ps = conn.prepareStatement(deleteLinesSql)) {
                 ps.setLong(1, poId);
                 ps.executeUpdate();
             }
 
-            // 2) Xóa PO header
             int affected;
             try (PreparedStatement ps = conn.prepareStatement(deletePoSql)) {
                 ps.setLong(1, poId);

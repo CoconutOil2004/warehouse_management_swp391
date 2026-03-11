@@ -27,6 +27,7 @@ public class CustomerController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String path = request.getPathInfo();
+        System.out.println(path);
         if (path == null || path.equals("/")) {
             viewList(request, response);
             return;
@@ -130,6 +131,22 @@ public class CustomerController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        String path = request.getPathInfo();
+        if ("/activate".equals(path)) {
+            try {
+                String idRaw = request.getParameter("id");
+                if (idRaw != null) {
+                    Long id = Long.valueOf(idRaw);
+                    customerDao.activate(id);
+                }
+                response.setHeader("HX-Location", request.getContextPath() + "/admin/customer");
+            } catch (Exception e) {
+                e.printStackTrace();
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Activate failed");
+            }
+            return;
+        }
+
         String code = request.getParameter("code");
         String name = request.getParameter("name");
         String email = request.getParameter("email");
@@ -157,6 +174,7 @@ public class CustomerController extends HttpServlet {
         } catch (SQLException e) {
             e.printStackTrace();
             request.setAttribute("error", "Database error: " + e.getMessage());
+            request.setAttribute("cusomer", c);
             request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
         }
     }

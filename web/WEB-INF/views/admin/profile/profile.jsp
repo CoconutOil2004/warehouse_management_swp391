@@ -7,8 +7,11 @@
     <jsp:body>
         <!-- Personal Information Section -->
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
                 <h6 class="m-0 font-weight-bold text-primary">Personal Information</h6>
+                <button type="button" class="btn btn-sm btn-primary shadow-sm" data-toggle="modal" data-target="#editProfileModal">
+                    <i class="fas fa-edit fa-sm text-white-50 mr-1"></i> Edit Profile
+                </button>
             </div>
             <div class="card-body">
                 <div class="row">
@@ -58,6 +61,40 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Profile Modal -->
+        <div class="modal fade" id="editProfileModal" tabindex="-1" role="dialog" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-primary font-weight-bold" id="editProfileModalLabel">Edit Personal Information</h5>
+                        <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                    </div>
+                    <form action="${pageContext.request.contextPath}/profile" method="POST">
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-gray-600">Full Name</label>
+                                <input type="text" class="form-control" name="fullName" value="${user.fullName}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-gray-600">Email Address</label>
+                                <input type="email" class="form-control" name="email" value="${user.email}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="small font-weight-bold text-gray-600">Phone Number</label>
+                                <input type="text" class="form-control" name="phone" value="${user.phone}">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
+                            <button class="btn btn-primary" type="submit">Save Changes</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

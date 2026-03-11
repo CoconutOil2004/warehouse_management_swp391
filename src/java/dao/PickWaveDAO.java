@@ -95,7 +95,7 @@ public class PickWaveDAO extends DBContext {
         return null;
     }
 
-    public List<PickWaveDTO> getWavesByStatus(String status) throws Exception {
+    public List<PickWaveDTO> getWaveList(String status, int limit, int offset) throws Exception {
         StringBuilder sql = new StringBuilder("""
                 SELECT pw.wave_id, pw.gdn_id, gdn.gdn_number, pw.status, pw.created_by, u.full_name AS created_by_name, pw.created_at
                 FROM pick_wave pw
@@ -106,7 +106,7 @@ public class PickWaveDAO extends DBContext {
         if (status != null && !status.isBlank()) {
             sql.append(" AND pw.status = ?");
         }
-        sql.append(" ORDER BY pw.wave_id DESC");
+        sql.append(" ORDER BY pw.wave_id DESC LIMIT ? OFFSET ?");
 
         List<PickWaveDTO> list = new ArrayList<>();
         try (Connection conn = getConnection();
@@ -115,6 +115,8 @@ public class PickWaveDAO extends DBContext {
             if (status != null && !status.isBlank()) {
                 ps.setString(idx++, status);
             }
+            ps.setInt(idx++, limit);
+            ps.setInt(idx++, offset);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     PickWaveDTO dto = new PickWaveDTO();
@@ -133,6 +135,30 @@ public class PickWaveDAO extends DBContext {
             }
         }
         return list;
+    }
+
+    public int countWaves(String status) throws Exception {
+        StringBuilder sql = new StringBuilder("""
+                SELECT COUNT(*)
+                FROM pick_wave pw
+                WHERE 1=1
+                """);
+        if (status != null && !status.isBlank()) {
+            sql.append(" AND pw.status = ?");
+        }
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            if (status != null && !status.isBlank()) {
+                ps.setString(1, status);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
     }
 
     public void updateWaveStatus(Long waveId, String status) throws Exception {

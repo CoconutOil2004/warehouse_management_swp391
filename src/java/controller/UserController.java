@@ -74,7 +74,8 @@ public class UserController extends HttpServlet {
                 isDeleted = "1".equals(isDeletedRaw) || "true".equalsIgnoreCase(isDeletedRaw);
             }
 
-            PageResponseDTO<UserDTO> pageResponse = userService.getPagedList(search, sort, page, size, roleId, status, isDeleted);
+            Long currentUserId = ((model.User) request.getSession().getAttribute("USER")).getUserId();
+            PageResponseDTO<UserDTO> pageResponse = userService.getPagedList(search, sort, page, size, roleId, status, isDeleted, currentUserId);
 
             request.setAttribute("page", page);
             request.setAttribute("size", size);

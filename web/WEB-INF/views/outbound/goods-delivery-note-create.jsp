@@ -16,46 +16,25 @@
 
             <div class="row">
                 <div class="col-lg-12">
-                    <div class="card shadow-sm border-0 mb-4">
-                        <div class="card-header bg-primary text-white py-3">
-                            <h5 class="card-title mb-0"><i class="fas fa-file-invoice me-2"></i>Header Information</h5>
+                    <div class="card shadow-sm border-0 mb-4 overflow-hidden">
+                        <div class="card-header bg-primary text-white py-3 px-4">
+                            <h5 class="card-title mb-0 d-flex align-items-center">
+                                <i class="fas fa-file-invoice me-2 opacity-90"></i>Header Information
+                            </h5>
                         </div>
-                        <div class="card-body">
-                            <p class="text-muted small mb-2">Select one or more sales orders (SO without GDN). Each SO can only have one GDN.</p>
-                            <div class="table-responsive border rounded">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
-                                        <tr class="align-middle">
-                                            <th style="width: 52px;" class="text-center align-middle py-3">
-                                                <div class="d-flex align-items-center justify-content-center">
-                                                    <input type="checkbox" id="selectAllSo" class="form-check-input m-0" title="Select all" />
-                                                </div>
-                                            </th>
-                                            <th class="align-middle">SO Number</th>
-                                            <th class="align-middle">Customer</th>
-                                            <th class="align-middle">Requested Ship Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <c:forEach var="so" items="${salesOrders}">
-                                            <tr class="align-middle">
-                                                <td class="text-center align-middle py-2">
-                                                    <div class="d-flex align-items-center justify-content-center">
-                                                        <input type="checkbox" name="soNumbers" value="${so.soNumber}" class="form-check-input m-0 so-checkbox" />
-                                                    </div>
-                                                </td>
-                                                <td class="fw-semibold align-middle">${so.soNumber}</td>
-                                                <td class="align-middle">${so.customerName}</td>
-                                                <td class="align-middle">${so.requestedShipDate != null ? so.requestedShipDate : '—'}</td>
-                                            </tr>
-                                        </c:forEach>
-                                        <c:if test="${empty salesOrders}">
-                                            <tr>
-                                                <td colspan="4" class="text-center text-muted py-4">No sales orders (CREATED) available without GDN.</td>
-                                            </tr>
-                                        </c:if>
-                                    </tbody>
-                                </table>
+                        <div class="card-body p-4">
+                            <div>
+                                <label class="form-label text-uppercase small fw-bold text-muted mb-2">Sales Order</label>
+                                <select name="soNumber" id="soNumberSelect" class="form-control form-control-lg border-2" required>
+                                    <option value="">— Select a sales order (no GDN yet) —</option>
+                                    <c:forEach var="so" items="${salesOrders}">
+                                        <option value="${so.soNumber}">${so.soNumber} — ${so.customerName} (${so.requestedShipDate != null ? so.requestedShipDate : '—'})</option>
+                                    </c:forEach>
+                                </select>
+                                <p class="form-text text-muted small mt-2 mb-0">One GDN is created per selected SO. Only CREATED orders without an existing GDN are listed.</p>
+                                <c:if test="${empty salesOrders}">
+                                    <p class="text-warning small mt-2 mb-0"><i class="fas fa-info-circle me-1"></i>No sales orders available.</p>
+                                </c:if>
                             </div>
                         </div>
                     </div>
@@ -71,7 +50,6 @@
                                 <table class="table table-hover align-middle mb-0" id="itemsTable">
                                     <thead class="table-light">
                                         <tr class="text-center">
-                                            <th id="thSoNumber" class="d-none">SO Number</th>
                                             <th>Variant SKU</th>
                                             <th>Product Name</th>
                                             <th>Color</th>
@@ -82,8 +60,8 @@
                                     </thead>
                                     <tbody id="itemsTableBody">
                                         <tr>
-                                            <td colspan="7" class="text-center text-muted py-4">
-                                                Please select Sales Order(s) to view items
+                                            <td colspan="6" class="text-center text-muted py-4">
+                                                Please select a Sales Order to view items
                                             </td>
                                         </tr>
                                     </tbody>
@@ -109,15 +87,8 @@
     <script>
         (function() {
             var baseUrl = '${pageContext.request.contextPath}/goods-delivery-note';
-            var soCheckboxes = document.querySelectorAll('.so-checkbox');
-            var selectAll = document.getElementById('selectAllSo');
+            var soSelect = document.getElementById('soNumberSelect');
             var itemsBody = document.getElementById('itemsTableBody');
-            var thSoNumber = document.getElementById('thSoNumber');
-
-            function getCheckedSoNumbers() {
-                var checked = document.querySelectorAll('.so-checkbox:checked');
-                return Array.prototype.map.call(checked, function(c) { return c.value; });
-            }
 
             function escapeHtml(s) {
                 if (s == null) return 'N/A';
@@ -126,17 +97,14 @@
                 return div.innerHTML;
             }
 
-            function renderRows(rows, showSoColumn) {
+            function renderRows(rows) {
                 if (rows.length === 0) {
-                    itemsBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No items</td></tr>';
+                    itemsBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No items</td></tr>';
                     return;
                 }
                 var html = '';
                 rows.forEach(function(row) {
                     html += '<tr class="text-center">';
-                    if (showSoColumn) {
-                        html += '<td class="fw-semibold">' + escapeHtml(row.soNumber) + '</td>';
-                    }
                     html += '<td>' + escapeHtml(row.variantSku) + '</td><td>' + escapeHtml(row.productName) + '</td>';
                     html += '<td>' + escapeHtml(row.color) + '</td><td>' + escapeHtml(row.size) + '</td>';
                     html += '<td><strong>' + (row.qtyOrdered != null ? row.qtyOrdered : 0) + '</strong></td>';
@@ -146,65 +114,41 @@
             }
 
             function loadSoItems() {
-                var soNumbers = getCheckedSoNumbers();
-                if (soNumbers.length === 0) {
-                    thSoNumber.classList.add('d-none');
-                    itemsBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">Please select Sales Order(s) to view items.</td></tr>';
+                var soNumber = soSelect ? soSelect.value : '';
+                if (!soNumber || soNumber.trim() === '') {
+                    itemsBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Please select a Sales Order to view items.</td></tr>';
                     return;
                 }
-
-                var showSoColumn = soNumbers.length > 1;
-                if (showSoColumn) {
-                    thSoNumber.classList.remove('d-none');
-                } else {
-                    thSoNumber.classList.add('d-none');
-                }
-
-                var promises = soNumbers.map(function(soNumber) {
-                    return fetch(baseUrl + '?action=getSoDetails&soNumber=' + encodeURIComponent(soNumber))
-                        .then(function(r) { return r.json(); })
-                        .then(function(data) {
-                            var soNum = data.soNumber || soNumber;
-                            return (data.lines || []).map(function(line) {
-                                return {
-                                    soNumber: soNum,
-                                    variantSku: line.variantSku,
-                                    productName: line.productName,
-                                    color: line.color,
-                                    size: line.size,
-                                    qtyOrdered: line.qtyOrdered,
-                                    qtyAvailable: line.qtyAvailable
-                                };
-                            });
-                        })
-                        .catch(function() { return []; });
-                });
-
-                itemsBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i> Loading...</td></tr>';
-
-                Promise.all(promises).then(function(results) {
-                    var allRows = [];
-                    results.forEach(function(rows) { allRows = allRows.concat(rows); });
-                    renderRows(allRows, showSoColumn);
-                }).catch(function() {
-                    itemsBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error loading items.</td></tr>';
-                });
+                itemsBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-1"></i> Loading...</td></tr>';
+                fetch(baseUrl + '?action=getSoDetails&soNumber=' + encodeURIComponent(soNumber))
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        var rows = (data.lines || []).map(function(line) {
+                            return {
+                                variantSku: line.variantSku,
+                                productName: line.productName,
+                                color: line.color,
+                                size: line.size,
+                                qtyOrdered: line.qtyOrdered,
+                                qtyAvailable: line.qtyAvailable
+                            };
+                        });
+                        renderRows(rows);
+                    })
+                    .catch(function() {
+                        itemsBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Error loading items.</td></tr>';
+                    });
             }
 
-            if (selectAll) {
-                selectAll.addEventListener('change', function() {
-                    soCheckboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
-                    loadSoItems();
-                });
+            if (soSelect) {
+                soSelect.addEventListener('change', loadSoItems);
             }
-            soCheckboxes.forEach(function(cb) {
-                cb.addEventListener('change', loadSoItems);
-            });
 
             document.getElementById('gdnForm').addEventListener('submit', function(e) {
-                if (getCheckedSoNumbers().length === 0) {
+                var soNumber = soSelect ? soSelect.value : '';
+                if (!soNumber || soNumber.trim() === '') {
                     e.preventDefault();
-                    alert('Please select at least one sales order.');
+                    alert('Please select a sales order.');
                 }
             });
         })();

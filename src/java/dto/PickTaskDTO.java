@@ -13,6 +13,7 @@ public class PickTaskDTO {
     private Long gdnId;
     private String gdnNumber;
     private String soNumber;
+    private Long soId;
     private Long assignedTo;
     private String assignedToName;
     private Long assignedBy;

@@ -23,6 +23,12 @@
     </jsp:attribute>
 
     <jsp:body>
+        <c:if test="${param.msg == 'cannotdelete'}">
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                Cannot delete Sale Order with status CLOSED.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </c:if>
         <c:set var="columns" value='${["STT", "SO Number", "Customer", "Request Ship Date", "Ship To Address", "Imported By", "Status", "Action"]}' />
         <t:table id="soTable" columns="${columns}">
             <jsp:attribute name="head">
@@ -86,12 +92,14 @@
                                     <input type="hidden" name="id" value="${so.soId}">
                                     <t:button type="submit" size="sm" variant="outline" color="primary">View</t:button>
                                     </form>
+                                <c:if test="${so.status != 'CLOSED'}">
                                     <form action="${pageContext.request.contextPath}/sales-orders" method="post" style="display:inline;" onsubmit="return confirm('Delete SO ${so.soNumber}?');">
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="id" value="${so.soId}">
-                                    <input type="hidden" name="page" value="${page}">
-                                    <t:button type="submit" size="sm" variant="outline" color="danger">Delete</t:button>
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="${so.soId}">
+                                        <input type="hidden" name="page" value="${page}">
+                                        <t:button type="submit" size="sm" variant="outline" color="danger">Delete</t:button>
                                     </form>
+                                </c:if>
                                 <c:if test="${so.status == 'CREATED'}">
                                     <form action="${pageContext.request.contextPath}/sales-orders" method="get" style="display:inline;">
                                         <input type="hidden" name="action" value="edit">

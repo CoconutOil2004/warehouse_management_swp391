@@ -138,6 +138,43 @@ public class SaleOrderDAO extends DBContext {
         }
     }
 
+    public boolean deleteSalesOrder(long soId) throws SQLException {
+        try (Connection con = DBContext.getConnection()) {
+            boolean oldAutoCommit = con.getAutoCommit();
+            try {
+                con.setAutoCommit(false);
+
+                try (PreparedStatement ps = con.prepareStatement("""
+                        DELETE r FROM inventory_reservation r
+                        INNER JOIN sales_order_line sol ON r.so_line_id = sol.so_line_id
+                        WHERE sol.so_id = ?
+                        """)) {
+                    ps.setLong(1, soId);
+                    ps.executeUpdate();
+                }
+
+                try (PreparedStatement ps = con.prepareStatement("DELETE FROM sales_order_line WHERE so_id=?")) {
+                    ps.setLong(1, soId);
+                    ps.executeUpdate();
+                }
+
+                int affected;
+                try (PreparedStatement ps = con.prepareStatement("DELETE FROM sales_order WHERE so_id=?")) {
+                    ps.setLong(1, soId);
+                    affected = ps.executeUpdate();
+                }
+
+                con.commit();
+                return affected > 0;
+            } catch (SQLException e) {
+                con.rollback();
+                throw e;
+            } finally {
+                con.setAutoCommit(oldAutoCommit);
+            }
+        }
+    }
+
     /**
      * Get SO by SO number (for GDN creation)
      */
@@ -641,6 +678,16 @@ public class SaleOrderDAO extends DBContext {
 
                     ps.setLong(5, header.getSoId());
 
+                    ps.executeUpdate();
+                }
+
+                // Xóa inventory_reservation trước (vì FK so_line_id -> sales_order_line)
+                try (PreparedStatement ps = con.prepareStatement("""
+                        DELETE r FROM inventory_reservation r
+                        INNER JOIN sales_order_line sol ON r.so_line_id = sol.so_line_id
+                        WHERE sol.so_id = ?
+                        """)) {
+                    ps.setLong(1, header.getSoId());
                     ps.executeUpdate();
                 }
 

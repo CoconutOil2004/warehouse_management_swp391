@@ -62,7 +62,7 @@ public class UserDAO extends DBContext implements Dao<User> {
         return null;
     }
 
-    public List<User> getList(String search, String sort, Long page, Long size, Long roleId, String status, Boolean isDeleted) throws SQLException {
+    public List<User> getList(String search, String sort, Long page, Long size, Long roleId, String status, Boolean isDeleted, Long excludeUserId) throws SQLException {
         List<User> list = new ArrayList<>();
 
         String query = """
@@ -74,6 +74,7 @@ public class UserDAO extends DBContext implements Dao<User> {
               AND (? IS NULL OR u.user_id IN (SELECT ur2.user_id FROM user_role ur2 WHERE ur2.role_id = ?))
               AND (? IS NULL OR u.status = ?)
               AND (? IS NULL OR u.is_deleted = ?)
+              AND (? IS NULL OR u.user_id != ?)
             GROUP BY u.user_id
             ORDER BY
                 u.is_deleted ASC,
@@ -86,7 +87,7 @@ public class UserDAO extends DBContext implements Dao<User> {
 
         PreparedStatement statement = conn.prepareStatement(query);
         var offset = (page - 1) * size;
-        this.prepare(statement, search, search, search, roleId, roleId, status, status, isDeleted, isDeleted, sort, sort, sort, sort, sort, sort, size, offset);
+        this.prepare(statement, search, search, search, roleId, roleId, status, status, isDeleted, isDeleted, excludeUserId, excludeUserId, sort, sort, sort, sort, sort, sort, size, offset);
 
         ResultSet result = statement.executeQuery();
 
@@ -98,7 +99,7 @@ public class UserDAO extends DBContext implements Dao<User> {
         return list;
     }
 
-    public Long getPageCount(String search, Long roleId, String status, Boolean isDeleted) throws SQLException {
+    public Long getPageCount(String search, Long roleId, String status, Boolean isDeleted, Long excludeUserId) throws SQLException {
         String query = """
             SELECT COUNT(DISTINCT u.user_id) FROM user u
             LEFT JOIN user_role ur ON u.user_id = ur.user_id
@@ -106,10 +107,11 @@ public class UserDAO extends DBContext implements Dao<User> {
               AND (? IS NULL OR ur.role_id = ?)
               AND (? IS NULL OR u.status = ?)
               AND (? IS NULL OR u.is_deleted = ?)
+              AND (? IS NULL OR u.user_id != ?)
         """;
 
         PreparedStatement statement = conn.prepareStatement(query);
-        this.prepare(statement, search, search, search, roleId, roleId, status, status, isDeleted, isDeleted);
+        this.prepare(statement, search, search, search, roleId, roleId, status, status, isDeleted, isDeleted, excludeUserId, excludeUserId);
 
         ResultSet result = statement.executeQuery();
         if (result.next()) {

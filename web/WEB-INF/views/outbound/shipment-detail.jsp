@@ -228,7 +228,7 @@
                                             <div class="col-12">
                                                 <div class="p-3 rounded bg-light border-left-warning">
                                                     <div class="info-label text-muted"><i class="fas fa-link mr-1"></i>
-                                                        Chứng từ GDN liên kết</div>
+                                                        Linked GDN document</div>
                                                     <div class="info-value text-primary font-weight-bold">
                                                         ${shipment.gdnNumber}</div>
                                                 </div>

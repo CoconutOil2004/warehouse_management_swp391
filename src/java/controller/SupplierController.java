@@ -145,7 +145,7 @@ public class SupplierController extends HttpServlet {
         s.setStatus("ACTIVE");
 
         try {
-            if (supplierDao.codeExists(code, null)) {
+            if (!supplierDao.codeExists(code, null)) {
                 request.setAttribute("error", "Supplier Code already exists");
                 request.setAttribute("supplier", s); // keep input
                 request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);

@@ -53,12 +53,22 @@ public class PickTaskController extends HttpServlet {
             return;
         }
 
+        int page = (int) parseLong(request.getParameter("page"), 1);
+        int pageSize = (int) parseLong(request.getParameter("size"), 10);
+        int offset = (page - 1) * pageSize;
+
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         String status = request.getParameter("status");
-        List<PickTaskDTO> tasks = pickTaskDao.getMyPickTasks(user.getUserId(), status);
+        List<PickTaskDTO> tasks = pickTaskDao.getMyPickTasks(user.getUserId(), status, pageSize, offset);
+        int totalTasks = pickTaskDao.countMyPickTasks(user.getUserId(), status);
+        int totalPages = (int) Math.ceil((double) totalTasks / pageSize);
 
         request.setAttribute("tasks", tasks);
         request.setAttribute("status", status);
+        request.setAttribute("page", (long) page);
+        request.setAttribute("pages", (long) totalPages);
+        request.setAttribute("size", (long) pageSize);
+        request.setAttribute("total", (long) totalTasks);
         request.getRequestDispatcher("/WEB-INF/views/outbound/pick-task-list.jsp").forward(request, response);
     }
 
@@ -172,8 +182,10 @@ public class PickTaskController extends HttpServlet {
         }
 
         if (waveId > 0) {
+            request.getSession().setAttribute("message", "Đã phân công nhân viên xử lý task #" + pickTaskId);
             response.sendRedirect(request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
         } else {
+            request.getSession().setAttribute("message", "Phân công task thành công");
             response.sendRedirect(request.getContextPath() + "/pick-task?action=myTasks");
         }
     }
@@ -186,6 +198,7 @@ public class PickTaskController extends HttpServlet {
         }
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         pickTaskDao.startTask(pickTaskId);
+        request.getSession().setAttribute("message", "Đã bắt đầu thực hiện task #" + pickTaskId);
         response.sendRedirect(request.getContextPath() + "/pick-task?action=detail&id=" + pickTaskId);
     }
 
@@ -231,6 +244,7 @@ public class PickTaskController extends HttpServlet {
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
         gdnDao.updateGDNStatus(task.getGdnId(), "CONFIRMED");
 
+        request.getSession().setAttribute("message", "Hoàn thành task #" + pickTaskId + " thành công!");
         response.sendRedirect(request.getContextPath() + "/pick-task?action=myTasks");
     }
 
