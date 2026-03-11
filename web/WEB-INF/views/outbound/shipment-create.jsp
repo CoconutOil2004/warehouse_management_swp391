@@ -40,7 +40,7 @@
                                             <select class="form-control select2" name="gdnId" required>
                                                 <option value="">-- Choose a Confirmed GDN --</option>
                                                 <c:forEach var="g" items="${gdns}">
-                                                    <option value="${g.gdnId}">${g.gdnNumber}</option>
+                                                    <option value="${g.gdnId}" ${selectedGdnId != null && selectedGdnId == g.gdnId ? 'selected' : ''}>${g.gdnNumber}</option>
                                                 </c:forEach>
                                             </select>
                                             <small class="text-muted">Only confirmed GDNs that haven't been shipped are

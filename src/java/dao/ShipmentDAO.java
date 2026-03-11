@@ -242,10 +242,11 @@ public class ShipmentDAO extends DBContext {
         return list;
     }
 
+    /** Only CONFIRMED GDN that do not yet have a shipment. */
     public List<model.GoodsDeliveryNote> getAvailableGDNs() throws SQLException {
         String sql = """
                     SELECT * FROM goods_delivery_note
-                    WHERE status <> 'CANCELLED'
+                    WHERE status = 'CONFIRMED'
                     AND gdn_id NOT IN (SELECT gdn_id FROM shipment WHERE gdn_id IS NOT NULL)
                     ORDER BY gdn_id DESC
                 """;

@@ -43,10 +43,11 @@ public class AuthFilter implements Filter {
         HttpSession session = req.getSession(false);
         Object user = (session == null) ? null : session.getAttribute(SESSION_USER_KEY);
 
-        if (user == null) {
-            res.sendRedirect(ctx + "/authen");
-            return;
-        }
+        // Tạm thời comment để vào app không cần đăng nhập
+        // if (user == null) {
+        //     res.sendRedirect(ctx + "/authen");
+        //     return;
+        // }
 
         chain.doFilter(request, response);
     }

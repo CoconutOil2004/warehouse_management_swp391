@@ -371,6 +371,24 @@ public class SlotDAO extends DBContext {
         return null;
     }
     
+    /** Check if slot belongs to the given warehouse (slot -> zone -> warehouse). */
+    public boolean isSlotInWarehouse(Long slotId, Long warehouseId) throws Exception {
+        if (slotId == null || warehouseId == null) return false;
+        String sql = """
+                    SELECT 1 FROM slot s
+                    JOIN zone z ON s.zone_id = z.zone_id
+                    WHERE s.slot_id = ? AND z.warehouse_id = ?
+                """;
+        try (Connection con = DBContext.getConnection();
+                PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, slotId);
+            ps.setLong(2, warehouseId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
     public boolean updateMaxCapacity(Long slotId, BigDecimal maxCapacity) throws Exception {
         String sql = """
             UPDATE slot
