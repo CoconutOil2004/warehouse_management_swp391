@@ -27,6 +27,7 @@ public class CustomerController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String path = request.getPathInfo();
+        System.out.println(path);
         if (path == null || path.equals("/")) {
             viewList(request, response);
             return;
@@ -173,6 +174,7 @@ public class CustomerController extends HttpServlet {
         } catch (SQLException e) {
             e.printStackTrace();
             request.setAttribute("error", "Database error: " + e.getMessage());
+            request.setAttribute("cusomer", c);
             request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
         }
     }
