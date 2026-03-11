@@ -220,7 +220,8 @@ public class PickWaveController extends HttpServlet {
             waveDao.deleteWaveById(waveId);
             dto.GDNDetailDTO refreshedGdn = gdnDao.getGDNDetailById(gdnId);
             request.setAttribute("gdn", refreshedGdn);
-            request.setAttribute("error", "Cannot create pick wave due to related data error (GDN/Inventory). Please check and try again.");
+            String cause = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
+            request.setAttribute("error", "Cannot create pick wave: " + cause + ". Please ensure inventory exists in slots for this warehouse.");
             request.getRequestDispatcher("WEB-INF/views/outbound/goods-delivery-note-detail.jsp")
                    .forward(request, response);
             return;

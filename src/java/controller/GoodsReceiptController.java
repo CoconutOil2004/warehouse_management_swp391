@@ -456,7 +456,61 @@ public class GoodsReceiptController extends HttpServlet {
 
         // Default Warehouse ID to 1 since it's removed from UI
         String whIdStr = request.getParameter("warehouseId");
-        grn.setWarehouseId((whIdStr != null && !whIdStr.isBlank()) ? Long.parseLong(whIdStr) : 1L);
+        Long warehouseId = (whIdStr != null && !whIdStr.isBlank()) ? Long.parseLong(whIdStr) : 1L;
+        Warehouse wh = new WarehouseDAO().getWarehouseById(warehouseId);
+        if (wh == null) {
+            fieldErrors.put("warehouseId", "Warehouse không tồn tại.");
+            request.setAttribute("fieldErrors", fieldErrors);
+            request.setAttribute("grnId", existingId);
+            request.setAttribute("oldGrnNumber", grnNumber);
+            request.setAttribute("oldPoId", poIdStr);
+            request.setAttribute("oldSupplierId", supplierIdStr);
+            request.setAttribute("oldNote", note);
+            request.setAttribute("oldLinesJson", packageLinesToJson(new ArrayList<>(validLines)));
+            handleCreateForm(request, response);
+            return;
+        }
+        if (!"ACTIVE".equals(wh.getStatus())) {
+            fieldErrors.put("warehouseId", "Chỉ được chọn warehouse đang ACTIVE.");
+            request.setAttribute("fieldErrors", fieldErrors);
+            request.setAttribute("grnId", existingId);
+            request.setAttribute("oldGrnNumber", grnNumber);
+            request.setAttribute("oldPoId", poIdStr);
+            request.setAttribute("oldSupplierId", supplierIdStr);
+            request.setAttribute("oldNote", note);
+            request.setAttribute("oldLinesJson", packageLinesToJson(new ArrayList<>(validLines)));
+            handleCreateForm(request, response);
+            return;
+        }
+        grn.setWarehouseId(warehouseId);
+
+        // Validate PO exists and status = CREATED when creating new GRN (or when changing PO)
+        PurchaseOrderDAO poDaoForValidation = new PurchaseOrderDAO();
+        PurchaseOrderHeaderDTO poHeader = poDaoForValidation.getPurchaseOrderHeader(poId);
+        if (poHeader == null) {
+            fieldErrors.put("poId", "Purchase Order không tồn tại.");
+            request.setAttribute("fieldErrors", fieldErrors);
+            request.setAttribute("grnId", existingId);
+            request.setAttribute("oldGrnNumber", grnNumber);
+            request.setAttribute("oldPoId", poIdStr);
+            request.setAttribute("oldSupplierId", supplierIdStr);
+            request.setAttribute("oldNote", note);
+            request.setAttribute("oldLinesJson", packageLinesToJson(new ArrayList<>(validLines)));
+            handleCreateForm(request, response);
+            return;
+        }
+        if (!"CREATED".equals(poHeader.getStatus())) {
+            fieldErrors.put("poId", "Chỉ được tạo/sửa phiếu nhập từ Purchase Order có trạng thái CREATED. PO hiện tại: " + poHeader.getStatus());
+            request.setAttribute("fieldErrors", fieldErrors);
+            request.setAttribute("grnId", existingId);
+            request.setAttribute("oldGrnNumber", grnNumber);
+            request.setAttribute("oldPoId", poIdStr);
+            request.setAttribute("oldSupplierId", supplierIdStr);
+            request.setAttribute("oldNote", note);
+            request.setAttribute("oldLinesJson", packageLinesToJson(new ArrayList<>(validLines)));
+            handleCreateForm(request, response);
+            return;
+        }
 
         grn.setCreatedBy(user.getUserId());
         grn.setNote(note);
@@ -524,7 +578,15 @@ public class GoodsReceiptController extends HttpServlet {
 
     private void handleConfirmPutaway(HttpServletRequest request, HttpServletResponse response) throws Exception {
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
+        SlotDAO slotDao = new SlotDAO();
         Long grnId = Long.parseLong(request.getParameter("grnId"));
+
+        GoodsReceipt grn = grnDao.getById(grnId);
+        if (grn == null) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list");
+            return;
+        }
+        Long warehouseId = grn.getWarehouseId();
 
         Object sessionUser = request.getSession().getAttribute("USER");
         Long userId = 1L; // Fallback for testing
@@ -582,7 +644,24 @@ public class GoodsReceiptController extends HttpServlet {
             }
         }
 
+        // Validate: each slot must belong to GRN warehouse; per-line putaway total <= qty_good
         if (!putawayLines.isEmpty()) {
+            java.util.Map<Long, BigDecimal> putawaySumByLine = new java.util.HashMap<>();
+            for (model.PutAwayLine pl : putawayLines) {
+                putawaySumByLine.merge(pl.getGrnLineId(), pl.getQtyPutaway(), BigDecimal::add);
+                if (!slotDao.isSlotInWarehouse(pl.getToSlotId(), warehouseId)) {
+                    response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=Slot+not+in+warehouse");
+                    return;
+                }
+            }
+            for (model.GoodsReceiptLine line : lines) {
+                BigDecimal totalPutaway = putawaySumByLine.getOrDefault(line.getGrnLineId(), BigDecimal.ZERO);
+                BigDecimal qtyGood = line.getQtyGood() != null ? line.getQtyGood() : BigDecimal.ZERO;
+                if (totalPutaway.compareTo(qtyGood) > 0) {
+                    response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=Putaway+qty+exceeds+received+qty+for+line");
+                    return;
+                }
+            }
             grnDao.savePutawayInfo(grnId, userId, putawayLines);
         }
 

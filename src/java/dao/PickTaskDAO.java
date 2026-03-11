@@ -193,20 +193,27 @@ public class PickTaskDAO extends DBContext {
         List<AllocLine> allocs = new ArrayList<>();
         boolean hasInsufficientStock = false;
         for (dto.GDNLineDTO line : gdnLines) {
+            if (line.getGdnLineId() == null || line.getVariantId() == null) {
+                hasInsufficientStock = true;
+                continue;
+            }
             BigDecimal qtyNeed = line.getQtyRequired() != null ? line.getQtyRequired() : BigDecimal.ZERO;
             if (qtyNeed.compareTo(BigDecimal.ZERO) <= 0) continue;
 
             List<SlotQtyDTO> slots = invDao.getAvailableSlotsForVariant(warehouseId, line.getVariantId(), qtyNeed);
-            if (slots.isEmpty()) {
+            if (slots == null || slots.isEmpty()) {
                 hasInsufficientStock = true;
                 continue;
             }
             BigDecimal remaining = qtyNeed;
             for (SlotQtyDTO slot : slots) {
                 if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
-                BigDecimal take = slot.getQtyAvailable().min(remaining);
+                BigDecimal avail = slot.getQtyAvailable() != null ? slot.getQtyAvailable() : BigDecimal.ZERO;
+                BigDecimal take = avail.min(remaining);
                 if (take.compareTo(BigDecimal.ZERO) <= 0) continue;
-                allocs.add(new AllocLine(line.getGdnLineId(), line.getVariantId(), take, slot.getSlotId(), slot.getZoneId()));
+                Long slotId = slot.getSlotId();
+                Long zoneId = slot.getZoneId();
+                allocs.add(new AllocLine(line.getGdnLineId(), line.getVariantId(), take, slotId, zoneId));
                 remaining = remaining.subtract(take);
             }
             if (remaining.compareTo(BigDecimal.ZERO) > 0) {

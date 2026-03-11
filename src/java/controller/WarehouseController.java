@@ -288,6 +288,17 @@ public class WarehouseController extends HttpServlet {
             if (idRaw != null) {
                 Long id = Long.valueOf(idRaw);
                 if (id > 0) {
+                    if (warehouseDao.hasDependencies(id)) {
+                        if ("POST".equals(request.getMethod())) {
+                            request.setAttribute("error", "Cannot delete warehouse: it has zones, goods receipts, delivery notes or users assigned. Remove or reassign them first.");
+                            viewList(request, response);
+                            return;
+                        } else {
+                            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                            response.getWriter().write("Cannot delete warehouse: it has zones, goods receipts, delivery notes or users assigned.");
+                            return;
+                        }
+                    }
                     warehouseDao.delete(id);
                 }
             }
@@ -328,8 +339,15 @@ public class WarehouseController extends HttpServlet {
         if (warehouse.getCode() == null || warehouse.getCode().isBlank()) {
             return "Code is required.";
         }
+        String code = warehouse.getCode().trim();
+        if (code.length() > 50) {
+            return "Code must not exceed 50 characters.";
+        }
         if (warehouse.getName() == null || warehouse.getName().isBlank()) {
             return "Name is required.";
+        }
+        if (warehouse.getName() != null && warehouse.getName().trim().length() > 255) {
+            return "Name must not exceed 255 characters.";
         }
         return null;
     }
