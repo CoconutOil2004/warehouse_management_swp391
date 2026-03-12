@@ -127,31 +127,10 @@ public class SaleOrderController extends HttpServlet {
         int offset = (page - 1) * size;
         List<SaleOrderListDTO> sos = soService.searchSalesOrders(keyword, status, fromDate, toDate, size, offset);
 
-        int window = 2;
-        int startPage = Math.max(1, page - window);
-        int endPage = Math.min(totalPages, page + window);
-
-        if (endPage - startPage < window * 2) {
-            if (startPage == 1) {
-                endPage = Math.min(totalPages, startPage + window * 2);
-            }
-            if (endPage == totalPages) {
-                startPage = Math.max(1, endPage - window * 2);
-            }
-        }
-
-        String baseUrl = request.getContextPath() + "/sales-orders";
-        String qs = RequestUtil.buildQueryString(
-                keyword, status, fromDateStr, toDateStr,
-                "fromDate", "toDate");
-
+        // UI dùng <t:pagination ... include=\"...\"> để giữ filter khi đổi trang
         request.setAttribute("sos", sos);
         request.setAttribute("page", page);
         request.setAttribute("totalPages", totalPages);
-        request.setAttribute("startPage", startPage);
-        request.setAttribute("endPage", endPage);
-        request.setAttribute("baseUrl", baseUrl);
-        request.setAttribute("qs", qs);
         request.setAttribute("size", size);
         request.setAttribute("total", totalRecords);
 

@@ -90,6 +90,12 @@ public class ShipmentController extends HttpServlet {
         request.setAttribute("carriers", shipmentDAO.getAllCarriers());
         request.setAttribute("gdns", shipmentDAO.getAvailableGDNs());
         request.setAttribute("nextShipmentNumber", shipmentDAO.getNextShipmentNumber());
+        String gdnIdParam = request.getParameter("gdnId");
+        if (gdnIdParam != null && !gdnIdParam.isBlank()) {
+            try {
+                request.setAttribute("selectedGdnId", Long.valueOf(gdnIdParam.trim()));
+            } catch (NumberFormatException ignored) { }
+        }
         request.getRequestDispatcher(ViewPath.SHIPMENT_CREATE).forward(request, response);
     }
 
