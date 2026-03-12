@@ -36,3 +36,14 @@ Thumbs.db
 src/java/util/CommonVariables.java
 
 .vscode/
+
+.agent/
+.claude/
+.codex/
+.cursor/
+.gemini/
+.github/
+.opencode/
+.qwen/
+
+openspec/
