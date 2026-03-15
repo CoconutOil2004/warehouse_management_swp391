@@ -266,12 +266,25 @@
                             const submitBtn = document.getElementById('submitBtn');
 
                             function updateSummaryAndLogic() {
-                                // { grnLineId: { STORAGE: assigned, DAMAGE: assigned } }
                                 const totals = {};
                                 let allValid = true;
                                 let validationMsg = "";
 
-                                // First pass: Validate slots and capacity, and accumulate effectively assigned totals
+                                // Track cumulative used capacity per slot across all rows in this form
+                                const currentSlotUsage = {};
+
+                                // First pass: Calculate cumulative usage
+                                document.querySelectorAll('.assignment-row').forEach(row => {
+                                    const slotSelect = row.querySelector('.slot-select');
+                                    const qtyInput = row.querySelector('.qty-input');
+                                    const qty = parseFloat(qtyInput.value) || 0;
+                                    
+                                    if (slotSelect.value) {
+                                        currentSlotUsage[slotSelect.value] = (currentSlotUsage[slotSelect.value] || 0) + qty;
+                                    }
+                                });
+
+                                // Second pass: Validate slots and capacity
                                 document.querySelectorAll('.assignment-row').forEach(row => {
                                     const grnLineId = row.dataset.grnLineId;
                                     const sku = row.dataset.sku;
@@ -290,30 +303,32 @@
                                         const max = parseFloat(selectedSlot.dataset.maxCapacity) || 0;
                                         const origUsed = parseFloat(selectedSlot.dataset.used) || 0;
 
-                                        // Set input constraint
-                                        qtyInput.setAttribute('max', origAvail);
+                                        // Total usage of this slot across all rows
+                                        const totalUsageOfThisSlot = currentSlotUsage[selectedSlot.value] || 0;
+                                        const remainingAvailForThisSlot = origAvail - totalUsageOfThisSlot + qty; // Avail before this row's contribution
 
-                                        // Display projected state
-                                        const projUsed = origUsed + qty;
-                                        const projAvail = origAvail - qty;
-                                        capacityDisplay.innerHTML = '<div class="fw-bold text-dark">' + projUsed + ' / ' + max + '</div>' +
-                                            '<div class="text-muted" style="font-size: 0.75rem;">Avail: ' + projAvail + '</div>';
+                                        // Display projected state for this SPECIFIC slot (overall)
+                                        const overallUsed = origUsed + totalUsageOfThisSlot;
+                                        const overallAvail = Math.max(0, origAvail - totalUsageOfThisSlot);
+                                        
+                                        capacityDisplay.innerHTML = '<div class="fw-bold ' + (overallUsed > max ? 'text-danger' : 'text-dark') + '">' + 
+                                            overallUsed + ' / ' + max + '</div>' +
+                                            '<div class="text-muted" style="font-size: 0.75rem;">Total Avail: ' + overallAvail + '</div>';
 
-                                        if (qty > origAvail + 0.001) { // Tiny buffer for float precision
-                                            slotInfo.innerHTML = '<i class="fas fa-exclamation-triangle text-danger me-1"></i> Exceeds capacity (' + origAvail + ')';
+                                        if (qty > remainingAvailForThisSlot + 0.001) {
+                                            slotInfo.innerHTML = '<i class="fas fa-exclamation-triangle text-danger me-1"></i> Row exceeds available (' + remainingAvailForThisSlot + ')';
                                             qtyInput.classList.add('is-invalid');
                                             allValid = false;
-                                            if (!validationMsg) validationMsg = "Slot capacity exceeded for " + sku;
+                                            if (!validationMsg) validationMsg = "Capacity exceeded for " + sku + " in slot " + selectedSlot.text;
                                         } else {
                                             slotInfo.innerHTML = '<i class="fas fa-check text-success me-1"></i> Fits in slot';
                                             qtyInput.classList.remove('is-invalid');
-                                            totals[grnLineId][type] += qty; // ONLY count if slot is picked and valid
+                                            totals[grnLineId][type] += qty;
                                         }
                                     } else {
                                         slotInfo.innerHTML = "";
                                         capacityDisplay.textContent = '--';
                                         qtyInput.classList.remove('is-invalid');
-                                        qtyInput.removeAttribute('max');
                                         if (qty > 0) {
                                             allValid = false;
                                             if (!validationMsg) validationMsg = "Missing destination slot for " + sku;
@@ -321,7 +336,7 @@
                                     }
                                 });
 
-                                // Second pass: Update summary UI based on effectively assigned totals
+                                // Third pass: Update summary UI
                                 document.querySelectorAll('[id^="summary_received_"]').forEach(summaryDiv => {
                                     const idParts = summaryDiv.id.split('_');
                                     const grnLineId = idParts[2];
@@ -335,21 +350,21 @@
 
                                     if (assignedSpan && progressBar) {
                                         const remaining = totalReceived - assigned;
-                                        assignedSpan.innerHTML = 'Remaining: <span class="text-primary">' + remaining + '</span>';
+                                        assignedSpan.innerHTML = 'Remaining: <span class="' + (remaining < 0 ? 'text-danger' : 'text-primary') + '">' + remaining + '</span>';
 
                                         const percent = Math.min((assigned / totalReceived) * 100, 100);
-                                        progressBar.style.width = percent + '%';
+                                        progressBar.style.width = Math.max(0, percent) + '%';
 
-                                        if (assigned < totalReceived - 0.001) {
+                                        if (Math.abs(assigned - totalReceived) < 0.001) {
+                                            progressBar.className = 'progress-bar bg-success';
+                                        } else if (assigned > totalReceived) {
+                                            progressBar.className = 'progress-bar bg-danger';
+                                            allValid = false;
+                                            validationMsg = "Assigned quantity exceeds received quantity.";
+                                        } else {
                                             progressBar.className = 'progress-bar bg-warning';
                                             allValid = false;
                                             if (!validationMsg) validationMsg = "Some items are not fully assigned.";
-                                        } else if (assigned > totalReceived + 0.001) {
-                                            progressBar.className = 'progress-bar bg-danger';
-                                            allValid = false;
-                                            validationMsg = "Assigned quantity exceeds received quantity for a SKU.";
-                                        } else {
-                                            progressBar.className = 'progress-bar bg-success';
                                         }
                                     }
                                 });
@@ -357,36 +372,41 @@
                                 document.getElementById('validationMsg').textContent = validationMsg;
                                 submitBtn.disabled = !allValid;
 
-                                rebalanceSlots();
+                                rebalanceSlots(currentSlotUsage);
                             }
 
-                            function rebalanceSlots() {
-                                const selectedSlots = new Set();
-                                document.querySelectorAll('.slot-select').forEach(select => {
-                                    if (select.value) {
-                                        selectedSlots.add(select.value);
-                                    }
-                                });
-
+                            function rebalanceSlots(currentUsage) {
                                 document.querySelectorAll('.slot-select').forEach(select => {
                                     const currentValue = select.value;
+                                    const currentQtyThisRow = parseFloat(select.closest('tr').querySelector('.qty-input').value) || 0;
+
                                     Array.from(select.options).forEach(option => {
                                         if (!option.value) return;
 
-                                        const isSelectedElsewhere = selectedSlots.has(option.value) && option.value !== currentValue;
-                                        option.hidden = isSelectedElsewhere;
-                                        option.disabled = isSelectedElsewhere;
-                                        // Some browsers need this
-                                        if (isSelectedElsewhere) {
-                                            option.style.display = 'none';
+                                        const origAvail = parseFloat(option.dataset.capacity) || 0;
+                                        const usageByOthers = (currentUsage[option.value] || 0) - (option.value === currentValue ? currentQtyThisRow : 0);
+                                        const effectiveAvail = origAvail - usageByOthers;
+
+                                        // If slot is exhausted by OTHERS, disable it
+                                        const isExhausted = effectiveAvail <= 0 && option.value !== currentValue;
+                                        
+                                        option.disabled = isExhausted;
+                                        
+                                        // Update text to show real-time available
+                                        const baseText = option.text.split(' (')[0];
+                                        if (effectiveAvail <= 0) {
+                                            option.text = baseText + " (FULL)";
+                                            option.style.color = "#dc3545";
                                         } else {
-                                            option.style.display = '';
+                                            option.text = baseText + " (" + effectiveAvail + " left)";
+                                            option.style.color = "";
                                         }
                                     });
                                 });
                             }
 
                             putawayTable.addEventListener('input', updateSummaryAndLogic);
+                            
                             putawayTable.addEventListener('change', (e) => {
                                 if (e.target.classList.contains('slot-select')) {
                                     const row = e.target.closest('tr');
@@ -394,12 +414,39 @@
                                     const selectedSlot = e.target.options[e.target.selectedIndex];
 
                                     if (selectedSlot && selectedSlot.value) {
-                                        const capacity = parseFloat(selectedSlot.dataset.capacity) || 0;
+                                        // Calculate usage BY OTHERS to determine truly available for this split
+                                        const currentUsage = {};
+                                        document.querySelectorAll('.slot-select').forEach(s => {
+                                            if (s !== e.target && s.value) {
+                                                const q = parseFloat(s.closest('tr').querySelector('.qty-input').value) || 0;
+                                                currentUsage[s.value] = (currentUsage[s.value] || 0) + q;
+                                            }
+                                        });
+
+                                        const origAvail = parseFloat(selectedSlot.dataset.capacity) || 0;
+                                        const usedByOthers = currentUsage[selectedSlot.value] || 0;
+                                        const realAvail = Math.max(0, origAvail - usedByOthers);
                                         const currentQty = parseFloat(qtyInput.value) || 0;
 
-                                        if (currentQty > capacity && capacity > 0) {
-                                            const overflow = currentQty - capacity;
-                                            qtyInput.value = capacity;
+                                        if (currentQty > realAvail) {
+                                            const overflow = currentQty - realAvail;
+                                            
+                                            // Show notification
+                                            if (typeof Swal !== 'undefined') {
+                                                Swal.fire({
+                                                    icon: realAvail === 0 ? 'warning' : 'info',
+                                                    title: realAvail === 0 ? 'Slot is Full' : 'Slot Capacity Exceeded',
+                                                    text: realAvail === 0 
+                                                        ? 'This slot is already full. Created a new row for all ' + overflow + ' items.'
+                                                        : 'Moving ' + overflow + ' items to a new row. ' + realAvail + ' items will stay in this slot.',
+                                                    toast: true,
+                                                    position: 'top-end',
+                                                    showConfirmButton: false,
+                                                    timer: 4000
+                                                });
+                                            }
+
+                                            qtyInput.value = realAvail;
 
                                             // Create new row
                                             const newRow = row.cloneNode(true);
@@ -409,22 +456,13 @@
                                             newRow.querySelector('.slot-capacity-display').innerHTML = "--";
                                             newRow.querySelector('.qty-input').classList.remove('is-invalid');
 
-                                            // Change action button to remove for new rows if not already
                                             const actionTd = newRow.querySelector('td:last-child');
                                             actionTd.innerHTML = '<button type="button" class="btn btn-sm btn-outline-danger remove-assignment-btn"><i class="fas fa-trash"></i></button>';
 
                                             row.after(newRow);
-
-                                            if (typeof Swal !== 'undefined') {
-                                                Swal.fire({
-                                                    icon: 'info',
-                                                    title: 'Slot Overflow',
-                                                    text: 'Assigned ' + capacity + ' to this slot and moved ' + overflow + ' to a new assignment row.',
-                                                    toast: true,
-                                                    position: 'top-end',
-                                                    showConfirmButton: false,
-                                                    timer: 3000
-                                                });
+                                            
+                                            if (realAvail === 0) {
+                                                e.target.value = ""; // Reset current row if nothing fits
                                             }
                                         }
                                     }
@@ -438,10 +476,42 @@
 
                                 if (addBtn) {
                                     const row = addBtn.closest('tr');
+                                    const type = row.dataset.type;
+                                    
+                                    // Logic check: Is there any slot left in this zone?
+                                    const selects = document.querySelectorAll(`.assignment-row[data-type="${type}"] .slot-select`);
+                                    const allSlots = Array.from(selects[0].options).filter(opt => opt.value);
+                                    
+                                    // Calculate total usage of all slots in this zone
+                                    const usage = {};
+                                    document.querySelectorAll('.slot-select').forEach(s => {
+                                        if (s.value) {
+                                            const q = parseFloat(s.closest('tr').querySelector('.qty-input').value) || 0;
+                                            usage[s.value] = (usage[s.value] || 0) + q;
+                                        }
+                                    });
+
+                                    const availableSlots = allSlots.filter(opt => (parseFloat(opt.dataset.capacity) || 0) > (usage[opt.value] || 0));
+
+                                    if (availableSlots.length === 0) {
+                                        if (typeof Swal !== 'undefined') {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Warehouse Full',
+                                                text: 'All available slots in this zone are currently filled to capacity.',
+                                                confirmButtonColor: '#0d6efd'
+                                            });
+                                        } else {
+                                            alert("Warehouse Full: All available slots in this zone are filled.");
+                                        }
+                                        return;
+                                    }
+
                                     const newRow = row.cloneNode(true);
                                     newRow.querySelector('.qty-input').value = 0;
                                     newRow.querySelector('.slot-select').value = "";
                                     newRow.querySelector('.slot-info').innerHTML = "";
+                                    newRow.querySelector('.slot-capacity-display').innerHTML = "--";
                                     newRow.querySelector('td:last-child').innerHTML = `
                                         <button type="button" class="btn btn-sm btn-outline-danger remove-assignment-btn">
                                             <i class="fas fa-trash"></i>
