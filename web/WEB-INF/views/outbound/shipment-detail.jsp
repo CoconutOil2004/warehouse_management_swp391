@@ -3,7 +3,7 @@
         <%@taglib uri="jakarta.tags.core" prefix="c" %>
             <%@taglib uri="jakarta.tags.fmt" prefix="fmt" %>
 
-                <t:layout title="Chi tiết vận chuyển: ${shipment.shipmentNumber}">
+                <t:layout title="Shipment Details: ${shipment.shipmentNumber}">
                     <style>
                         .premium-card {
                             border: none;
@@ -133,7 +133,7 @@
                             <div>
                                 <a href="${pageContext.request.contextPath}/shipment?action=list"
                                     class="btn btn-sm btn-light border shadow-sm">
-                                    <i class="fas fa-arrow-left fa-sm text-gray-500"></i> Trở về danh sách
+                                    <i class="fas fa-arrow-left fa-sm text-gray-500"></i> Back to List
                                 </a>
                             </div>
                         </div>
@@ -146,20 +146,20 @@
                                     <div
                                         class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                                         <h6 class="m-0 font-weight-bold text-dark text-uppercase small">
-                                            <i class="fas fa-info-circle text-primary mr-2"></i> Thông tin vận chuyển
+                                            <i class="fas fa-info-circle text-primary mr-2"></i> Shipping Information
                                         </h6>
                                         <c:choose>
                                             <c:when test="${shipment.status == 'CREATED'}"><span
-                                                    class="badge badge-warning status-badge-lg">Mới tạo</span></c:when>
+                                                    class="badge badge-warning status-badge-lg">Created</span></c:when>
                                             <c:when test="${shipment.status == 'PICKED_UP'}"><span
-                                                    class="badge badge-primary status-badge-lg">Đã lấy hàng</span>
+                                                    class="badge badge-primary status-badge-lg">Picked Up</span>
                                             </c:when>
                                             <c:when test="${shipment.status == 'IN_TRANSIT'}"><span
-                                                    class="badge badge-info status-badge-lg">Đang giao</span></c:when>
+                                                    class="badge badge-info status-badge-lg">In Transit</span></c:when>
                                             <c:when test="${shipment.status == 'DELIVERED'}"><span
-                                                    class="badge badge-success status-badge-lg">Đã giao</span></c:when>
+                                                    class="badge badge-success status-badge-lg">Delivered</span></c:when>
                                             <c:when test="${shipment.status == 'CANCELLED'}"><span
-                                                    class="badge badge-danger status-badge-lg">Đã hủy</span></c:when>
+                                                    class="badge badge-danger status-badge-lg">Cancelled</span></c:when>
                                             <c:otherwise><span
                                                     class="badge badge-secondary status-badge-lg">${shipment.status}</span>
                                             </c:otherwise>
@@ -173,7 +173,7 @@
                                                         <i class="fas fa-fingerprint fa-lg text-primary"></i>
                                                     </div>
                                                     <div>
-                                                        <div class="info-label text-muted">Mã vận chuyển</div>
+                                                        <div class="info-label text-muted">Shipment Code</div>
                                                         <div class="info-value h5">${shipment.shipmentNumber}</div>
                                                     </div>
                                                 </div>
@@ -184,13 +184,13 @@
                                                         <i class="fas fa-tag fa-lg text-info"></i>
                                                     </div>
                                                     <div>
-                                                        <div class="info-label text-muted">Loại đơn hàng</div>
+                                                        <div class="info-label text-muted">Shipment Type</div>
                                                         <div class="info-value">
                                                             <c:choose>
                                                                 <c:when test="${shipment.shipmentType == 'CUSTOMER'}">
-                                                                    Giao cho khách hàng</c:when>
+                                                                    Customer Delivery</c:when>
                                                                 <c:when test="${shipment.shipmentType == 'TRANSFER'}">
-                                                                    Điều chuyển nội bộ</c:when>
+                                                                    Internal Transfer</c:when>
                                                                 <c:otherwise>${shipment.shipmentType}</c:otherwise>
                                                             </c:choose>
                                                         </div>
@@ -207,7 +207,7 @@
                                                         <div class="info-value">
                                                             <span
                                                                 class="text-monospace font-weight-bold px-2 py-1 bg-light border rounded">
-                                                                ${empty shipment.trackingCode ? 'Chưa có thông tin' :
+                                                                ${empty shipment.trackingCode ? 'No Tracking Info' :
                                                                 shipment.trackingCode}
                                                             </span>
                                                         </div>
@@ -220,7 +220,7 @@
                                                         <i class="fas fa-truck fa-lg text-success"></i>
                                                     </div>
                                                     <div>
-                                                        <div class="info-label text-muted">Đơn vị vận chuyển</div>
+                                                        <div class="info-label text-muted">Carrier</div>
                                                         <div class="info-value text-dark">${shipment.carrierName}</div>
                                                     </div>
                                                 </div>
@@ -241,9 +241,8 @@
                                 <div class="card premium-card shadow-sm mb-4">
                                     <div class="card-body">
                                         <div class="info-label text-muted mb-2"><i class="fas fa-sticky-note mr-1"></i>
-                                            Ghi chú nội bộ</div>
-                                        <p class="mb-0 text-dark italic">${empty shipment.note ? 'Không có ghi chú
-                                            thêm.' : shipment.note}</p>
+                                            Internal Note</div>
+                                        <p class="mb-0 text-dark italic">${empty shipment.note ? 'No additional notes' : shipment.note}</p>
                                     </div>
                                 </div>
 
@@ -251,7 +250,7 @@
                                 <div class="card premium-card shadow-sm mb-4 border-0">
                                     <div class="card-header bg-white py-3">
                                         <h6 class="m-0 font-weight-bold text-dark text-uppercase small">
-                                            <i class="fas fa-history text-success mr-2"></i> Lộ trình vận chuyển
+                                            <i class="fas fa-history text-success mr-2"></i> Logistics Timeline
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -262,7 +261,7 @@
                                                 <div class="timeline-content">
                                                     <div class="d-flex justify-content-between align-items-center mb-1">
                                                         <span class="font-weight-bold text-success"><i
-                                                                class="fas fa-check-circle mr-2"></i>Đã tạo đơn</span>
+                                                                class="fas fa-check-circle mr-2"></i>Order Created</span>
                                                     </div>
                                                     <div class="small text-muted time-ago mt-1 ml-0"
                                                         data-timestamp="${shipment.createdAt}">
@@ -283,13 +282,13 @@
                                                         <span
                                                             class="font-weight-bold ${isPickedUp ? 'text-primary' : 'text-gray-500'}">
                                                             <i
-                                                                class="fas ${isPickedUp ? 'fa-check-circle' : 'fa-hourglass-half'} mr-2"></i>Đã
-                                                            lấy hàng
+                                                                class="fas ${isPickedUp ? 'fa-check-circle' : 'fa-hourglass-half'} mr-2"></i>Picked
+                                                            Up
                                                         </span>
                                                     </div>
                                                     <div class="small text-muted ${isPickedUp ? 'time-ago' : ''} mt-1"
                                                         data-timestamp="${shipment.pickedUpAt}">
-                                                        ${isPickedUp ? shipment.pickedUpAt : 'Chờ lấy hàng...'}
+                                                        ${isPickedUp ? shipment.pickedUpAt : 'Waiting for pickup...'}
                                                     </div>
                                                 </div>
                                             </div>
@@ -302,13 +301,12 @@
                                                         <span
                                                             class="font-weight-bold ${isDelivered ? 'text-success' : 'text-gray-500'}">
                                                             <i
-                                                                class="fas ${isDelivered ? 'fa-check-circle' : 'fa-truck-loading'} mr-2"></i>Đã
-                                                            giao hàng
+                                                                class="fas ${isDelivered ? 'fa-check-circle' : 'fa-truck-loading'} mr-2"></i>Delivered
                                                         </span>
                                                     </div>
                                                     <div class="small text-muted ${isDelivered ? 'time-ago' : ''} mt-1"
                                                         data-timestamp="${shipment.deliveredAt}">
-                                                        ${isDelivered ? shipment.deliveredAt : 'Chờ giao hàng...'}
+                                                        ${isDelivered ? shipment.deliveredAt : 'Waiting for delivery...'}
                                                     </div>
                                                 </div>
                                             </div>
@@ -321,7 +319,7 @@
                             <div class="col-lg-4">
                                 <div class="card premium-card shadow-sm mb-4">
                                     <div class="card-header bg-white py-3">
-                                        <h6 class="m-0 font-weight-bold text-dark text-uppercase small">Hành động nhanh
+                                        <h6 class="m-0 font-weight-bold text-dark text-uppercase small">Quick Actions
                                         </h6>
                                     </div>
                                     <div class="card-body">
@@ -329,21 +327,20 @@
                                             test="${shipment.status != 'DELIVERED' && shipment.status != 'CANCELLED'}">
                                             <a href="${pageContext.request.contextPath}/shipment?action=edit&id=${shipment.shipmentId}"
                                                 class="btn btn-warning btn-block btn-lg shadow-sm border-0 mb-3 py-3">
-                                                <i class="fas fa-edit mr-2"></i> <strong>Cập nhật trạng thái</strong>
+                                                <i class="fas fa-edit mr-2"></i> <strong>Update Status</strong>
                                             </a>
                                         </c:if>
 
                                         <button onclick="window.print()"
                                             class="btn btn-light btn-block btn-lg border shadow-sm mb-3 py-3">
-                                            <i class="fas fa-print mr-2 text-info"></i> In mã vận đơn
+                                            <i class="fas fa-print mr-2 text-info"></i> Print Waybill
                                         </button>
 
                                         <hr class="my-4">
 
                                         <div class="alert alert-secondary p-3 border-0 rounded-lg">
-                                            <div class="small font-weight-bold text-uppercase mb-2">Hỗ trợ?</div>
-                                            <div class="small">Nếu có bất kỳ vấn đề gì về đơn hàng này, vui lòng liên hệ
-                                                bộ phận vận hành kho.</div>
+                                            <div class="small font-weight-bold text-uppercase mb-2">Support?</div>
+                                            <div class="small">If you have any issues with this order, please contact the warehouse operations department.</div>
                                         </div>
                                     </div>
                                 </div>

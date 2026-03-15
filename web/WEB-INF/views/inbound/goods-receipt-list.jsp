@@ -44,7 +44,9 @@
                                 </div>
                                 <div class="col-md-2 d-flex align-items-end">
                                     <a href="${pageContext.request.contextPath}/goods-receipt?action=list"
-                                        class="btn btn-secondary w-100">Reset</a>
+                                        class="btn btn-secondary w-100">
+                                        <i class="fas fa-undo"></i> Reset
+                                    </a>
                                 </div>
                             </form>
                         </div>
@@ -71,7 +73,7 @@
                                     <th style="cursor: pointer;" onclick="toggleSort('status')">Status <i
                                             class="fas fa-sort"></i></th>
                                     <th>Created At</th>
-                                    <th>Actions</th>
+                                    <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -88,35 +90,36 @@
                                             </span>
                                         </td>
                                         <td class="text-center">${gr.createdAt}</td>
-                                        <td class="text-center">
-                                            <div class="d-flex justify-content-center align-items-center gap-2">
-                                                <!-- View 버튼 -->
-                                                <a href="${pageContext.request.contextPath}/goods-receipt?action=detail&id=${gr.grnId}"
-                                                    class="btn btn-sm btn-info shadow-sm text-white d-flex align-items-center justify-content-center"
-                                                    style="width: 85px; height: 32px;" title="View Details">
-                                                    <i class="fas fa-eye me-1"></i> View
-                                                </a>
+                                        <td class="px-3 text-center">
+                                            <div class="d-flex justify-content-center align-items-center">
+                                                <!-- View 버튼 Slot -->
+                                                <div style="width: 60px;" class="d-flex justify-content-center">
+                                                    <form action="${pageContext.request.contextPath}/goods-receipt" method="get" class="mb-0">
+                                                        <input type="hidden" name="action" value="detail">
+                                                        <input type="hidden" name="id" value="${gr.grnId}">
+                                                        <t:button type="submit" size="sm" variant="outline" color="primary">View</t:button>
+                                                    </form>
+                                                </div>
 
-                                                <!-- Edit 버튼 -->
-                                                <div style="width: 85px; height: 32px;">
+                                                <!-- Delete 버튼 Slot -->
+                                                <div style="width: 70px;" class="d-flex justify-content-center">
                                                     <c:if test="${gr.status == 'PENDING' || gr.status == 'DRAFT'}">
-                                                        <a href="${pageContext.request.contextPath}/goods-receipt?action=edit&id=${gr.grnId}"
-                                                            class="btn btn-sm btn-warning shadow-sm d-flex align-items-center justify-content-center h-100 w-100"
-                                                            title="Edit">
-                                                            <i class="fas fa-edit me-1"></i> Edit
-                                                        </a>
+                                                        <form action="${pageContext.request.contextPath}/goods-receipt" method="get" class="mb-0" onsubmit="return confirm('Are you sure you want to delete this GRN?');">
+                                                            <input type="hidden" name="action" value="delete">
+                                                            <input type="hidden" name="id" value="${gr.grnId}">
+                                                            <t:button type="submit" size="sm" variant="outline" color="danger">Delete</t:button>
+                                                        </form>
                                                     </c:if>
                                                 </div>
 
-                                                <!-- Delete 버튼 -->
-                                                <div style="width: 85px; height: 32px;">
+                                                <!-- Edit 버튼 Slot -->
+                                                <div style="width: 60px;" class="d-flex justify-content-center">
                                                     <c:if test="${gr.status == 'PENDING' || gr.status == 'DRAFT'}">
-                                                        <a href="${pageContext.request.contextPath}/goods-receipt?action=delete&id=${gr.grnId}"
-                                                            class="btn btn-sm btn-danger shadow-sm d-flex align-items-center justify-content-center h-100 w-100"
-                                                            title="Delete"
-                                                            onclick="return confirm('Are you sure you want to delete this GRN?')">
-                                                            <i class="fas fa-trash me-1"></i> Delete
-                                                        </a>
+                                                        <form action="${pageContext.request.contextPath}/goods-receipt" method="get" class="mb-0">
+                                                            <input type="hidden" name="action" value="edit">
+                                                            <input type="hidden" name="id" value="${gr.grnId}">
+                                                            <t:button type="submit" size="sm" variant="outline" color="primary">Edit</t:button>
+                                                        </form>
                                                     </c:if>
                                                 </div>
                                             </div>

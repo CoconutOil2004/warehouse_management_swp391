@@ -61,7 +61,7 @@
                 <a class="collapse-item" href="${pageContext.request.contextPath}/pick-wave?action=list">Pick Wave</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/pick-task?action=myTasks">My Tasks</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/packing?action=list">Packing</a>
-                <a class="collapse-item" href="${pageContext.request.contextPath}/shipment?action=create">Shipment</a>
+                <a class="collapse-item" href="${pageContext.request.contextPath}/shipment?action=list">Shipment</a>
             </div>
         </div>
     </li>

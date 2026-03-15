@@ -19,7 +19,7 @@ public class AuthenticationController extends HttpServlet {
      * Bật = true: khi dev, đăng nhập xong không cần OTP, vào thẳng dashboard.
      * Tắt = false: bật lại OTP khi deploy / làm xong.
      */
-    private static final boolean SKIP_OTP_DEV_MODE = true;
+    private static final boolean SKIP_OTP_DEV_MODE = false;
 
     private String generateOTP() {
         Random rnd = new Random();
