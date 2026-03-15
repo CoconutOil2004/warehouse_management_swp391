@@ -520,19 +520,8 @@ public class GoodsReceiptController extends HttpServlet {
         if (existingId != null) {
             grnDao.updateGRN(grn, validLines);
             resultGrnId = existingId;
-
-            // Nếu đổi PO khác, mở lại PO cũ và đóng PO mới
-            GoodsReceipt oldGrn = grnDao.getById(existingId);
-            if (oldGrn != null && oldGrn.getPoId() != null && !oldGrn.getPoId().equals(poId)) {
-                poDao.updateStatus(oldGrn.getPoId(), "CREATED");
-            }
         } else {
             resultGrnId = grnDao.createGRN(grn, validLines);
-        }
-
-        // Đóng PO hiện tại
-        if (poId != null) {
-            poDao.updateStatus(poId, "CLOSED");
         }
 
         // Sau khi lưu thành công, chuyển đến màn hình Putaway
