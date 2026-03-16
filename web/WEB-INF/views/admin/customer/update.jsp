@@ -13,9 +13,13 @@
                 <jsp:body>
                     <div class="card shadow-sm">
                         <div class="card-body">
-                            <form hx-put="${pageContext.request.contextPath}/admin/customer" hx-swap="none" class="m-0">
+                            <form method="POST" action="${pageContext.request.contextPath}/admin/customer/update" class="m-0">
 
                                 <input type="hidden" name="id" value="${customer.customerId}">
+
+                                <c:if test="${not empty error}">
+                                    <div class="alert alert-danger">${error}</div>
+                                </c:if>
 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">

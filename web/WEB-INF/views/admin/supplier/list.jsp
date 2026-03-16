@@ -64,13 +64,17 @@
                                                 </jsp:attribute>
                                                 <jsp:attribute name="action">
                                                     <button type="button" class="btn btn-danger"
-                                                        hx-delete="${pageContext.request.contextPath}/admin/supplier?id=${s.supplierId}"
-                                                        hx-target="#wrapper" hx-select="#wrapper" hx-swap="outerHTML"
-                                                        data-bs-dismiss="modal">
+                                                        data-bs-dismiss="modal"
+                                                        onclick="document.getElementById('deleteForm${s.supplierId}').submit()">
                                                         Delete
                                                     </button>
                                                 </jsp:attribute>
                                             </t:alert>
+                                            <form id="deleteForm${s.supplierId}" method="POST"
+                                                action="${pageContext.request.contextPath}/admin/supplier/delete"
+                                                class="d-none">
+                                                <input type="hidden" name="id" value="${s.supplierId}">
+                                            </form>
                                         </td>
                                     </tr>
                                 </c:forEach>

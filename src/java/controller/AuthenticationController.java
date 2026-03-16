@@ -6,7 +6,6 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Random;
 import model.User;
 import util.PasswordUtil;
 import util.SendEmail;
@@ -14,18 +13,6 @@ import util.ViewPath;
 
 @WebServlet(name = "AuthenticationController", urlPatterns = {"/authen"})
 public class AuthenticationController extends HttpServlet {
-
-    /**
-     * Bật = true: khi dev, đăng nhập xong không cần OTP, vào thẳng dashboard.
-     * Tắt = false: bật lại OTP khi deploy / làm xong.
-     */
-    private static final boolean SKIP_OTP_DEV_MODE = false;
-
-    private String generateOTP() {
-        Random rnd = new Random();
-        int number = rnd.nextInt(999999);
-        return String.format("%06d", number);
-    }
 
     private static final String SESSION_USER_KEY = "USER";
 
@@ -53,8 +40,13 @@ public class AuthenticationController extends HttpServlet {
             return;
         }
 
-        // show reset page
+        // show reset page (only if OTP was verified)
         if ("reset".equalsIgnoreCase(action)) {
+            HttpSession session = request.getSession(false);
+            if (session == null || session.getAttribute("VERIFIED_OTP") == null) {
+                response.sendRedirect(request.getContextPath() + "/authen?action=forgot");
+                return;
+            }
             request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
             return;
         }
@@ -111,33 +103,25 @@ public class AuthenticationController extends HttpServlet {
             return;
         }
 
-        HttpSession session = request.getSession(true);
-        session.setMaxInactiveInterval(60 * 60 * 4);
-
-        // Chế độ dev: bỏ qua OTP, đăng nhập thẳng
-        if (SKIP_OTP_DEV_MODE) {
-            user.setPasswordHash(null);
-            session.setAttribute(SESSION_USER_KEY, user);
-            response.sendRedirect(request.getContextPath() + "/admin/dashboard");
-            return;
-        }
-
-        // success - bắt buộc OTP
+        // success
         try {
-            String otp = generateOTP();
-            SendEmail.sendOTP(user.getEmail(), otp);
-            request.setAttribute("devOtp", otp);
+            // Tạo OTP lưu vào DB (thay vì session)
+            String otp = userDAO.createOtpForUser(user.getUserId());
 
-            session.setAttribute("USER", user);
+            // Gửi OTP qua email
+            SendEmail.sendOTP(user.getEmail(), otp);
+
+            // KHÔNG set USER vào session ở đây (fix BUG-1 - OTP bypass)
+            HttpSession session = request.getSession(true);
+            session.setMaxInactiveInterval(60 * 60 * 4);
             session.setAttribute("AUTH_TYPE", "LOGIN");
             session.setAttribute("PRE_LOGIN_USER_ID", user.getUserId());
             session.setAttribute("RESET_EMAIL", user.getEmail());
-            session.setAttribute("CURRENT_OTP", otp);
-            session.setAttribute("OTP_CREATION_TIME", System.currentTimeMillis());
 
+            // Chuyển sang trang verify otp
             request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
 
-        } catch (ServletException | IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("error", "Lỗi khi tạo OTP: " + e.getMessage());
             request.getRequestDispatcher(ViewPath.VIEW_LOGIN).forward(request, response);
@@ -162,33 +146,25 @@ public class AuthenticationController extends HttpServlet {
 
         UserDAO dao = new UserDAO();
         try {
-            // Check email exists
-            User user = dao.findByEmail(email);
-            if (user == null) {
+            // Tạo OTP lưu DB + trả về raw OTP để gửi email
+            String otp = dao.createPasswordResetOtpByEmail(email);
+            if (otp == null) {
                 request.setAttribute("error", "Email không tồn tại trong hệ thống");
                 request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
                 return;
             }
 
-            // Tạo OTP (Session based)
-            String otp = generateOTP();
-
             // Gửi OTP qua email
             SendEmail.sendOTP(email, otp);
-
-            // DEV MODE
-            request.setAttribute("devOtp", otp);
 
             // lưu email vào session
             HttpSession session = request.getSession(true);
             session.setAttribute("RESET_EMAIL", email);
-            session.setAttribute("AUTH_TYPE", "RESET"); // Đánh dấu là flow Reset Password
-            session.setAttribute("CURRENT_OTP", otp);
-            session.setAttribute("OTP_CREATION_TIME", System.currentTimeMillis());
+            session.setAttribute("AUTH_TYPE", "RESET");
 
             // chuyển sang trang verify otp
             request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
-        } catch (ServletException | IOException | SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("error", "Có lỗi xảy ra. Vui lòng thử lại.");
             request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
@@ -205,54 +181,32 @@ public class AuthenticationController extends HttpServlet {
             return;
         }
 
-        // Validate Session OTP
+        // Validate Session
         HttpSession session = request.getSession(false);
         if (session == null) {
             response.sendRedirect(request.getContextPath() + ViewPath.VIEW_LOGIN);
             return;
         }
 
-        String sessionOtp = (String) session.getAttribute("CURRENT_OTP");
-        Long creationTime = (Long) session.getAttribute("OTP_CREATION_TIME");
+        // Verify OTP từ DB (thay vì session)
+        UserDAO dao = new UserDAO();
+        try {
+            Long verifiedUserId = dao.verifyResetOtpAndGetUserId(otp);
 
-        if (sessionOtp == null || creationTime == null) {
-            request.setAttribute("error", "Yêu cầu hết hạn. Vui lòng thử lại.");
-            if ("RESET".equals(session.getAttribute("AUTH_TYPE"))) {
-                request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
-            } else {
-                request.getRequestDispatcher(ViewPath.VIEW_LOGIN).forward(request, response);
+            if (verifiedUserId == null) {
+                request.setAttribute("error", "OTP không chính xác hoặc đã hết hạn");
+                request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
+                return;
             }
-            return;
-        }
 
-        // Check Expiry (5 minutes)
-        if (System.currentTimeMillis() - creationTime > 5 * 60 * 1000) {
-            session.removeAttribute("CURRENT_OTP");
-            session.removeAttribute("OTP_CREATION_TIME");
-            request.setAttribute("error", "OTP đã hết hạn. Vui lòng lấy mã mới.");
-            request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
-            return;
-        }
+            // OTP hợp lệ -> đánh dấu đã sử dụng
+            dao.markResetOtpUsed(otp);
 
-        // Check Match
-        if (!sessionOtp.equals(otp)) {
-            request.setAttribute("error", "OTP không chính xác");
-            request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
-            return;
-        }
+            String authType = (String) session.getAttribute("AUTH_TYPE");
 
-        // OTP Valid
-        session.removeAttribute("CURRENT_OTP"); // Clear OTP to prevent replay
-
-        String authType = (String) session.getAttribute("AUTH_TYPE");
-
-        // CASE 1: LOGIN
-        if ("LOGIN".equals(authType)) {
-            Long preUserId = (Long) session.getAttribute("PRE_LOGIN_USER_ID");
-
-            UserDAO dao = new UserDAO();
-            try {
-                User user = dao.getById(preUserId);
+            // CASE 1: LOGIN
+            if ("LOGIN".equals(authType)) {
+                User user = dao.getById(verifiedUserId);
                 if (user != null) {
                     user.setPasswordHash(null);
                     session.setAttribute(SESSION_USER_KEY, user);
@@ -261,22 +215,24 @@ public class AuthenticationController extends HttpServlet {
                     session.removeAttribute("AUTH_TYPE");
                     session.removeAttribute("PRE_LOGIN_USER_ID");
                     session.removeAttribute("RESET_EMAIL");
-                    session.removeAttribute("OTP_CREATION_TIME");
 
                     response.sendRedirect(request.getContextPath() + "/admin/dashboard");
                     return;
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
             }
+
+            // CASE 2: RESET PASSWORD
+            session.setAttribute("VERIFIED_OTP", "TRUE");
+            session.setAttribute("VERIFIED_USER_ID", verifiedUserId);
+
+            // Chuyển sang trang reset password
+            request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            request.setAttribute("error", "Có lỗi xảy ra. Vui lòng thử lại.");
+            request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
         }
-
-        // CASE 2: RESET PASSWORD (default)
-        // lưu vào session để sang bước reset
-        session.setAttribute("VERIFIED_OTP", "TRUE"); // Mark as verified for next step
-
-        // Chuyển sang trang reset password
-        request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
     }
 
     private void handleReset(HttpServletRequest request, HttpServletResponse response)
@@ -313,7 +269,7 @@ public class AuthenticationController extends HttpServlet {
             // Get Email from session
             String email = (String) session.getAttribute("RESET_EMAIL");
             if (email == null) {
-                request.getRequestDispatcher(request.getContextPath() + ViewPath.VIEW_LOGIN).forward(request, response);
+                request.getRequestDispatcher(ViewPath.VIEW_LOGIN).forward(request, response);
                 return;
             }
 

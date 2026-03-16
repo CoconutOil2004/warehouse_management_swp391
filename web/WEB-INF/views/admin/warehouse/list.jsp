@@ -59,27 +59,9 @@
                                                 <i class="bi bi-pencil fab"></i>
                                             </a>
 
-                                            <button type="button" class="btn btn-sm btn-circle btn-outline-danger"
-                                                data-bs-toggle="modal" data-bs-target="#deleteModal${w.warehouseId}"
-                                                title="Delete">
-                                                <i class="bi bi-trash fab"></i>
-                                            </button>
+                                          
 
-                                            <t:alert id="deleteModal${w.warehouseId}">
-                                                <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
-                                                <jsp:attribute name="desciption">
-                                                    Are you sure you want to delete warehouse
-                                                    <strong>${w.name}</strong>? This action cannot be undone.
-                                                </jsp:attribute>
-                                                <jsp:attribute name="action">
-                                                    <form method="POST" action="${pageContext.request.contextPath}/admin/warehouse/delete" style="display:inline;">
-                                                        <input type="hidden" name="id" value="${w.warehouseId}">
-                                                        <button type="submit" class="btn btn-danger" data-bs-dismiss="modal">
-                                                            Delete
-                                                        </button>
-                                                    </form>
-                                                </jsp:attribute>
-                                            </t:alert>
+                                            
                                         </td>
                                     </tr>
                                 </c:forEach>
