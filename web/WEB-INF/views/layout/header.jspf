@@ -14,7 +14,7 @@
     </button>
 
     <!-- Topbar Search -->
-    <form
+<!--    <form
       class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search"
       >
         <div class="input-group">
@@ -31,7 +31,7 @@
                 </button>
             </div>
         </div>
-    </form>
+    </form>-->
 
     <!-- Topbar Navbar -->
     <ul class="navbar-nav ml-auto">
@@ -72,7 +72,7 @@
             </div>
         </li>
 
-        <!-- Nav Item - Alerts -->
+<!--         Nav Item - Alerts 
         <li class="nav-item dropdown no-arrow mx-1">
             <a
               class="nav-link dropdown-toggle"
@@ -84,10 +84,10 @@
               aria-expanded="false"
               >
                 <i class="fas fa-bell fa-fw"></i>
-                <!-- Counter - Alerts -->
+                 Counter - Alerts 
                 <span class="badge badge-danger badge-counter">3+</span>
             </a>
-            <!-- Dropdown - Alerts -->
+             Dropdown - Alerts 
             <div
               class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
               aria-labelledby="alertsDropdown"
@@ -135,9 +135,9 @@
                   >Show All Alerts</a
                 >
             </div>
-        </li>
+        </li>-->
 
-        <!-- Nav Item - Messages -->
+<!--         Nav Item - Messages 
         <li class="nav-item dropdown no-arrow mx-1">
             <a
               class="nav-link dropdown-toggle"
@@ -149,10 +149,10 @@
               aria-expanded="false"
               >
                 <i class="fas fa-envelope fa-fw"></i>
-                <!-- Counter - Messages -->
+                 Counter - Messages 
                 <span class="badge badge-danger badge-counter">7</span>
             </a>
-            <!-- Dropdown - Messages -->
+             Dropdown - Messages 
             <div
               class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
               aria-labelledby="messagesDropdown"
@@ -235,7 +235,7 @@
                   >Read More Messages</a
                 >
             </div>
-        </li>
+        </li>-->
 
         <div class="topbar-divider d-none d-sm-block"></div>
 

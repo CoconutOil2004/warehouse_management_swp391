@@ -15,6 +15,12 @@ import util.ViewPath;
 @WebServlet(name = "AuthenticationController", urlPatterns = {"/authen"})
 public class AuthenticationController extends HttpServlet {
 
+    /**
+     * Bật = true: khi dev, đăng nhập xong không cần OTP, vào thẳng dashboard.
+     * Tắt = false: bật lại OTP khi deploy / làm xong.
+     */
+    private static final boolean SKIP_OTP_DEV_MODE = false;
+
     private String generateOTP() {
         Random rnd = new Random();
         int number = rnd.nextInt(999999);
@@ -105,27 +111,30 @@ public class AuthenticationController extends HttpServlet {
             return;
         }
 
-        // success
+        HttpSession session = request.getSession(true);
+        session.setMaxInactiveInterval(60 * 60 * 4);
+
+        // Chế độ dev: bỏ qua OTP, đăng nhập thẳng
+        if (SKIP_OTP_DEV_MODE) {
+            user.setPasswordHash(null);
+            session.setAttribute(SESSION_USER_KEY, user);
+            response.sendRedirect(request.getContextPath() + "/admin/dashboard");
+            return;
+        }
+
+        // success - bắt buộc OTP
         try {
-            // Tạo OTP (Session based)
             String otp = generateOTP();
-
-            // Gửi OTP qua email
             SendEmail.sendOTP(user.getEmail(), otp);
-
-            // DEV MODE
             request.setAttribute("devOtp", otp);
 
-            HttpSession session = request.getSession(true);
-            session.setAttribute("USER", user);    // session keep login lau hon
-            session.setMaxInactiveInterval(60 * 60 * 4);
+            session.setAttribute("USER", user);
             session.setAttribute("AUTH_TYPE", "LOGIN");
             session.setAttribute("PRE_LOGIN_USER_ID", user.getUserId());
             session.setAttribute("RESET_EMAIL", user.getEmail());
             session.setAttribute("CURRENT_OTP", otp);
             session.setAttribute("OTP_CREATION_TIME", System.currentTimeMillis());
 
-            // Chuyển sang trang verify otp
             request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
 
         } catch (ServletException | IOException e) {

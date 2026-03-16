@@ -592,4 +592,35 @@ public class GoodsReceiptDAO extends DBContext {
         }
         return null;
     }
+
+    public boolean isPutawayComplete(Long grnId) throws SQLException {
+        String sqlExpected = "SELECT SUM(qty_good + qty_damaged) FROM goods_receipt_line WHERE grn_id = ?";
+        String sqlActual = "SELECT SUM(pl.qty_putaway) FROM putaway_line pl JOIN putaway_order po ON pl.putaway_id = po.putaway_id WHERE po.grn_id = ?";
+
+        java.math.BigDecimal expected = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal actual = java.math.BigDecimal.ZERO;
+
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(sqlExpected)) {
+                ps.setLong(1, grnId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        expected = rs.getBigDecimal(1);
+                        if (expected == null) expected = java.math.BigDecimal.ZERO;
+                    }
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(sqlActual)) {
+                ps.setLong(1, grnId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        actual = rs.getBigDecimal(1);
+                        if (actual == null) actual = java.math.BigDecimal.ZERO;
+                    }
+                }
+            }
+        }
+
+        return expected.compareTo(java.math.BigDecimal.ZERO) > 0 && expected.compareTo(actual) == 0;
+    }
 }

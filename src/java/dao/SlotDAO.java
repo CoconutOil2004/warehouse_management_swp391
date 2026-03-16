@@ -278,7 +278,7 @@ public class SlotDAO extends DBContext {
 
             BigDecimal maxCap = dto.getMaxCapacity();
             if (maxCap != null) {
-                dto.setAvailableCapacity(maxCap.subtract(usedCapacity));
+                dto.setAvailableCapacity(maxCap.subtract(usedCapacity));//AvailableCapacity = MaxCapacity - UsedCapacity
             } else {
                 dto.setAvailableCapacity(BigDecimal.ZERO);
             }

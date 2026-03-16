@@ -9,6 +9,7 @@ import java.util.List;
 
 public class ShipmentDAO extends DBContext {
 
+    // Lay danh sach lo hang co ap dung bo loc va sap xep, phan trang
     public List<dto.ShipmentListDTO> getFilteredShipments(String shipmentNumber, Long carrierId, String status,
             String shipmentType,
             String sortField, String sortOrder, int limit, int offset) throws SQLException {
@@ -94,6 +95,7 @@ public class ShipmentDAO extends DBContext {
         return list;
     }
 
+    // Dem tong so lo hang thoa man dieu kien loc de phan trang
     public int countFilteredShipments(String shipmentNumber, Long carrierId, String status, String shipmentType)
             throws SQLException {
         StringBuilder sql = new StringBuilder("""
@@ -140,6 +142,7 @@ public class ShipmentDAO extends DBContext {
         return 0;
     }
 
+    // Tao moi mot ban ghi lo hang vao bang shipment
     public long createShipment(Shipment shipment) throws SQLException {
         String sql = """
                     INSERT INTO shipment (shipment_number, gdn_id, carrier_id, shipment_type, status, created_at, tracking_code, note)
@@ -165,6 +168,7 @@ public class ShipmentDAO extends DBContext {
         }
     }
 
+    // Lay thong tin chi tiet lo hang theo ID, bao gom ca ten carrier va gdn
     public Shipment getById(Long id) throws SQLException {
         String sql = """
                     SELECT s.*, c.name as carrier_name, gdn.gdn_number
@@ -203,6 +207,7 @@ public class ShipmentDAO extends DBContext {
         return null;
     }
 
+    // Cap nhat cac thong tin thay doi cua lo hang
     public boolean updateShipment(Shipment shipment) throws SQLException {
         String sql = """
                     UPDATE shipment
@@ -242,7 +247,10 @@ public class ShipmentDAO extends DBContext {
         return list;
     }
 
-    /** Only CONFIRMED GDN that do not yet have a shipment. */
+    /**
+     * Lay danh sach cac phieu xuat kho (GDN) chua duoc gan vao lo hang nao
+     * Only CONFIRMED GDN that do not yet have a shipment.
+     */
     public List<model.GoodsDeliveryNote> getAvailableGDNs() throws SQLException {
         String sql = """
                     SELECT * FROM goods_delivery_note
@@ -264,6 +272,7 @@ public class ShipmentDAO extends DBContext {
         return list;
     }
 
+    // Tu dong sinh ma lo hang tiep theo (du dang SHIP-0000x)
     public String getNextShipmentNumber() throws SQLException {
         String sql = "SELECT MAX(shipment_id) FROM shipment";
         try (Connection conn = getConnection();
