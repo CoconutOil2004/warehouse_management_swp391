@@ -103,11 +103,24 @@ public class GoodsReceiptController extends HttpServlet {
         request.setAttribute("totalRecords", total);
         request.setAttribute("suppliers", supplierDao.getActiveSuppliers());
 
+        // Pass RBAC flags to JSP
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        boolean canMutation = roles != null && (roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
+        request.setAttribute("canMutation", canMutation);
+
         request.getRequestDispatcher(ViewPath.GRN_LIST).forward(request, response);
     }
 
     private void handleCreateForm(HttpServletRequest request, HttpServletResponse response)
             throws Exception {
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
+            return;
+        }
+
         SupplierDAO supplierDao = new SupplierDAO();
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         request.setAttribute("suppliers", supplierDao.getActiveSuppliers());
@@ -140,16 +153,32 @@ public class GoodsReceiptController extends HttpServlet {
         request.setAttribute("grn", grn);
         request.setAttribute("lines", grnDao.getLinesByGrnId(id));
         request.setAttribute("putawayDetails", grnDao.getPutawayDetailsByGrnId(id));
+        request.setAttribute("isPutawayComplete", grnDao.isPutawayComplete(id));
 
         // Get warehouse name
         WarehouseDAO warehouseDao = new WarehouseDAO();
         Warehouse warehouse = warehouseDao.getWarehouseById(grn.getWarehouseId());
         request.setAttribute("warehouseName", warehouse != null ? warehouse.getName() : "N/A");
 
+        // Pass RBAC flags to JSP
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        boolean canMutation = roles != null && (roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
+        boolean isManager = roles != null && roles.contains("WAREHOUSE_MANAGER");
+        request.setAttribute("canMutation", canMutation);
+        request.setAttribute("isManager", isManager);
+
         request.getRequestDispatcher(ViewPath.GRN_DETAIL).forward(request, response);
     }
 
     private void handleEditForm(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
+            return;
+        }
+
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         SupplierDAO supplierDao = new SupplierDAO();
         Long id = Long.parseLong(request.getParameter("id"));
@@ -529,6 +558,13 @@ public class GoodsReceiptController extends HttpServlet {
     }
 
     private void handlePutaway(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
+            return;
+        }
+
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         ZoneDAO zoneDao = new ZoneDAO();
         SlotDAO slotDao = new SlotDAO();
@@ -562,10 +598,22 @@ public class GoodsReceiptController extends HttpServlet {
                     slotDao.getSlotsWithInventoryByZoneId(damZone.getZoneId(), grn.getWarehouseId()));
         }
 
+        // Pass RBAC flags to JSP
+        request.setAttribute("canMutation", roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
+        request.setAttribute("isManager", roles.contains("WAREHOUSE_MANAGER"));
+
         request.getRequestDispatcher(ViewPath.GRN_PUTAWAY).forward(request, response);
     }
 
+
     private void handleConfirmPutaway(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
+            return;
+        }
+
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         SlotDAO slotDao = new SlotDAO();
         Long grnId = Long.parseLong(request.getParameter("grnId"));
@@ -646,7 +694,10 @@ public class GoodsReceiptController extends HttpServlet {
             for (model.GoodsReceiptLine line : lines) {
                 BigDecimal totalPutaway = putawaySumByLine.getOrDefault(line.getGrnLineId(), BigDecimal.ZERO);
                 BigDecimal qtyGood = line.getQtyGood() != null ? line.getQtyGood() : BigDecimal.ZERO;
-                if (totalPutaway.compareTo(qtyGood) > 0) {
+                BigDecimal qtyDamaged = line.getQtyDamaged() != null ? line.getQtyDamaged() : BigDecimal.ZERO;
+                BigDecimal maxQtyToPutaway = qtyGood.add(qtyDamaged);
+
+                if (totalPutaway.compareTo(maxQtyToPutaway) > 0) {
                     response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=Putaway+qty+exceeds+received+qty+for+line");
                     return;
                 }
@@ -659,6 +710,13 @@ public class GoodsReceiptController extends HttpServlet {
     }
 
     private void handleDelete(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
+            return;
+        }
+
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         String idStr = request.getParameter("id");
         if (idStr != null) {
@@ -696,16 +754,17 @@ public class GoodsReceiptController extends HttpServlet {
                 model.User user = (model.User) sessionUser;
                 approverId = user.getUserId();
                 userRoles = user.getRoleNames();
-                // Nếu roleNames null (login() chưa query roles), giữ default "ADMIN"
-                // vì AuthFilter đã xác thực user rồi, backend chỉ cần biết đã login
-                if (userRoles == null) {
-                    userRoles = "ADMIN";
-                }
             }
 
-            if (userRoles != null && (userRoles.contains("ADMIN") || userRoles.contains("WAREHOUSE_MANAGER"))) {
+            if (userRoles != null && userRoles.contains("WAREHOUSE_MANAGER")) {
                 GoodsReceipt grn = grnDao.getById(id);
                 if (grn != null && ("PENDING".equals(grn.getStatus()) || "DRAFT".equals(grn.getStatus()))) {
+                    // Check if putaway is complete before approving
+                    if ("APPROVED".equals(status) && !grnDao.isPutawayComplete(id)) {
+                        response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + id + "&error=putaway_incomplete");
+                        return;
+                    }
+                    
                     boolean success = grnDao.updateStatus(id, status, approverId);
 
                     if (success && "APPROVED".equals(status)) {
@@ -767,8 +826,8 @@ public class GoodsReceiptController extends HttpServlet {
                             request.getContextPath() + "/goods-receipt?action=list&error=invalid_status_or_not_found");
                 }
             } else {
-                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + id
-                        + "&error=permission_denied");
+                // Unauthorized
+                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
             }
         } else {
             response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list");
