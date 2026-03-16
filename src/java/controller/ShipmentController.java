@@ -54,6 +54,7 @@ public class ShipmentController extends HttpServlet {
         }
     }
 
+    // Ham hien thi danh sach lo hang, ho tro loc va phan trang
     private void handleList(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         String shipmentNumber = request.getParameter("shipmentNumber");
@@ -68,7 +69,12 @@ public class ShipmentController extends HttpServlet {
         String pageStr = request.getParameter("page");
         if (pageStr != null && !pageStr.isEmpty())
             page = Integer.parseInt(pageStr);
+
         int limit = 10;
+        String limitStr = request.getParameter("size");
+        if (limitStr != null && !limitStr.isEmpty())
+            limit = Integer.parseInt(limitStr);
+
         int offset = (page - 1) * limit;
 
         List<dto.ShipmentListDTO> shipments = shipmentDAO.getFilteredShipments(shipmentNumber, carrierId, status,
@@ -82,17 +88,27 @@ public class ShipmentController extends HttpServlet {
         request.setAttribute("carriers", shipmentDAO.getAllCarriers());
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("currentPage", page);
+        request.setAttribute("totalRecords", totalRecords);
+        request.setAttribute("pageSize", limit);
         request.getRequestDispatcher(ViewPath.SHIPMENT_LIST).forward(request, response);
     }
 
+    // Ham chuan bi du lieu (carrier, gdn) de hien thi tren form tao moi
     private void handleCreate(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         request.setAttribute("carriers", shipmentDAO.getAllCarriers());
         request.setAttribute("gdns", shipmentDAO.getAvailableGDNs());
         request.setAttribute("nextShipmentNumber", shipmentDAO.getNextShipmentNumber());
+        String gdnIdParam = request.getParameter("gdnId");
+        if (gdnIdParam != null && !gdnIdParam.isBlank()) {
+            try {
+                request.setAttribute("selectedGdnId", Long.valueOf(gdnIdParam.trim()));
+            } catch (NumberFormatException ignored) { }
+        }
         request.getRequestDispatcher(ViewPath.SHIPMENT_CREATE).forward(request, response);
     }
 
+    // Ham luu thong tin lo hang moi vao database
     private void handleStore(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         Shipment s = new Shipment();
@@ -108,6 +124,7 @@ public class ShipmentController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/shipment?action=list");
     }
 
+    // Ham hien thi chi tiet mot lo hang cu the
     private void handleDetail(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         Long id = Long.valueOf(request.getParameter("id"));
@@ -120,6 +137,7 @@ public class ShipmentController extends HttpServlet {
         request.getRequestDispatcher(ViewPath.SHIPMENT_DETAIL).forward(request, response);
     }
 
+    // Ham hien thi form chinh sua thong tin lo hang
     private void handleEdit(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         Long id = Long.valueOf(request.getParameter("id"));
@@ -133,6 +151,7 @@ public class ShipmentController extends HttpServlet {
         request.getRequestDispatcher(ViewPath.SHIPMENT_EDIT).forward(request, response);
     }
 
+    // Ham xu ly cap nhat thong tin (tracking, status, note...)
     private void handleUpdate(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
         Long id = Long.valueOf(request.getParameter("id"));

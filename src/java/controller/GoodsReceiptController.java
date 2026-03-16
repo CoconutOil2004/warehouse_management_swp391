@@ -103,11 +103,24 @@ public class GoodsReceiptController extends HttpServlet {
         request.setAttribute("totalRecords", total);
         request.setAttribute("suppliers", supplierDao.getActiveSuppliers());
 
+        // Pass RBAC flags to JSP
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        boolean canMutation = roles != null && (roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
+        request.setAttribute("canMutation", canMutation);
+
         request.getRequestDispatcher(ViewPath.GRN_LIST).forward(request, response);
     }
 
     private void handleCreateForm(HttpServletRequest request, HttpServletResponse response)
             throws Exception {
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
+            return;
+        }
+
         SupplierDAO supplierDao = new SupplierDAO();
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         request.setAttribute("suppliers", supplierDao.getActiveSuppliers());
@@ -140,16 +153,32 @@ public class GoodsReceiptController extends HttpServlet {
         request.setAttribute("grn", grn);
         request.setAttribute("lines", grnDao.getLinesByGrnId(id));
         request.setAttribute("putawayDetails", grnDao.getPutawayDetailsByGrnId(id));
+        request.setAttribute("isPutawayComplete", grnDao.isPutawayComplete(id));
 
         // Get warehouse name
         WarehouseDAO warehouseDao = new WarehouseDAO();
         Warehouse warehouse = warehouseDao.getWarehouseById(grn.getWarehouseId());
         request.setAttribute("warehouseName", warehouse != null ? warehouse.getName() : "N/A");
 
+        // Pass RBAC flags to JSP
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        boolean canMutation = roles != null && (roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
+        boolean isManager = roles != null && roles.contains("WAREHOUSE_MANAGER");
+        request.setAttribute("canMutation", canMutation);
+        request.setAttribute("isManager", isManager);
+
         request.getRequestDispatcher(ViewPath.GRN_DETAIL).forward(request, response);
     }
 
     private void handleEditForm(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
+            return;
+        }
+
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         SupplierDAO supplierDao = new SupplierDAO();
         Long id = Long.parseLong(request.getParameter("id"));
@@ -456,7 +485,61 @@ public class GoodsReceiptController extends HttpServlet {
 
         // Default Warehouse ID to 1 since it's removed from UI
         String whIdStr = request.getParameter("warehouseId");
-        grn.setWarehouseId((whIdStr != null && !whIdStr.isBlank()) ? Long.parseLong(whIdStr) : 1L);
+        Long warehouseId = (whIdStr != null && !whIdStr.isBlank()) ? Long.parseLong(whIdStr) : 1L;
+        Warehouse wh = new WarehouseDAO().getWarehouseById(warehouseId);
+        if (wh == null) {
+            fieldErrors.put("warehouseId", "Warehouse không tồn tại.");
+            request.setAttribute("fieldErrors", fieldErrors);
+            request.setAttribute("grnId", existingId);
+            request.setAttribute("oldGrnNumber", grnNumber);
+            request.setAttribute("oldPoId", poIdStr);
+            request.setAttribute("oldSupplierId", supplierIdStr);
+            request.setAttribute("oldNote", note);
+            request.setAttribute("oldLinesJson", packageLinesToJson(new ArrayList<>(validLines)));
+            handleCreateForm(request, response);
+            return;
+        }
+        if (!"ACTIVE".equals(wh.getStatus())) {
+            fieldErrors.put("warehouseId", "Chỉ được chọn warehouse đang ACTIVE.");
+            request.setAttribute("fieldErrors", fieldErrors);
+            request.setAttribute("grnId", existingId);
+            request.setAttribute("oldGrnNumber", grnNumber);
+            request.setAttribute("oldPoId", poIdStr);
+            request.setAttribute("oldSupplierId", supplierIdStr);
+            request.setAttribute("oldNote", note);
+            request.setAttribute("oldLinesJson", packageLinesToJson(new ArrayList<>(validLines)));
+            handleCreateForm(request, response);
+            return;
+        }
+        grn.setWarehouseId(warehouseId);
+
+        // Validate PO exists and status = CREATED when creating new GRN (or when changing PO)
+        PurchaseOrderDAO poDaoForValidation = new PurchaseOrderDAO();
+        PurchaseOrderHeaderDTO poHeader = poDaoForValidation.getPurchaseOrderHeader(poId);
+        if (poHeader == null) {
+            fieldErrors.put("poId", "Purchase Order không tồn tại.");
+            request.setAttribute("fieldErrors", fieldErrors);
+            request.setAttribute("grnId", existingId);
+            request.setAttribute("oldGrnNumber", grnNumber);
+            request.setAttribute("oldPoId", poIdStr);
+            request.setAttribute("oldSupplierId", supplierIdStr);
+            request.setAttribute("oldNote", note);
+            request.setAttribute("oldLinesJson", packageLinesToJson(new ArrayList<>(validLines)));
+            handleCreateForm(request, response);
+            return;
+        }
+        if (!"CREATED".equals(poHeader.getStatus())) {
+            fieldErrors.put("poId", "Chỉ được tạo/sửa phiếu nhập từ Purchase Order có trạng thái CREATED. PO hiện tại: " + poHeader.getStatus());
+            request.setAttribute("fieldErrors", fieldErrors);
+            request.setAttribute("grnId", existingId);
+            request.setAttribute("oldGrnNumber", grnNumber);
+            request.setAttribute("oldPoId", poIdStr);
+            request.setAttribute("oldSupplierId", supplierIdStr);
+            request.setAttribute("oldNote", note);
+            request.setAttribute("oldLinesJson", packageLinesToJson(new ArrayList<>(validLines)));
+            handleCreateForm(request, response);
+            return;
+        }
 
         grn.setCreatedBy(user.getUserId());
         grn.setNote(note);
@@ -466,19 +549,8 @@ public class GoodsReceiptController extends HttpServlet {
         if (existingId != null) {
             grnDao.updateGRN(grn, validLines);
             resultGrnId = existingId;
-
-            // Nếu đổi PO khác, mở lại PO cũ và đóng PO mới
-            GoodsReceipt oldGrn = grnDao.getById(existingId);
-            if (oldGrn != null && oldGrn.getPoId() != null && !oldGrn.getPoId().equals(poId)) {
-                poDao.updateStatus(oldGrn.getPoId(), "CREATED");
-            }
         } else {
             resultGrnId = grnDao.createGRN(grn, validLines);
-        }
-
-        // Đóng PO hiện tại
-        if (poId != null) {
-            poDao.updateStatus(poId, "CLOSED");
         }
 
         // Sau khi lưu thành công, chuyển đến màn hình Putaway
@@ -486,6 +558,13 @@ public class GoodsReceiptController extends HttpServlet {
     }
 
     private void handlePutaway(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
+            return;
+        }
+
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         ZoneDAO zoneDao = new ZoneDAO();
         SlotDAO slotDao = new SlotDAO();
@@ -519,12 +598,32 @@ public class GoodsReceiptController extends HttpServlet {
                     slotDao.getSlotsWithInventoryByZoneId(damZone.getZoneId(), grn.getWarehouseId()));
         }
 
+        // Pass RBAC flags to JSP
+        request.setAttribute("canMutation", roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
+        request.setAttribute("isManager", roles.contains("WAREHOUSE_MANAGER"));
+
         request.getRequestDispatcher(ViewPath.GRN_PUTAWAY).forward(request, response);
     }
 
+
     private void handleConfirmPutaway(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
+            return;
+        }
+
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
+        SlotDAO slotDao = new SlotDAO();
         Long grnId = Long.parseLong(request.getParameter("grnId"));
+
+        GoodsReceipt grn = grnDao.getById(grnId);
+        if (grn == null) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list");
+            return;
+        }
+        Long warehouseId = grn.getWarehouseId();
 
         Object sessionUser = request.getSession().getAttribute("USER");
         Long userId = 1L; // Fallback for testing
@@ -582,7 +681,27 @@ public class GoodsReceiptController extends HttpServlet {
             }
         }
 
+        // Validate: each slot must belong to GRN warehouse; per-line putaway total <= qty_good
         if (!putawayLines.isEmpty()) {
+            java.util.Map<Long, BigDecimal> putawaySumByLine = new java.util.HashMap<>();
+            for (model.PutAwayLine pl : putawayLines) {
+                putawaySumByLine.merge(pl.getGrnLineId(), pl.getQtyPutaway(), BigDecimal::add);
+                if (!slotDao.isSlotInWarehouse(pl.getToSlotId(), warehouseId)) {
+                    response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=Slot+not+in+warehouse");
+                    return;
+                }
+            }
+            for (model.GoodsReceiptLine line : lines) {
+                BigDecimal totalPutaway = putawaySumByLine.getOrDefault(line.getGrnLineId(), BigDecimal.ZERO);
+                BigDecimal qtyGood = line.getQtyGood() != null ? line.getQtyGood() : BigDecimal.ZERO;
+                BigDecimal qtyDamaged = line.getQtyDamaged() != null ? line.getQtyDamaged() : BigDecimal.ZERO;
+                BigDecimal maxQtyToPutaway = qtyGood.add(qtyDamaged);
+
+                if (totalPutaway.compareTo(maxQtyToPutaway) > 0) {
+                    response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=Putaway+qty+exceeds+received+qty+for+line");
+                    return;
+                }
+            }
             grnDao.savePutawayInfo(grnId, userId, putawayLines);
         }
 
@@ -591,6 +710,13 @@ public class GoodsReceiptController extends HttpServlet {
     }
 
     private void handleDelete(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        model.User user = (model.User) request.getSession().getAttribute("USER");
+        String roles = user != null ? user.getRoleNames() : "";
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
+            return;
+        }
+
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         String idStr = request.getParameter("id");
         if (idStr != null) {
@@ -628,16 +754,17 @@ public class GoodsReceiptController extends HttpServlet {
                 model.User user = (model.User) sessionUser;
                 approverId = user.getUserId();
                 userRoles = user.getRoleNames();
-                // Nếu roleNames null (login() chưa query roles), giữ default "ADMIN"
-                // vì AuthFilter đã xác thực user rồi, backend chỉ cần biết đã login
-                if (userRoles == null) {
-                    userRoles = "ADMIN";
-                }
             }
 
-            if (userRoles != null && (userRoles.contains("ADMIN") || userRoles.contains("WAREHOUSE_MANAGER"))) {
+            if (userRoles != null && userRoles.contains("WAREHOUSE_MANAGER")) {
                 GoodsReceipt grn = grnDao.getById(id);
                 if (grn != null && ("PENDING".equals(grn.getStatus()) || "DRAFT".equals(grn.getStatus()))) {
+                    // Check if putaway is complete before approving
+                    if ("APPROVED".equals(status) && !grnDao.isPutawayComplete(id)) {
+                        response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + id + "&error=putaway_incomplete");
+                        return;
+                    }
+                    
                     boolean success = grnDao.updateStatus(id, status, approverId);
 
                     if (success && "APPROVED".equals(status)) {
@@ -699,8 +826,8 @@ public class GoodsReceiptController extends HttpServlet {
                             request.getContextPath() + "/goods-receipt?action=list&error=invalid_status_or_not_found");
                 }
             } else {
-                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + id
-                        + "&error=permission_denied");
+                // Unauthorized
+                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
             }
         } else {
             response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list");

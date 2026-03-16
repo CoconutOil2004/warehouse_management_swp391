@@ -24,9 +24,9 @@
                     <li class="breadcrumb-item active" aria-current="page">${gdn.gdnNumber}</li>
                 </ol>
             </nav>
-            <span class="badge ${gdn.status == 'PENDING' ? 'bg-warning text-dark' : (gdn.status == 'CONFIRMED' ? 'bg-success' : 'bg-secondary')} px-3 py-2 rounded-pill shadow-sm">
-                <i class="fas ${gdn.status == 'PENDING' ? 'fa-clock' : (gdn.status == 'CONFIRMED' ? 'fa-check-circle' : 'fa-file')} me-1"></i>
-                ${gdn.status == 'CONFIRMED' ? 'Done' : gdn.status}
+            <span class="badge ${gdn.status == 'PENDING' ? 'bg-warning text-dark' : (gdn.status == 'CONFIRMED' ? 'bg-success' : (gdn.status == 'CANCELLED' ? 'bg-danger' : 'bg-secondary'))} px-3 py-2 rounded-pill shadow-sm">
+                <i class="fas ${gdn.status == 'PENDING' ? 'fa-clock' : (gdn.status == 'CONFIRMED' ? 'fa-check-circle' : (gdn.status == 'CANCELLED' ? 'fa-times-circle' : 'fa-file'))} me-1"></i>
+                ${gdn.status == 'CONFIRMED' ? 'Done' : (gdn.status == 'CANCELLED' ? 'Cancelled' : gdn.status)}
             </span>
         </div>
 
@@ -58,8 +58,8 @@
                             <div class="col">
                                 <p class="text-muted small mb-1 text-uppercase fw-bold">Status</p>
                                 <p class="mb-0">
-                                    <span class="badge ${gdn.status == 'PENDING' ? 'bg-warning' : (gdn.status == 'CONFIRMED' ? 'bg-success' : 'bg-secondary')} fw-semibold">
-                                        ${gdn.status == 'CONFIRMED' ? 'Done' : gdn.status}
+                                    <span class="badge ${gdn.status == 'PENDING' ? 'bg-warning' : (gdn.status == 'CONFIRMED' ? 'bg-success' : (gdn.status == 'CANCELLED' ? 'bg-danger' : 'bg-secondary'))} fw-semibold">
+                                        ${gdn.status == 'CONFIRMED' ? 'Done' : (gdn.status == 'CANCELLED' ? 'Cancelled' : gdn.status)}
                                     </span>
                                 </p>
                             </div>
@@ -221,6 +221,7 @@
                                             <option value="DRAFT" ${gdn.status == 'DRAFT' ? 'selected' : ''}>DRAFT</option>
                                             <option value="ONGOING" ${gdn.status == 'ONGOING' ? 'selected' : ''}>ONGOING</option>
                                             <option value="CONFIRMED" ${gdn.status == 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
+                                            <option value="CANCELLED" ${gdn.status == 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
                                         </select>
                                     </div>
                                 </div>

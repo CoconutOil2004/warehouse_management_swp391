@@ -38,10 +38,11 @@
         <div id="collapseInbound" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
                 <!--<h6 class="collapse-header">Goods Receipt:</h6>-->
-                <a class="collapse-item" href="${pageContext.request.contextPath}/goods-receipt?action=list">GRN
-                    List</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/purchase-orders">Purchase
                     Orders</a>
+                <a class="collapse-item" href="${pageContext.request.contextPath}/goods-receipt?action=list">GRN
+                    List</a>
+                
             </div>
         </div>
     </li>
@@ -55,13 +56,12 @@
         </a>
         <div id="collapseOutbound" class="collapse" aria-labelledby="headingThree" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
-                <h6 class="collapse-header">Goods Delivery Note:</h6>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/sales-orders">Sales Orders</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/goods-delivery-note?action=list">GDN List</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/pick-wave?action=list">Pick Wave</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/pick-task?action=myTasks">My Tasks</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/packing?action=list">Packing</a>
-                <a class="collapse-item" href="${pageContext.request.contextPath}/shipment?action=create">Shipment</a>
+                <a class="collapse-item" href="${pageContext.request.contextPath}/shipment?action=list">Shipment</a>
             </div>
         </div>
     </li>

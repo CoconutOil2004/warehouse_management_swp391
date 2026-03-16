@@ -7,50 +7,118 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Map;
 import model.Warehouse;
+import util.ViewPath;
 
-@WebServlet(
-        name = "WarehouseController",
-        urlPatterns = {
-            "/admin/warehouse",
-            "/admin/warehouse/create",
-            "/admin/warehouse/update",
-            "/admin/warehouse/detail",
-            "/admin/warehouse/delete"
-        }
-)
+@WebServlet(name = "WarehouseController", urlPatterns = {"/admin/warehouse", "/admin/warehouse/*"})
 public class WarehouseController extends HttpServlet {
 
-    private static final int DEFAULT_PAGE = 1;
-    private static final int DEFAULT_SIZE = 10;
+    private static final long DEFAULT_PAGE = 1;
+    private static final long DEFAULT_SIZE = 10;
+
+    private final WarehouseDAO warehouseDao = new WarehouseDAO();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
+        var path = request.getPathInfo();
+        if (path == null || path.equals("/")) {
+            viewList(request, response);
+            return;
+        }
+        switch (path) {
+            case "/create" -> viewCreate(request, response);
+            case "/update" -> viewUpdate(request, response);
+            case "/detail" -> viewDetail(request, response);
+            default -> viewList(request, response);
+        }
+    }
 
-        String servletPath = request.getServletPath();
-
+    private void viewList(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
         try {
-            switch (servletPath) {
-                case "/admin/warehouse" ->
-                    handleList(request, response);
-                case "/admin/warehouse/create" ->
-                    handleShowCreate(request, response);
-                case "/admin/warehouse/update" ->
-                    handleShowUpdate(request, response);
-                case "/admin/warehouse/detail" ->
-                    handleShowDetail(request, response);
-                default ->
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            long page = parseLong(request.getParameter("page"), DEFAULT_PAGE);
+            long size = parseLong(request.getParameter("size"), DEFAULT_SIZE);
+            String sortRaw = request.getParameter("sort");
+            String sort = (sortRaw == null || sortRaw.isBlank()) ? "name" : sortRaw;
+            String searchRaw = request.getParameter("search");
+            String searchForQuery = (searchRaw == null || searchRaw.isBlank()) ? "%%" : "%" + searchRaw.trim() + "%";
+
+            if (page < 1) page = DEFAULT_PAGE;
+            if (size < 1) size = DEFAULT_SIZE;
+
+            long total = warehouseDao.getPageCount(searchForQuery);
+            long pages = total == 0 ? 1 : (long) Math.ceil((double) total / size);
+            if (page > pages) page = pages;
+
+            List<Warehouse> warehouses = warehouseDao.getList(searchForQuery, sort, page, size);
+
+            request.setAttribute("warehouses", warehouses);
+            request.setAttribute("page", page);
+            request.setAttribute("pages", pages);
+            request.setAttribute("size", size);
+            request.setAttribute("total", total);
+            request.setAttribute("search", searchRaw);
+            request.setAttribute("sort", sort);
+            request.getRequestDispatcher(ViewPath.WAREHOUSE_LIST).forward(request, response);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error loading list");
+        }
+    }
+
+    private void viewCreate(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setAttribute("warehouse", new Warehouse());
+        request.getRequestDispatcher(ViewPath.WAREHOUSE_CREATE).forward(request, response);
+    }
+
+    private void viewUpdate(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            Long id = parseLong(request.getParameter("id"), -1L);
+            if (id == null || id <= 0) {
+                response.sendRedirect(request.getContextPath() + "/admin/warehouse");
+                return;
             }
-        } catch (Exception ex) {
-            Logger.getLogger(WarehouseController.class.getName()).log(Level.SEVERE, null, ex);
-            throw new ServletException(ex);
+            Warehouse warehouse = warehouseDao.getDetail(id);
+            if (warehouse == null) {
+                response.sendRedirect(request.getContextPath() + "/admin/warehouse");
+                return;
+            }
+            request.setAttribute("warehouse", warehouse);
+            request.getRequestDispatcher(ViewPath.WAREHOUSE_UPDATE).forward(request, response);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendRedirect(request.getContextPath() + "/admin/warehouse");
+        }
+    }
+
+    private void viewDetail(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            Long id = parseLong(request.getParameter("id"), -1L);
+            if (id == null || id <= 0) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid warehouse id");
+                return;
+            }
+            Warehouse warehouse = warehouseDao.getDetail(id);
+            if (warehouse == null) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Warehouse not found");
+                return;
+            }
+            request.setAttribute("warehouse", warehouse);
+            request.getRequestDispatcher(ViewPath.WAREHOUSE_DETAIL).forward(request, response);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error loading detail");
         }
     }
 
@@ -59,148 +127,24 @@ public class WarehouseController extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
-
-        String servletPath = request.getServletPath();
-
-        try {
-            if ("/admin/warehouse/create".equals(servletPath)) {
-                handleCreate(request, response);
-            } else if ("/admin/warehouse/update".equals(servletPath)) {
-                handleUpdatePost(request, response);
-            } else if ("/admin/warehouse/delete".equals(servletPath)) {
-                handleDeletePost(request, response);
-            } else {
-                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
-            }
-        } catch (Exception ex) {
-            Logger.getLogger(WarehouseController.class.getName()).log(Level.SEVERE, null, ex);
-            throw new ServletException(ex);
+        var path = request.getPathInfo();
+        if (path == null || path.equals("/") || path.equals("/create")) {
+            create(request, response);
+            return;
         }
+        if (path.equals("/update")) {
+            performUpdate(request, response, null);
+            return;
+        }
+        if (path.equals("/delete")) {
+            performDelete(request, response);
+            return;
+        }
+        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
     }
 
-    @Override
-    protected void doPut(HttpServletRequest request, HttpServletResponse response)
+    private void create(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.setCharacterEncoding("UTF-8");
-        response.setCharacterEncoding("UTF-8");
-
-        try {
-            Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "PUT request received");
-            handleUpdate(request, response);
-        } catch (Exception ex) {
-            Logger.getLogger(WarehouseController.class.getName()).log(Level.SEVERE, "Error in doPut", ex);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @Override
-    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.setCharacterEncoding("UTF-8");
-        response.setCharacterEncoding("UTF-8");
-
-        try {
-            handleDelete(request, response);
-        } catch (Exception ex) {
-            Logger.getLogger(WarehouseController.class.getName()).log(Level.SEVERE, null, ex);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    private void handleList(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, ServletException, IOException {
-
-        WarehouseDAO dao = new WarehouseDAO();
-
-        String searchRaw = request.getParameter("search");
-        String sort = request.getParameter("sort");
-        int page = parseInt(request.getParameter("page"), DEFAULT_PAGE);
-        int size = parseInt(request.getParameter("size"), DEFAULT_SIZE);
-
-        if (sort == null || sort.isBlank()) {
-            sort = "name";
-        }
-        if (page < 1) {
-            page = DEFAULT_PAGE;
-        }
-        if (size < 1) {
-            size = DEFAULT_SIZE;
-        }
-
-        String searchForQuery;
-        if (searchRaw == null || searchRaw.isBlank()) {
-            searchForQuery = "%%";
-        } else {
-            searchForQuery = "%" + searchRaw.trim() + "%";
-        }
-
-        long total = dao.getPageCount(searchForQuery);
-        long pages = total == 0 ? 1 : (long) Math.ceil((double) total / size);
-        if (page > pages) {
-            page = (int) pages;
-        }
-
-        List<Warehouse> warehouses = dao.getList(searchForQuery, sort, (long) page, (long) size);
-
-        request.setAttribute("warehouses", warehouses);
-        request.setAttribute("page", page);
-        request.setAttribute("pages", pages);
-        request.setAttribute("size", size);
-        request.setAttribute("total", total);
-        request.setAttribute("search", searchRaw);
-        request.setAttribute("sort", sort);
-
-        request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/list.jsp").forward(request, response);
-    }
-
-    private void handleShowCreate(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        Warehouse warehouse = new Warehouse();
-        request.setAttribute("warehouse", warehouse);
-        request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/create.jsp").forward(request, response);
-    }
-
-    private void handleShowUpdate(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, ServletException, IOException {
-        Long id = parseLong(request.getParameter("id"), -1L);
-        if (id == null || id <= 0) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid warehouse id");
-            return;
-        }
-
-        WarehouseDAO dao = new WarehouseDAO();
-        Warehouse warehouse = dao.getDetail(id);
-        if (warehouse == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Warehouse not found");
-            return;
-        }
-
-        request.setAttribute("warehouse", warehouse);
-        request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/update.jsp").forward(request, response);
-    }
-
-    private void handleShowDetail(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, ServletException, IOException {
-        Long id = parseLong(request.getParameter("id"), -1L);
-        if (id == null || id <= 0) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid warehouse id");
-            return;
-        }
-
-        WarehouseDAO dao = new WarehouseDAO();
-        Warehouse warehouse = dao.getDetail(id);
-        if (warehouse == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Warehouse not found");
-            return;
-        }
-
-        request.setAttribute("warehouse", warehouse);
-        request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/detail.jsp").forward(request, response);
-    }
-
-    private void handleCreate(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, ServletException, IOException {
-
         String code = trim(request.getParameter("code"));
         String name = trim(request.getParameter("name"));
         String address = trim(request.getParameter("address"));
@@ -211,212 +155,213 @@ public class WarehouseController extends HttpServlet {
         warehouse.setAddress(address);
 
         String error = validateWarehouse(warehouse, true);
-
-        WarehouseDAO dao = new WarehouseDAO();
-        if (error == null || dao.codeExists(code, null)) {
-            error = "Warehouse code already exists.";
+        if (error == null) {
+            try {
+                if (warehouseDao.codeExists(code, null)) {
+                    error = "Warehouse code already exists.";
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                error = "Failed to create warehouse. Please try again.";
+            }
         }
+        if (error == null) {
+            try {
+                if (warehouseDao.create(warehouse)) {
+                    response.sendRedirect(request.getContextPath() + "/admin/warehouse");
+                    return;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            error = "Failed to create warehouse. Please try again.";
+        }
+        request.setAttribute("error", error);
+        request.setAttribute("warehouse", warehouse);
+        viewCreate(request, response);
+    }
 
-        if (error != null) {
+    @Override
+    protected void doPut(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
+        response.setCharacterEncoding("UTF-8");
+        try {
+            Map<String, String> params = parseFormBody(request);
+            performUpdate(request, response, params);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Cập nhật thất bại");
+        }
+    }
+
+    private void performUpdate(HttpServletRequest request, HttpServletResponse response, Map<String, String> formBody)
+            throws ServletException, IOException {
+        try {
+            String idRaw = formBody != null ? formBody.get("id") : request.getParameter("id");
+            if (idRaw == null) idRaw = request.getParameter("id");
+            Long id = Long.parseLong(idRaw);
+            if (id <= 0) {
+                sendUpdateError(request, response, id, "Invalid warehouse id", null);
+                return;
+            }
+
+            String code = formBody != null ? formBody.get("code") : request.getParameter("code");
+            String name = formBody != null ? formBody.get("name") : request.getParameter("name");
+            String address = formBody != null ? formBody.get("address") : request.getParameter("address");
+            String status = formBody != null ? formBody.get("status") : request.getParameter("status");
+
+            code = code != null ? code.trim() : "";
+            name = name != null ? name.trim() : "";
+            address = address != null ? address.trim() : null;
+            status = (status == null || status.isBlank()) ? "ACTIVE" : status.trim();
+
+            Warehouse warehouse = new Warehouse();
+            warehouse.setWarehouseId(id);
+            warehouse.setCode(code);
+            warehouse.setName(name);
+            warehouse.setAddress(address);
+            warehouse.setStatus(status);
+
+            String error = validateWarehouse(warehouse, false);
+            if (error == null && warehouseDao.codeExists(code, id)) {
+                error = "Warehouse code already exists.";
+            }
+            if (error != null) {
+                sendUpdateError(request, response, id, error, warehouse);
+                return;
+            }
+            if (!warehouseDao.update(warehouse)) {
+                sendUpdateError(request, response, id, "Failed to update warehouse. Please try again.", warehouse);
+                return;
+            }
+            if (formBody != null) {
+                response.setHeader("HX-Location", request.getContextPath() + "/admin/warehouse");
+            } else {
+                response.sendRedirect(request.getContextPath() + "/admin/warehouse");
+            }
+        } catch (NumberFormatException e) {
+            sendUpdateError(request, response, -1L, "Invalid warehouse id", null);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            sendUpdateError(request, response, -1L, "Failed to update warehouse. Please try again.", null);
+        }
+    }
+
+    private void sendUpdateError(HttpServletRequest request, HttpServletResponse response, long id, String error, Warehouse warehouse)
+            throws ServletException, IOException {
+        if (request.getHeader("HX-Request") != null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write(error);
+        } else {
             request.setAttribute("error", error);
-            request.setAttribute("warehouse", warehouse);
-            request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/create.jsp").forward(request, response);
-            return;
+            if (warehouse != null) {
+                request.setAttribute("warehouse", warehouse);
+            } else if (id > 0) {
+                try {
+                    request.setAttribute("warehouse", warehouseDao.getDetail(id));
+                } catch (SQLException e) {
+                    request.setAttribute("warehouse", new Warehouse());
+                }
+            } else {
+                request.setAttribute("warehouse", new Warehouse());
+            }
+            request.getRequestDispatcher(ViewPath.WAREHOUSE_UPDATE).forward(request, response);
         }
-
-        boolean created = dao.create(warehouse);
-        if (!created) {
-            request.setAttribute("error", "Failed to create warehouse. Please try again.");
-            request.setAttribute("warehouse", warehouse);
-            request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/create.jsp").forward(request, response);
-            return;
-        }
-
-        response.sendRedirect(request.getContextPath() + "/admin/warehouse");
     }
 
-    private void handleUpdatePost(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, ServletException, IOException {
-
-        Long id = parseLong(request.getParameter("id"), -1L);
-        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Update warehouse ID: " + id);
-
-        if (id == null || id <= 0) {
-            Logger.getLogger(WarehouseController.class.getName()).log(Level.WARNING, "Invalid warehouse id: " + id);
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid warehouse id");
-            return;
+    @Override
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            performDelete(request, response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Xóa thất bại");
         }
-
-        String code = trim(request.getParameter("code"));
-        String name = trim(request.getParameter("name"));
-        String address = trim(request.getParameter("address"));
-        String status = trim(request.getParameter("status"));
-
-        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO,
-                String.format("Update params - code: %s, name: %s, address: %s, status: %s", code, name, address, status));
-
-        Warehouse warehouse = new Warehouse();
-        warehouse.setWarehouseId(id);
-        warehouse.setCode(code);
-        warehouse.setName(name);
-        warehouse.setAddress(address);
-        warehouse.setStatus(status == null || status.isBlank() ? "ACTIVE" : status);
-
-        String error = validateWarehouse(warehouse, false);
-
-        WarehouseDAO dao = new WarehouseDAO();
-        if (error == null && dao.codeExists(code, id)) {
-            error = "Warehouse code already exists.";
-        }
-
-        if (error != null) {
-            Logger.getLogger(WarehouseController.class.getName()).log(Level.WARNING, "Validation error: " + error);
-            request.setAttribute("error", error);
-            request.setAttribute("warehouse", warehouse);
-            request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/update.jsp").forward(request, response);
-            return;
-        }
-
-        boolean updated = dao.update(warehouse);
-        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Update result: " + updated);
-
-        if (!updated) {
-            request.setAttribute("error", "Failed to update warehouse. Please try again.");
-            request.setAttribute("warehouse", warehouse);
-            request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/update.jsp").forward(request, response);
-            return;
-        }
-
-        response.sendRedirect(request.getContextPath() + "/admin/warehouse");
     }
 
-    private void handleUpdate(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, IOException {
-
-        Long id = parseLong(request.getParameter("id"), -1L);
-        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Update warehouse ID: " + id);
-
-        if (id == null || id <= 0) {
-            Logger.getLogger(WarehouseController.class.getName()).log(Level.WARNING, "Invalid warehouse id: " + id);
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid warehouse id");
-            return;
+    private void performDelete(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            String idRaw = request.getParameter("id");
+            if (idRaw != null) {
+                Long id = Long.valueOf(idRaw);
+                if (id > 0) {
+                    if (warehouseDao.hasDependencies(id)) {
+                        if ("POST".equals(request.getMethod())) {
+                            request.setAttribute("error", "Cannot delete warehouse: it has zones, goods receipts, delivery notes or users assigned. Remove or reassign them first.");
+                            viewList(request, response);
+                            return;
+                        } else {
+                            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                            response.getWriter().write("Cannot delete warehouse: it has zones, goods receipts, delivery notes or users assigned.");
+                            return;
+                        }
+                    }
+                    warehouseDao.delete(id);
+                }
+            }
+            if ("POST".equals(request.getMethod())) {
+                response.sendRedirect(request.getContextPath() + "/admin/warehouse");
+            } else {
+                response.setHeader("HX-Location", request.getContextPath() + "/admin/warehouse");
+            }
+        } catch (NumberFormatException | SQLException e) {
+            e.printStackTrace();
+            if ("POST".equals(request.getMethod())) {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Xóa thất bại");
+            } else {
+                response.setHeader("HX-Location", request.getContextPath() + "/admin/warehouse");
+            }
         }
-
-        String code = trim(request.getParameter("code"));
-        String name = trim(request.getParameter("name"));
-        String address = trim(request.getParameter("address"));
-        String status = trim(request.getParameter("status"));
-
-        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO,
-                String.format("Update params - code: %s, name: %s, address: %s, status: %s", code, name, address, status));
-
-        Warehouse warehouse = new Warehouse();
-        warehouse.setWarehouseId(id);
-        warehouse.setCode(code);
-        warehouse.setName(name);
-        warehouse.setAddress(address);
-        warehouse.setStatus(status == null || status.isBlank() ? "ACTIVE" : status);
-
-        String error = validateWarehouse(warehouse, false);
-
-        WarehouseDAO dao = new WarehouseDAO();
-        if (error == null && dao.codeExists(code, id)) {
-            error = "Warehouse code already exists.";
-        }
-
-        if (error != null) {
-            Logger.getLogger(WarehouseController.class.getName()).log(Level.WARNING, "Validation error: " + error);
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, error);
-            return;
-        }
-
-        boolean updated = dao.update(warehouse);
-        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Update result: " + updated);
-
-        if (!updated) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Failed to update warehouse.");
-            return;
-        }
-
-        response.setStatus(HttpServletResponse.SC_NO_CONTENT);
     }
 
-    private void handleDeletePost(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, IOException {
-
-        Long id = parseLong(request.getParameter("id"), -1L);
-        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Delete warehouse ID: " + id);
-
-        if (id == null || id <= 0) {
-            Logger.getLogger(WarehouseController.class.getName()).log(Level.WARNING, "Invalid warehouse id: " + id);
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid warehouse id");
-            return;
+    private Map<String, String> parseFormBody(HttpServletRequest request) throws IOException {
+        Map<String, String> params = new HashMap<>();
+        byte[] bytes = request.getInputStream().readAllBytes();
+        String body = new String(bytes, StandardCharsets.UTF_8);
+        if (!body.isEmpty()) {
+            String[] pairs = body.split("&");
+            for (String pair : pairs) {
+                String[] kv = pair.split("=", 2);
+                if (kv.length == 2) {
+                    String key = URLDecoder.decode(kv[0], StandardCharsets.UTF_8);
+                    String value = URLDecoder.decode(kv[1], StandardCharsets.UTF_8);
+                    params.put(key, value);
+                }
+            }
         }
-
-        WarehouseDAO dao = new WarehouseDAO();
-        boolean deleted = dao.delete(id);
-        Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Delete result: " + deleted);
-
-        if (!deleted) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Failed to delete warehouse.");
-            return;
-        }
-
-        response.sendRedirect(request.getContextPath() + "/admin/warehouse");
-    }
-
-    private void handleDelete(HttpServletRequest request, HttpServletResponse response)
-            throws SQLException, IOException {
-
-        Long id = parseLong(request.getParameter("id"), -1L);
-        if (id == null || id <= 0) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid warehouse id");
-            return;
-        }
-
-        WarehouseDAO dao = new WarehouseDAO();
-        boolean deleted = dao.delete(id);
-        if (!deleted) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Failed to delete warehouse.");
-            return;
-        }
-
-        // htmx will follow redirect and swap the returned HTML into #wrapper
-        response.sendRedirect(request.getContextPath() + "/admin/warehouse");
+        return params;
     }
 
     private String validateWarehouse(Warehouse warehouse, boolean isCreate) {
         if (warehouse.getCode() == null || warehouse.getCode().isBlank()) {
             return "Code is required.";
         }
+        String code = warehouse.getCode().trim();
+        if (code.length() > 50) {
+            return "Code must not exceed 50 characters.";
+        }
         if (warehouse.getName() == null || warehouse.getName().isBlank()) {
             return "Name is required.";
+        }
+        if (warehouse.getName() != null && warehouse.getName().trim().length() > 255) {
+            return "Name must not exceed 255 characters.";
         }
         return null;
     }
 
-    private int parseInt(String raw, int def) {
+    private long parseLong(String raw, long def) {
+        if (raw == null || raw.isBlank()) return def;
         try {
-            return (raw == null || raw.isBlank()) ? def : Integer.parseInt(raw);
-        } catch (Exception e) {
-            return def;
-        }
-    }
-
-    private Long parseLong(String raw, Long def) {
-        try {
-            return (raw == null || raw.isBlank()) ? def : Long.parseLong(raw);
-        } catch (Exception e) {
+            return Long.parseLong(raw);
+        } catch (NumberFormatException e) {
             return def;
         }
     }
 
     private String trim(String value) {
         return value == null ? null : value.trim();
-    }
-
-    @Override
-    public String getServletInfo() {
-        return "Warehouse Controller";
     }
 }

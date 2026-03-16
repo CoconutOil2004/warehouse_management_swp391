@@ -35,6 +35,7 @@
                             <option value="DRAFT" ${param.status=='DRAFT' ? 'selected' : '' }>DRAFT</option>
                             <option value="ONGOING" ${param.status=='ONGOING' ? 'selected' : '' }>ONGOING</option>
                             <option value="CONFIRMED" ${param.status=='CONFIRMED' ? 'selected' : '' }>CONFIRMED</option>
+                            <option value="CANCELLED" ${param.status=='CANCELLED' ? 'selected' : '' }>CANCELLED</option>
                         </select>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
@@ -57,75 +58,71 @@
             </a>
         </div>
 
-        <div class="table-responsive shadow-sm rounded">
-            <table class="table table-bordered table-hover table-striped align-middle mb-0">
-                <thead class="thead-dark">
-                    <tr class="text-center">
-                        <th>ID</th>
-                        <th>GDN Number</th>
-                        <th>Sales Order</th>
-                        <th>Customer</th>
-                        <th>Status</th>
-                        <th>Created By</th>
-                        <th>Created At</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:forEach var="gdn" items="${gdns}">
-                        <tr>
-                            <td class="text-center">${gdn.gdnId}</td>
-                            <td class="font-weight-bold text-primary">${gdn.gdnNumber}</td>
-                            <td>${gdn.soNumber}</td>
-                            <td>${gdn.customerName}</td>
-                            <td class="text-center">
-                                <span class="badge badge-pill ${(gdn.status == 'PENDING' || gdn.status == 'DRAFT') ? 'badge-secondary' : (gdn.status == 'ONGOING' ? 'badge-warning' : 'badge-success')}">
-                                    ${gdn.status}
-                                </span>
-                            </td>
-                            <td>${gdn.creatorName}</td>
-                            <td class="text-center">
-                                ${gdn.createdAtDisplay}
-                            </td>
-                            <td class="text-center">
-                                <div class="d-flex justify-content-center align-items-center gap-2">
-                                    <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${gdn.gdnId}"
-                                        class="btn btn-sm btn-info shadow-sm text-white d-flex align-items-center justify-content-center"
-                                        style="width: 85px; height: 32px;" title="View Details">
-                                        <i class="fas fa-eye me-1"></i> View
-                                    </a>
-                                    <c:if test="${gdn.status == 'PENDING' || gdn.status == 'DRAFT' || gdn.status == 'ONGOING'}">
-                                        <a href="${pageContext.request.contextPath}/goods-delivery-note?action=edit&id=${gdn.gdnId}"
-                                            class="btn btn-sm btn-warning shadow-sm d-flex align-items-center justify-content-center"
-                                            style="width: 85px; height: 32px;" title="Edit">
-                                            <i class="fas fa-edit me-1"></i> Edit
-                                        </a>
-                                    </c:if>
-                                </div>
-                            </td>
-                        </tr>
-                    </c:forEach>
-                    <c:if test="${empty gdns}">
-                        <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">No Goods Delivery Notes found.</td>
-                        </tr>
-                    </c:if>
-                </tbody>
-            </table>
+        <div class="card shadow-sm rounded">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-striped align-middle mb-0">
+                        <thead class="thead-dark">
+                            <tr class="text-center">
+                                <th>ID</th>
+                                <th>GDN Number</th>
+                                <th>Sales Order</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th>Created By</th>
+                                <th>Created At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <c:forEach var="gdn" items="${gdns}">
+                                <tr>
+                                    <td class="text-center">${gdn.gdnId}</td>
+                                    <td class="font-weight-bold text-primary">${gdn.gdnNumber}</td>
+                                    <td>${gdn.soNumber}</td>
+                                    <td>${gdn.customerName}</td>
+                                    <td class="text-center">
+                                        <span class="badge badge-pill ${(gdn.status == 'PENDING' || gdn.status == 'DRAFT') ? 'badge-secondary' : (gdn.status == 'ONGOING' ? 'badge-warning' : (gdn.status == 'CANCELLED' ? 'badge-danger' : 'badge-success'))}">
+                                            ${gdn.status}
+                                        </span>
+                                    </td>
+                                    <td>${gdn.creatorName}</td>
+                                    <td class="text-center">
+                                        ${gdn.createdAtDisplay}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center align-items-center gap-2">
+                                            <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${gdn.gdnId}"
+                                                class="btn btn-sm btn-info shadow-sm text-white d-flex align-items-center justify-content-center"
+                                                style="width: 85px; height: 32px;" title="View Details">
+                                                <i class="fas fa-eye me-1"></i> View
+                                            </a>
+                                            <c:if test="${gdn.status == 'PENDING' || gdn.status == 'DRAFT' || gdn.status == 'ONGOING'}">
+                                    <%-- CONFIRMED and CANCELLED: no Edit --%>
+                                                <a href="${pageContext.request.contextPath}/goods-delivery-note?action=edit&id=${gdn.gdnId}"
+                                                    class="btn btn-sm btn-warning shadow-sm d-flex align-items-center justify-content-center"
+                                                    style="width: 85px; height: 32px;" title="Edit">
+                                                    <i class="fas fa-edit me-1"></i> Edit
+                                                </a>
+                                            </c:if>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </c:forEach>
+                            <c:if test="${empty gdns}">
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted">No Goods Delivery Notes found.</td>
+                                </tr>
+                            </c:if>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer py-3">
+                <t:pagination page="${page}" pages="${totalPages}" size="${size}" total="${total}"
+                    url="${pageContext.request.contextPath}/goods-delivery-note"
+                    include="[name='gdnNumber'], [name='soNumber'], [name='status']" />
+            </div>
         </div>
-
-        <!-- Pagination -->
-        <c:if test="${totalPages > 1}">
-            <nav class="mt-4">
-                <ul class="pagination justify-content-center">
-                    <c:forEach var="i" begin="1" end="${totalPages}">
-                        <li class="page-item ${page == i ? 'active' : ''}">
-                            <a class="page-link shadow-sm"
-                                href="${pageContext.request.contextPath}/goods-delivery-note?action=list&page=${i}&gdnNumber=${param.gdnNumber}&soNumber=${param.soNumber}&status=${param.status}">${i}</a>
-                        </li>
-                    </c:forEach>
-                </ul>
-            </nav>
-        </c:if>
     </div>
 </t:layout>

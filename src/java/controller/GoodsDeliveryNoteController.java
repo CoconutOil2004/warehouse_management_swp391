@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.User;
+import model.Warehouse;
 import util.ViewPath;
 import java.io.IOException;
 import java.util.List;
@@ -60,7 +61,7 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         String status = request.getParameter("status");
 
         int page = parseInt(request.getParameter("page"), DEFAULT_PAGE);
-        int size = DEFAULT_SIZE;
+        int size = parseSize(request.getParameter("size"), DEFAULT_SIZE);
         int offset = (page - 1) * size;
 
         List<GDNListDTO> gdns = gdnDao.getGDNList(gdnNumber, soNumber, status, size, offset);
@@ -73,6 +74,8 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         request.setAttribute("gdns", gdns);
         request.setAttribute("page", page);
         request.setAttribute("totalPages", totalPages);
+        request.setAttribute("size", size);
+        request.setAttribute("total", total);
         request.setAttribute("gdnNumber", gdnNumber);
         request.setAttribute("soNumber", soNumber);
         request.setAttribute("status", status);
@@ -133,10 +136,14 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         }
 
         GDNDetailDTO gdn = gdnDao.getGDNDetailById(gdnId);
-//        if (gdn == null || !("PENDING".equals(gdn.getStatus()) || "DRAFT".equals(gdn.getStatus()) || "ONGOING".equals(gdn.getStatus()))) {
-//            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
-//            return;
-//        }
+        if (gdn == null) {
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list");
+            return;
+        }
+        if ("CONFIRMED".equals(gdn.getStatus()) || "CANCELLED".equals(gdn.getStatus())) {
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+edit+GDN+in+CONFIRMED+or+CANCELLED+status");
+            return;
+        }
 
         request.setAttribute("gdn", gdn);
         request.getRequestDispatcher("WEB-INF/views/outbound/goods-delivery-note-edit.jsp")
@@ -238,9 +245,24 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             handleCreateForm(request, response);
             return;
         }
-
+        if (!"CREATED".equals(so.getStatus())) {
+            request.setAttribute("error", "Chỉ được tạo GDN từ Sales Order có trạng thái CREATED. SO hiện tại: " + so.getStatus());
+            handleCreateForm(request, response);
+            return;
+        }
         if (gdnDao.getSoIdsThatHaveGdn().contains(so.getSoId())) {
             request.setAttribute("error", "This Sales Order already has a GDN.");
+            handleCreateForm(request, response);
+            return;
+        }
+        Warehouse wh = new WarehouseDAO().getDetail(warehouseId);
+        if (wh == null) {
+            request.setAttribute("error", "Warehouse not found.");
+            handleCreateForm(request, response);
+            return;
+        }
+        if (!"ACTIVE".equals(wh.getStatus())) {
+            request.setAttribute("error", "Chỉ được chọn warehouse đang ACTIVE.");
             handleCreateForm(request, response);
             return;
         }
@@ -267,6 +289,15 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list");
             return;
         }
+        dto.GDNDetailDTO gdnCurrent = gdnDao.getGDNDetailById(gdnId);
+        if (gdnCurrent == null) {
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list");
+            return;
+        }
+        if ("CONFIRMED".equals(gdnCurrent.getStatus()) || "CANCELLED".equals(gdnCurrent.getStatus())) {
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+edit+GDN+in+CONFIRMED+or+CANCELLED+status");
+            return;
+        }
 
         String[] lineIds = request.getParameterValues("lineIds");
         String[] qtyPickedStrs = request.getParameterValues("qtyPicked");
@@ -286,12 +317,21 @@ public class GoodsDeliveryNoteController extends HttpServlet {
                     if (lineId <= 0) continue;
                     java.math.BigDecimal qtyPicked = parseBigDecimal(qtyPickedStrs[i], java.math.BigDecimal.ZERO);
                     java.math.BigDecimal qtyPacked = parseBigDecimal(qtyPackedStrs[i], java.math.BigDecimal.ZERO);
+                    if (qtyPicked.signum() < 0 || qtyPacked.signum() < 0) {
+                        response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Qty+Picked+and+Qty+Packed+cannot+be+negative");
+                        return;
+                    }
                     if (qtyPacked.compareTo(qtyPicked) > 0) {
                         response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Qty+Packed+cannot+exceed+Qty+Picked");
                         return;
                     }
                     dto.GDNLineDTO line = lineMap.get(lineId);
                     if (line != null) {
+                        java.math.BigDecimal required = line.getQtyRequired() != null ? line.getQtyRequired() : java.math.BigDecimal.ZERO;
+                        if (qtyPicked.compareTo(required) > 0) {
+                            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Qty+Picked+cannot+exceed+Qty+Required");
+                            return;
+                        }
                         java.math.BigDecimal available = line.getQtyAvailable() != null ? line.getQtyAvailable() : java.math.BigDecimal.ZERO;
                         if (qtyPicked.compareTo(available) > 0) {
                             response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Insufficient+inventory+for+" + (line.getVariantSku() != null ? line.getVariantSku() : "line"));
@@ -376,6 +416,13 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         } catch (Exception e) {
             return def;
         }
+    }
+
+    /** Parse size param; allow only 5, 10, 20, 50 for pagination dropdown. */
+    private int parseSize(String raw, int def) {
+        int v = parseInt(raw, def);
+        if (v == 5 || v == 10 || v == 20 || v == 50) return v;
+        return def;
     }
 
     private long parseLong(String raw, long def) {

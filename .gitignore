@@ -37,6 +37,14 @@ Thumbs.db
 src/java/util/CommonVariables.java
 
 .vscode/
-=======
-/TamCare/dist/
->>>>>>> 2d7aad2ee3bf1b1fbdad269e6f217073abd49361
+
+.agent/
+.claude/
+.codex/
+.cursor/
+.gemini/
+.github/
+.opencode/
+.qwen/
+
+openspec/

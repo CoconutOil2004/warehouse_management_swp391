@@ -50,16 +50,16 @@
                                     <label class="form-label font-weight-bold ml-1">Status</label>
                                     <select class="form-control rounded-pill" name="status">
                                         <option value="">-- All Statuses --</option>
-                                        <option value="CREATED" ${param.status=='CREATED' ? 'selected' : '' }>Mới tạo
+                                        <option value="CREATED" ${param.status=='CREATED' ? 'selected' : '' }>Created
                                             (CREATED)</option>
-                                        <option value="PICKED_UP" ${param.status=='PICKED_UP' ? 'selected' : '' }>Đã lấy
-                                            hàng (PICKED_UP)</option>
-                                        <option value="IN_TRANSIT" ${param.status=='IN_TRANSIT' ? 'selected' : '' }>Đang
-                                            giao (IN_TRANSIT)</option>
-                                        <option value="DELIVERED" ${param.status=='DELIVERED' ? 'selected' : '' }>Đã
-                                            giao (DELIVERED)</option>
+                                        <option value="PICKED_UP" ${param.status=='PICKED_UP' ? 'selected' : '' }>Picked
+                                            Up (PICKED_UP)</option>
+                                        <option value="IN_TRANSIT" ${param.status=='IN_TRANSIT' ? 'selected' : '' }>In
+                                            Transit (IN_TRANSIT)</option>
+                                        <option value="DELIVERED" ${param.status=='DELIVERED' ? 'selected' : '' }>
+                                            Delivered (DELIVERED)</option>
                                         <option value="CANCELLED" ${param.status=='CANCELLED' ? 'selected' : '' }>
-                                            Hủy/Thất bại (CANCELLED)</option>
+                                            Cancelled/Failed (CANCELLED)</option>
                                     </select>
                                 </div>
                                 <div class="col-md-2">
@@ -67,18 +67,18 @@
                                     <select class="form-control rounded-pill" name="shipmentType">
                                         <option value="">-- All Types --</option>
                                         <option value="CUSTOMER" ${param.shipmentType=='CUSTOMER' ? 'selected' : '' }>
-                                            Giao khách hàng</option>
+                                            Customer Delivery</option>
                                         <option value="TRANSFER" ${param.shipmentType=='TRANSFER' ? 'selected' : '' }>
-                                            Điều chuyển</option>
+                                            Internal Transfer</option>
                                     </select>
                                 </div>
                                 <div class="col-md-2 d-flex align-items-end gap-2 justify-content-end">
-                                    <button type="submit" class="btn btn-primary rounded-pill px-3">
+                                    <button type="submit" class="btn btn-primary rounded-pill px-4">
                                         <i class="fas fa-search mr-1"></i> Filter
                                     </button>
                                     <a href="${pageContext.request.contextPath}/shipment?action=list"
-                                        class="btn btn-light rounded-pill px-3" title="Reset">
-                                        <i class="fas fa-undo"></i>
+                                        class="btn btn-light rounded-pill px-4" title="Reset">
+                                        <i class="fas fa-undo mr-1"></i> Reset
                                     </a>
                                 </div>
                             </form>
@@ -109,7 +109,7 @@
                                                     class="fas fa-sort-amount-down-alt ml-1 text-muted"></i></th>
                                             <th style="cursor:pointer;" onclick="toggleSort('shipment_number')">Shipment
                                                 # <i class="fas fa-sort ml-1 text-muted"></i></th>
-                                            <th>Loại giao hàng</th>
+                                            <th>Shipment Type</th>
                                             <th style="cursor:pointer;" onclick="toggleSort('carrier_name')">Carrier <i
                                                     class="fas fa-sort ml-1 text-muted"></i></th>
                                             <th>GDN Ref</th>
@@ -131,10 +131,10 @@
                                                 </td>
                                                 <td>
                                                     <c:choose>
-                                                        <c:when test="${s.shipmentType == 'CUSTOMER'}">Giao cho khách
-                                                            hàng</c:when>
-                                                        <c:when test="${s.shipmentType == 'TRANSFER'}">Điều chuyển nội
-                                                            bộ</c:when>
+                                                        <c:when test="${s.shipmentType == 'CUSTOMER'}">Customer
+                                                            Delivery</c:when>
+                                                        <c:when test="${s.shipmentType == 'TRANSFER'}">Internal
+                                                            Transfer</c:when>
                                                         <c:otherwise>${s.shipmentType}</c:otherwise>
                                                     </c:choose>
                                                 </td>
@@ -145,20 +145,19 @@
                                                 <td class="text-center">
                                                     <c:choose>
                                                         <c:when test="${s.status == 'CREATED'}"><span
-                                                                class="badge badge-warning px-3 py-2">Mới tạo</span>
+                                                                class="badge badge-warning px-3 py-2">Created</span>
                                                         </c:when>
                                                         <c:when test="${s.status == 'PICKED_UP'}"><span
-                                                                class="badge badge-primary px-3 py-2">Đã lấy hàng</span>
+                                                                class="badge badge-primary px-3 py-2">Picked Up</span>
                                                         </c:when>
                                                         <c:when test="${s.status == 'IN_TRANSIT'}"><span
-                                                                class="badge badge-info px-3 py-2">Đang giao</span>
+                                                                class="badge badge-info px-3 py-2">In Transit</span>
                                                         </c:when>
                                                         <c:when test="${s.status == 'DELIVERED'}"><span
-                                                                class="badge badge-success px-3 py-2">Đã giao</span>
+                                                                class="badge badge-success px-3 py-2">Delivered</span>
                                                         </c:when>
                                                         <c:when test="${s.status == 'CANCELLED'}"><span
-                                                                class="badge badge-danger px-3 py-2">Đã hủy/Thất
-                                                                bại</span></c:when>
+                                                                class="badge badge-danger px-3 py-2">Cancelled/Failed</span></c:when>
                                                         <c:otherwise><span
                                                                 class="badge badge-secondary px-3 py-2">${s.status}</span>
                                                         </c:otherwise>
@@ -167,21 +166,27 @@
                                                 <td class="time-ago" data-timestamp="${s.createdAt}">
                                                     <small>${s.createdAt}</small>
                                                 </td>
-                                                <td class="text-center">
-                                                    <div class="d-flex justify-content-center gap-2">
-                                                        <a href="${pageContext.request.contextPath}/shipment?action=detail&id=${s.shipmentId}"
-                                                            class="btn btn-primary btn-sm shadow-sm px-3"
-                                                            title="Xem chi tiết">
-                                                            <i class="fas fa-eye mr-1"></i> Xem
-                                                        </a>
-                                                        <c:if
-                                                            test="${s.status != 'DELIVERED' && s.status != 'CANCELLED'}">
-                                                            <a href="${pageContext.request.contextPath}/shipment?action=edit&id=${s.shipmentId}"
-                                                                class="btn btn-warning btn-sm shadow-sm px-3"
-                                                                title="Cập nhật trạng thái">
-                                                                <i class="fas fa-edit mr-1"></i> Sửa
-                                                            </a>
-                                                        </c:if>
+                                                <td class="px-3 text-center">
+                                                    <div class="d-flex justify-content-center align-items-center">
+                                                        <!-- View 버튼 Slot -->
+                                                        <div style="width: 60px;" class="d-flex justify-content-center">
+                                                            <form action="${pageContext.request.contextPath}/shipment" method="get" class="mb-0">
+                                                                <input type="hidden" name="action" value="detail">
+                                                                <input type="hidden" name="id" value="${s.shipmentId}">
+                                                                <t:button type="submit" size="sm" variant="outline" color="primary">View</t:button>
+                                                            </form>
+                                                        </div>
+                                                        
+                                                        <!-- Edit 버튼 Slot -->
+                                                        <div style="width: 60px;" class="d-flex justify-content-center">
+                                                            <c:if test="${s.status != 'DELIVERED' && s.status != 'CANCELLED'}">
+                                                                <form action="${pageContext.request.contextPath}/shipment" method="get" class="mb-0">
+                                                                    <input type="hidden" name="action" value="edit">
+                                                                    <input type="hidden" name="id" value="${s.shipmentId}">
+                                                                    <t:button type="submit" size="sm" variant="outline" color="primary">Update</t:button>
+                                                                </form>
+                                                            </c:if>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -201,19 +206,16 @@
                         </div>
                     </div>
 
+                    <!-- Hidden inputs for sort persistence -->
+                    <input type="hidden" name="sortBy" value="${param.sortBy}">
+                    <input type="hidden" name="order" value="${param.order}">
+
                     <!-- Pagination -->
-                    <c:if test="${totalPages > 1}">
-                        <nav aria-label="Page navigation">
-                            <ul class="pagination justify-content-center">
-                                <c:forEach var="i" begin="1" end="${totalPages}">
-                                    <li class="page-item ${currentPage == i ? 'active' : ''}">
-                                        <a class="page-link"
-                                            href="${pageContext.request.contextPath}/shipment?action=list&page=${i}&shipmentNumber=${param.shipmentNumber}&carrierId=${param.carrierId}&status=${param.status}&shipmentType=${param.shipmentType}&sortBy=${param.sortBy}&order=${param.order}">${i}</a>
-                                    </li>
-                                </c:forEach>
-                            </ul>
-                        </nav>
-                    </c:if>
+                    <div class="mt-4">
+                        <t:pagination page="${currentPage}" pages="${totalPages}" size="${pageSize}"
+                            total="${totalRecords}" url="${pageContext.request.contextPath}/shipment?action=list"
+                            include="[name='shipmentNumber'], [name='carrierId'], [name='status'], [name='shipmentType'], [name='sortBy'], [name='order']" />
+                    </div>
                 </div>
 
                 <script>

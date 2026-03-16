@@ -25,10 +25,10 @@
                                                 value="${nextShipmentNumber}" readonly>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label font-weight-bold">Loại giao hàng</label>
+                                            <label class="form-label font-weight-bold">Shipment Type</label>
                                             <select class="form-control" name="shipmentType">
-                                                <option value="CUSTOMER">Giao hàng cho khách (CUSTOMER)</option>
-                                                <option value="TRANSFER">Điều chuyển nội bộ (TRANSFER)</option>
+                                                <option value="CUSTOMER">Customer Delivery (CUSTOMER)</option>
+                                                <option value="TRANSFER">Internal Transfer (TRANSFER)</option>
                                             </select>
                                         </div>
                                     </div>
@@ -40,7 +40,7 @@
                                             <select class="form-control select2" name="gdnId" required>
                                                 <option value="">-- Choose a Confirmed GDN --</option>
                                                 <c:forEach var="g" items="${gdns}">
-                                                    <option value="${g.gdnId}">${g.gdnNumber}</option>
+                                                    <option value="${g.gdnId}" ${selectedGdnId != null && selectedGdnId == g.gdnId ? 'selected' : ''}>${g.gdnNumber}</option>
                                                 </c:forEach>
                                             </select>
                                             <small class="text-muted">Only confirmed GDNs that haven't been shipped are
@@ -50,7 +50,7 @@
 
                                     <div class="row mb-4">
                                         <div class="col-md-6">
-                                            <label class="form-label font-weight-bold">Carrier (Vận chuyển) <span
+                                            <label class="form-label font-weight-bold">Carrier <span
                                                     class="text-danger">*</span></label>
                                             <select class="form-control" name="carrierId" required>
                                                 <option value="">-- Select Courier --</option>
@@ -60,10 +60,10 @@
                                             </select>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label font-weight-bold">Tracking Code (Mã vận đơn) <span
+                                            <label class="form-label font-weight-bold">Tracking Code  <span
                                                     class="text-danger">*</span></label>
                                             <input type="text" class="form-control" name="trackingCode"
-                                                placeholder="VD: VN123456789..." required>
+                                                placeholder="e.g. VN123456789..." required>
                                         </div>
                                     </div>
 
@@ -85,4 +85,34 @@
                         </div>
                     </div>
                 </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const carrierSelect = document.querySelector('select[name="carrierId"]');
+                        const trackingInput = document.querySelector('input[name="trackingCode"]');
+                        
+                        function generateInternalCode() {
+                            const date = new Date();
+                            const ms = date.getMilliseconds();
+                            const sec = date.getSeconds();
+                            const min = date.getMinutes();
+                            const hour = date.getHours();
+                            return "INT-" + date.getFullYear() + (date.getMonth()+1) + date.getDate() + "-" + hour + min + sec + ms;
+                        }
+
+                        carrierSelect.addEventListener('change', function() {
+                            const selectedOption = this.options[this.selectedIndex];
+                            const text = selectedOption.text;
+                            
+                            if (text.includes('(INTERNAL)') || text.includes('Giao hàng nội bộ')) {
+                                trackingInput.value = generateInternalCode();
+                                trackingInput.readOnly = true;
+                                trackingInput.classList.add('bg-light');
+                            } else {
+                                trackingInput.value = '';
+                                trackingInput.readOnly = false;
+                                trackingInput.classList.remove('bg-light');
+                            }
+                        });
+                    });
+                </script>
             </t:layout>

@@ -123,7 +123,7 @@ public class InventoryBalanceDAO extends DBContext {
 
     public BigDecimal getTotalCapacityUsed(Long slotId) throws Exception {
         String sql = """
-            SELECT COALESCE(SUM(qty_on_hand), 0) AS total
+            SELECT COALESCE(SUM(qty_on_hand), 0) AS total   
             FROM inventory_balance
             WHERE slot_id = ?
         """;
@@ -153,9 +153,9 @@ public class InventoryBalanceDAO extends DBContext {
             SELECT ib.slot_id, s.code AS slot_code, z.zone_id, z.code AS zone_code, ib.qty_available
             FROM inventory_balance ib
             JOIN slot s ON s.slot_id = ib.slot_id
-            JOIN zone z ON z.zone_id = s.zone_id
+            LEFT JOIN zone z ON z.zone_id = s.zone_id
             WHERE ib.warehouse_id = ? AND ib.variant_id = ? AND ib.qty_available > 0
-            ORDER BY z.code, s.code
+            ORDER BY COALESCE(z.code, ''), s.code
             """;
         try (Connection con = getConnection();
              PreparedStatement ps = con.prepareStatement(sql)) {
@@ -166,7 +166,8 @@ public class InventoryBalanceDAO extends DBContext {
                     SlotQtyDTO dto = new SlotQtyDTO();
                     dto.setSlotId(rs.getLong("slot_id"));
                     dto.setSlotCode(rs.getString("slot_code"));
-                    dto.setZoneId(rs.getLong("zone_id"));
+                    Long zoneId = rs.getObject("zone_id") != null ? rs.getLong("zone_id") : null;
+                    dto.setZoneId(zoneId);
                     dto.setZoneCode(rs.getString("zone_code"));
                     dto.setQtyAvailable(rs.getBigDecimal("qty_available"));
                     list.add(dto);
