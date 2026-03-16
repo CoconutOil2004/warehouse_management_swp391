@@ -123,7 +123,7 @@ public class InventoryBalanceDAO extends DBContext {
 
     public BigDecimal getTotalCapacityUsed(Long slotId) throws Exception {
         String sql = """
-            SELECT COALESCE(SUM(qty_on_hand), 0) AS total
+            SELECT COALESCE(SUM(qty_on_hand), 0) AS total   
             FROM inventory_balance
             WHERE slot_id = ?
         """;

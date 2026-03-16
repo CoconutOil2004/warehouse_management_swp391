@@ -228,65 +228,91 @@
                                         class="btn btn-outline-secondary me-2">
                                         <i class="fas fa-arrow-left me-1"></i> Back to List
                                     </a>
+                                    <c:if test="${grn.status == 'PENDING' && not isPutawayComplete}">
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Please complete Putaway before Approving
+                                        </span>
+                                    </c:if>
                                 </div>
 
                                 <div class="d-flex gap-2">
                                     <c:choose>
                                         <c:when test="${grn.status == 'PENDING' || grn.status == 'DRAFT'}">
 
-                                            <!-- Nút Approve -->
-                                            <form action="${pageContext.request.contextPath}/goods-receipt"
-                                                method="post"
-                                                onsubmit="return confirm('Bạn chắc chắn muốn APPROVE phiếu này?')">
-                                                <input type="hidden" name="action" value="approve">
-                                                <input type="hidden" name="id" value="${grn.grnId}">
-                                                <button type="submit"
-                                                    class="btn btn-success shadow-sm d-flex align-items-center justify-content-center"
+                                            <c:if test="${isManager}">
+                                                <!-- Nút Approve -->
+                                                <c:if test="${isPutawayComplete}">
+                                                    <form action="${pageContext.request.contextPath}/goods-receipt"
+                                                        method="post"
+                                                        onsubmit="return confirm('Are you sure you want to APPROVE this receipt?')">
+                                                        <input type="hidden" name="action" value="approve">
+                                                        <input type="hidden" name="id" value="${grn.grnId}">
+                                                        <button type="submit"
+                                                            class="btn btn-success shadow-sm d-flex align-items-center justify-content-center"
+                                                            style="height: 38px; padding: 0 16px;">
+                                                            <i class="fas fa-check me-2"></i>Approve
+                                                        </button>
+                                                    </form>
+                                                </c:if>
+                                                <c:if test="${not isPutawayComplete}">
+                                                    <button type="button"
+                                                        class="btn btn-success shadow-sm d-flex align-items-center justify-content-center disabled"
+                                                        style="height: 38px; padding: 0 16px; opacity: 0.65; cursor: not-allowed;"
+                                                        title="Putaway incomplete">
+                                                        <i class="fas fa-lock me-2"></i>Approve
+                                                    </button>
+                                                </c:if>
+
+                                                <!-- Nút Reject -->
+                                                <form action="${pageContext.request.contextPath}/goods-receipt"
+                                                    method="post"
+                                                    onsubmit="return confirm('Are you sure you want to REJECT this receipt?')">
+                                                    <input type="hidden" name="action" value="reject">
+                                                    <input type="hidden" name="id" value="${grn.grnId}">
+                                                    <button type="submit"
+                                                        class="btn btn-outline-danger shadow-sm d-flex align-items-center justify-content-center"
+                                                        style="height: 38px; padding: 0 16px;">
+                                                        <i class="fas fa-times me-2"></i>Reject
+                                                    </button>
+                                                </form>
+
+                                                <div class="vr mx-2"></div>
+                                            </c:if>
+
+                                            <c:if test="${canMutation}">
+                                                <!-- Nút Putaway -->
+                                                <a href="${pageContext.request.contextPath}/goods-receipt?action=putaway&id=${grn.grnId}"
+                                                    class="btn btn-primary d-inline-flex align-items-center justify-content-center shadow-sm"
                                                     style="height: 38px; padding: 0 16px;">
-                                                    <i class="fas fa-check me-2"></i>Approve
-                                                </button>
-                                            </form>
+                                                    <i class="fas fa-dolly-flatbed me-2"></i>Putaway
+                                                </a>
 
-                                            <!-- Nút Reject -->
-                                            <form action="${pageContext.request.contextPath}/goods-receipt"
-                                                method="post"
-                                                onsubmit="return confirm('Bạn chắc chắn muốn REJECT phiếu này?')">
-                                                <input type="hidden" name="action" value="reject">
-                                                <input type="hidden" name="id" value="${grn.grnId}">
-                                                <button type="submit"
-                                                    class="btn btn-outline-danger shadow-sm d-flex align-items-center justify-content-center"
+                                                <!-- Nút Edit -->
+                                                <a href="${pageContext.request.contextPath}/goods-receipt?action=edit&id=${grn.grnId}"
+                                                    class="btn btn-outline-primary shadow-sm d-flex align-items-center justify-content-center"
                                                     style="height: 38px; padding: 0 16px;">
-                                                    <i class="fas fa-times me-2"></i>Reject
-                                                </button>
-                                            </form>
+                                                    <i class="fas fa-edit me-2"></i>Edit
+                                                </a>
 
-                                            <div class="vr mx-2"></div>
-
-                                            <!-- Nút Edit -->
-                                            <a href="${pageContext.request.contextPath}/goods-receipt?action=edit&id=${grn.grnId}"
-                                                class="btn btn-warning shadow-sm text-dark d-flex align-items-center justify-content-center"
-                                                style="height: 38px; padding: 0 16px;">
-                                                <i class="fas fa-edit me-2"></i>Edit
-                                            </a>
-
-                                            <!-- Nút Delete -->
-                                            <form action="${pageContext.request.contextPath}/goods-receipt"
-                                                method="post"
-                                                onsubmit="return confirm('Xóa phiếu này? Hành động không thể hoàn tác!')">
-                                                <input type="hidden" name="action" value="delete">
-                                                <input type="hidden" name="id" value="${grn.grnId}">
-                                                <button type="submit"
-                                                    class="btn btn-danger shadow-sm d-flex align-items-center justify-content-center"
-                                                    style="height: 38px; padding: 0 16px;">
-                                                    <i class="fas fa-trash-alt me-2"></i>Delete
-                                                </button>
-                                            </form>
+                                                <!-- Nút Delete -->
+                                                <form action="${pageContext.request.contextPath}/goods-receipt"
+                                                    method="post"
+                                                    onsubmit="return confirm('Delete this receipt? This action cannot be undone!')">
+                                                    <input type="hidden" name="action" value="delete">
+                                                    <input type="hidden" name="id" value="${grn.grnId}">
+                                                    <button type="submit"
+                                                        class="btn btn-danger shadow-sm d-flex align-items-center justify-content-center"
+                                                        style="height: 38px; padding: 0 16px;">
+                                                        <i class="fas fa-trash-alt me-2"></i>Delete
+                                                    </button>
+                                                </form>
+                                            </c:if>
 
                                         </c:when>
                                         <c:otherwise>
                                             <span class="text-muted fst-italic small align-self-center">
                                                 <i class="fas fa-lock me-1"></i>
-                                                Phiếu đã được xử lý (${grn.status}) — không thể chỉnh sửa.
+                                                Receipt processed (${grn.status}) — cannot be edited.
                                             </span>
                                         </c:otherwise>
                                     </c:choose>
