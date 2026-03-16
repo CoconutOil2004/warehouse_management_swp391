@@ -15,7 +15,7 @@
     </jsp:attribute>
 
     <jsp:body>
-        <c:set var="columns" value='${["Wave ID", "GDN Number", "Status", "Created by", "Created at", "Actions"]}' />
+        <c:set var="columns" value='${["Wave Code", "GDN Count", "Status", "Created by", "Created at", "Actions"]}' />
         <t:table columns="${columns}">
             <jsp:attribute name="head">
                 <form hx-get="${pageContext.request.contextPath}/pick-wave" hx-target="#wrapper" hx-select="#wrapper" hx-swap="outerHTML" hx-push-url="true" class="row g-2 m-0 mt-1">
@@ -23,6 +23,8 @@
                     <select class="form-select" name="status" onchange="this.form.requestSubmit()">
                         <option value="">-- All Status --</option>
                         <option value="CREATED" ${param.status == 'CREATED' ? 'selected' : ''}>CREATED</option>
+                        <option value="IN_PROGRESS" ${param.status == 'IN_PROGRESS' ? 'selected' : ''}>IN_PROGRESS</option>
+                        <option value="DONE" ${param.status == 'DONE' ? 'selected' : ''}>DONE</option>
                     </select>
                 </form>
             </jsp:attribute>
@@ -41,16 +43,36 @@
             <jsp:body>
                 <c:forEach var="w" items="${waves}">
                     <tr>
-                        <td>${w.waveId}</td>
-                        <td>
-                            <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${w.gdnId}" class="fw-semibold text-decoration-none">
-                                ${w.gdnNumber}
-                            </a>
+                        <td class="fw-bold">
+                            <c:choose>
+                                <c:when test="${not empty w.waveCode}">
+                                    ${w.waveCode}
+                                </c:when>
+                                <c:otherwise>
+                                    #${w.waveId}
+                                </c:otherwise>
+                            </c:choose>
                         </td>
-                        <td>
-                            <span class="badge ${w.status == 'CREATED' ? 'bg-secondary' : 'bg-info'}">
-                                ${w.status}
+                        <td class="text-center">
+                            <span class="badge ${w.gdnCount > 1 ? 'bg-info' : 'bg-secondary'}">
+                                ${w.gdnCount != null ? w.gdnCount : 1} GDN${w.gdnCount > 1 ? 's' : ''}
                             </span>
+                        </td>
+                        <td class="text-center">
+                            <c:choose>
+                                <c:when test="${w.status == 'CREATED'}">
+                                    <span class="badge bg-secondary">CREATED</span>
+                                </c:when>
+                                <c:when test="${w.status == 'IN_PROGRESS'}">
+                                    <span class="badge bg-warning text-dark">IN_PROGRESS</span>
+                                </c:when>
+                                <c:when test="${w.status == 'DONE'}">
+                                    <span class="badge bg-success">DONE</span>
+                                </c:when>
+                                <c:otherwise>
+                                    <span class="badge bg-info">${w.status}</span>
+                                </c:otherwise>
+                            </c:choose>
                         </td>
                         <td>
                             ${w.createdByName != null ? w.createdByName : '-'}
@@ -59,11 +81,11 @@
                             ${w.createdAtDisplay}
                         </td>
                         <td>
-                            <a href="${pageContext.request.contextPath}/pick-task?action=assign&waveId=${w.waveId}" 
+                            <a href="${pageContext.request.contextPath}/pick-task?action=assign&waveId=${w.waveId}"
                                class="btn btn-sm btn-circle btn-outline-primary me-1" title="Assign tasks">
                                 <i class="bi bi-list-check"></i>
                             </a>
-                            <a href="${pageContext.request.contextPath}/pick-wave?action=detail&id=${w.waveId}" 
+                            <a href="${pageContext.request.contextPath}/pick-wave?action=detail&id=${w.waveId}"
                                class="btn btn-sm btn-circle btn-outline-secondary" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
