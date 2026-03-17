@@ -67,6 +67,12 @@
                             <td>${p.name}</td>
                             <td>${p.categoryName} <c:if test="${not empty p.categoryCode}"><small class="text-muted">(${p.categoryCode})</small></c:if></td>
                             <td class="text-center">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary me-1 btn-view-product"
+                                        data-product-id="${p.productId}"
+                                        title="View">
+                                    View
+                                </button>
                                 <a href="${pageContext.request.contextPath}/products?action=edit&id=${p.productId}&page=${page}&size=${size}" class="btn btn-sm btn-outline-primary me-1" title="Edit">Edit</a>
                                 <a href="${pageContext.request.contextPath}/products?action=variants&id=${p.productId}&page=${page}&size=${size}" class="btn btn-sm btn-outline-info" title="Manage Variants">Variants</a>
                             </td>
@@ -206,6 +212,76 @@
                             </div>
                         </form>
                     </c:if>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Product Modal (read-only, show variants) -->
+        <div class="modal fade" id="viewProductModal" tabindex="-1" aria-labelledby="viewProductModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content shadow-lg border-0">
+                    <div class="modal-header bg-secondary text-white rounded-0">
+                        <h5 class="modal-title d-flex align-items-center" id="viewProductModalLabel">
+                            <i class="fas fa-eye me-2"></i>Product Detail
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" aria-label="Close" id="viewModalCloseBtn"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="mb-1 small text-muted">SKU</p>
+                                <p class="mb-2"><code id="viewSku"></code></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1 small text-muted">Created At</p>
+                                <p class="mb-2" id="viewCreatedAt">-</p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="mb-1 small text-muted">Product Name</p>
+                                <p class="mb-2 fw-semibold" id="viewName"></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1 small text-muted">Category</p>
+                                <p class="mb-2" id="viewCategory"></p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <p class="mb-1 small text-muted">UOM</p>
+                                <p class="mb-2" id="viewUom">-</p>
+                            </div>
+                            <div class="col-md-9">
+                                <p class="mb-1 small text-muted">Dimensions &amp; Weight</p>
+                                <p class="mb-2 small" id="viewDimensions">-</p>
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+                        <h6 class="fw-semibold mb-2 d-flex align-items-center">
+                            <i class="fas fa-th-list me-2"></i>Variants
+                        </h6>
+                        <div class="table-responsive rounded border">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th class="border-0 text-center">Variant SKU</th>
+                                        <th class="border-0 text-center">Color</th>
+                                        <th class="border-0 text-center">Size</th>
+                                        <th class="border-0 text-center">Status</th>
+                                        <th class="border-0 text-center">On hand</th>
+                                        <th class="border-0 text-center">Available</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="viewVariantTbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top bg-light rounded-0">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="viewModalFooterCloseBtn">Close</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -367,6 +443,7 @@
             .variant-size-chip input { margin-right: 5px; }
             .table-variant-list { table-layout: fixed; width: 100%; }
             .table-variant-list th, .table-variant-list td { vertical-align: middle; }
+            #viewVariantTbody td { vertical-align: middle; }
         </style>
 
         <script>
@@ -430,6 +507,157 @@
                 }
 
                 // Inactive/Active: submit bằng form, không confirm
+
+                // View product detail (AJAX -> /products?action=detail&id=...)
+                var viewModalEl = document.getElementById('viewProductModal');
+                var viewModalInstance = viewModalEl ? new bootstrap.Modal(viewModalEl) : null;
+                var viewSkuEl = document.getElementById('viewSku');
+                var viewNameEl = document.getElementById('viewName');
+                var viewCategoryEl = document.getElementById('viewCategory');
+                var viewUomEl = document.getElementById('viewUom');
+                var viewDimensionsEl = document.getElementById('viewDimensions');
+                var viewCreatedAtEl = document.getElementById('viewCreatedAt');
+                var viewVariantTbody = document.getElementById('viewVariantTbody');
+                var viewModalCloseBtn = document.getElementById('viewModalCloseBtn');
+                var viewModalFooterCloseBtn = document.getElementById('viewModalFooterCloseBtn');
+
+                function textOrDash(value) {
+                    if (value === null || value === undefined || value === '') return '-';
+                    return value;
+                }
+
+                function formatDimensions(p) {
+                    var parts = [];
+                    if (p.weight != null) parts.push('Weight: ' + p.weight + ' kg');
+                    var hasL = p.length != null;
+                    var hasW = p.width != null;
+                    var hasH = p.height != null;
+                    if (hasL || hasW || hasH) {
+                        var dims = 'LxWxH: ' +
+                            (hasL ? p.length : '0') + ' x ' +
+                            (hasW ? p.width : '0') + ' x ' +
+                            (hasH ? p.height : '0') + ' cm';
+                        parts.push(dims);
+                    }
+                    return parts.length ? parts.join(' | ') : '-';
+                }
+
+                function renderVariants(variants) {
+                    if (!viewVariantTbody) return;
+                    viewVariantTbody.innerHTML = '';
+                    if (!variants || !variants.length) {
+                        var trEmpty = document.createElement('tr');
+                        var tdEmpty = document.createElement('td');
+                        tdEmpty.colSpan = 6;
+                        tdEmpty.className = 'text-center text-muted py-3';
+                        tdEmpty.textContent = 'No variants.';
+                        trEmpty.appendChild(tdEmpty);
+                        viewVariantTbody.appendChild(trEmpty);
+                        return;
+                    }
+                    variants.forEach(function(v) {
+                        var tr = document.createElement('tr');
+
+                        var tdSku = document.createElement('td');
+                        tdSku.className = 'text-center';
+                        var code = document.createElement('code');
+                        code.className = 'small';
+                        code.textContent = v.variantSku || '';
+                        tdSku.appendChild(code);
+                        tr.appendChild(tdSku);
+
+                        var tdColor = document.createElement('td');
+                        tdColor.className = 'text-center';
+                        if (v.colorHex) {
+                            var sw = document.createElement('span');
+                            sw.className = 'rounded border d-inline-block me-1';
+                            sw.style.width = '14px';
+                            sw.style.height = '14px';
+                            sw.style.background = v.colorHex;
+                            sw.style.verticalAlign = 'middle';
+                            tdColor.appendChild(sw);
+                        }
+                        tdColor.appendChild(document.createTextNode(v.color || ''));
+                        tr.appendChild(tdColor);
+
+                        var tdSize = document.createElement('td');
+                        tdSize.className = 'text-center';
+                        tdSize.textContent = v.size || '';
+                        tr.appendChild(tdSize);
+
+                        var tdStatus = document.createElement('td');
+                        tdStatus.className = 'text-center';
+                        var spanStatus = document.createElement('span');
+                        var status = (v.status || '').toUpperCase();
+                        spanStatus.className = 'badge bg-' + (status === 'ACTIVE' ? 'success' : 'secondary');
+                        spanStatus.textContent = status || '-';
+                        tdStatus.appendChild(spanStatus);
+                        tr.appendChild(tdStatus);
+
+                        var tdOnHand = document.createElement('td');
+                        tdOnHand.className = 'text-center';
+                        tdOnHand.textContent = v.totalQtyOnHand != null ? v.totalQtyOnHand : '0';
+                        tr.appendChild(tdOnHand);
+
+                        var tdAvailable = document.createElement('td');
+                        tdAvailable.className = 'text-center';
+                        tdAvailable.textContent = v.totalQtyAvailable != null ? v.totalQtyAvailable : '0';
+                        tr.appendChild(tdAvailable);
+
+                        viewVariantTbody.appendChild(tr);
+                    });
+                }
+
+                function bindViewButtons() {
+                    var buttons = document.querySelectorAll('.btn-view-product');
+                    if (!buttons || !buttons.length || !viewModalInstance) return;
+                    buttons.forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            var id = this.getAttribute('data-product-id');
+                            if (!id) return;
+                            fetch(ctx + '/products?action=detail&id=' + encodeURIComponent(id), {
+                                headers: { 'Accept': 'application/json' }
+                            })
+                            .then(function(res) {
+                                if (!res.ok) throw new Error('Failed to load product');
+                                return res.json();
+                            })
+                            .then(function(data) {
+                                if (!data) return;
+                                if (viewSkuEl) viewSkuEl.textContent = textOrDash(data.sku);
+                                if (viewNameEl) viewNameEl.textContent = textOrDash(data.name);
+                                if (viewCategoryEl) viewCategoryEl.textContent = textOrDash(data.categoryName);
+                                if (viewUomEl) viewUomEl.textContent = textOrDash(data.uomName);
+                                if (viewDimensionsEl) viewDimensionsEl.textContent = formatDimensions(data);
+                                if (viewCreatedAtEl) viewCreatedAtEl.textContent = textOrDash(data.createdAt);
+                                renderVariants(data.variants || []);
+                                viewModalInstance.show();
+                            })
+                            .catch(function() {
+                                alert('Không thể tải thông tin sản phẩm. Vui lòng thử lại.');
+                            });
+                        });
+                    });
+                }
+
+                bindViewButtons();
+
+                // Nút X và nút Close trong footer: đóng modal (không redirect)
+                function bindViewCloseButtons() {
+                    if (!viewModalInstance) return;
+                    if (viewModalCloseBtn) {
+                        viewModalCloseBtn.addEventListener('click', function() {
+                            viewModalInstance.hide();
+                        });
+                    }
+                    if (viewModalFooterCloseBtn) {
+                        viewModalFooterCloseBtn.addEventListener('click', function() {
+                            viewModalInstance.hide();
+                        });
+                    }
+                }
+
+                bindViewCloseButtons();
             });
         })();
         </script>
