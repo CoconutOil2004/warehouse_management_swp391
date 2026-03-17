@@ -122,9 +122,11 @@ public class GoodsDeliveryNoteController extends HttpServlet {
 
         PickWaveDAO waveDao = new PickWaveDAO();
         PickTaskDAO pickTaskDao = new PickTaskDAO();
+        dao.ShipmentDAO shipmentDao = new dao.ShipmentDAO();
         request.setAttribute("gdn", gdn);
         request.setAttribute("wave", waveDao.getWaveByGdnId(gdnId));
         request.setAttribute("pickTasks", pickTaskDao.getTasksByGdnId(gdnId));
+        request.setAttribute("shipments", shipmentDao.getByGdnId(gdnId));
         request.getRequestDispatcher("WEB-INF/views/outbound/goods-delivery-note-detail.jsp")
                .forward(request, response);
     }

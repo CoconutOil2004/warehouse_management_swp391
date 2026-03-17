@@ -516,9 +516,6 @@ public class PickTaskController extends HttpServlet {
 
     pickTaskDao.completeTask(pickTaskId, lines);
 
-    GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
-    gdnDao.updateGDNStatus(task.getGdnId(), "CONFIRMED");
-
     // Check if wave is completed
     if (task.getWaveId() != null) {
       if (pickTaskDao.isWaveComplete(task.getWaveId())) {
