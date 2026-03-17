@@ -356,12 +356,11 @@ public class ProductDAO extends DBContext {
         
         StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("SELECT ");
-        sqlBuilder.append("    p.product_id, ");
-        sqlBuilder.append("    p.sku, ");
-        sqlBuilder.append("    p.name, ");
-        sqlBuilder.append("    p.barcode, ");
+        sqlBuilder.append("    p.product_id, p.sku, p.name, p.barcode, p.category_id, ");
+        sqlBuilder.append("    c.name AS category_name, ");
         sqlBuilder.append("    p.created_at ");
         sqlBuilder.append("FROM product p ");
+        sqlBuilder.append("LEFT JOIN category c ON c.category_id = p.category_id ");
         sqlBuilder.append(whereClause.toString());
         sqlBuilder.append(" ORDER BY p.").append(validSortBy).append(" ").append(validSortOrder);
         sqlBuilder.append(" LIMIT ? OFFSET ?");
@@ -373,7 +372,6 @@ public class ProductDAO extends DBContext {
             
             int paramIndex = 1;
             
-            // Set filter parameters
             if (filterSku != null && !filterSku.isBlank()) {
                 ps.setString(paramIndex++, "%" + filterSku + "%");
             }
@@ -384,7 +382,6 @@ public class ProductDAO extends DBContext {
                 ps.setString(paramIndex++, "%" + filterBarcode + "%");
             }
             
-            // Set limit and offset
             ps.setInt(paramIndex++, limit);
             ps.setInt(paramIndex, offset);
             
@@ -395,18 +392,107 @@ public class ProductDAO extends DBContext {
                     dto.setSku(rs.getString("sku"));
                     dto.setName(rs.getString("name"));
                     dto.setBarcode(rs.getString("barcode"));
-                    
+                    Long catId = rs.getObject("category_id") != null ? rs.getLong("category_id") : null;
+                    dto.setCategoryId(catId);
+                    dto.setCategoryName(rs.getString("category_name"));
                     java.sql.Timestamp ts = rs.getTimestamp("created_at");
-                    if (ts != null) {
-                        dto.setCreatedAt(ts.toLocalDateTime());
-                    }
-                    
+                    if (ts != null) dto.setCreatedAt(ts.toLocalDateTime());
                     list.add(dto);
                 }
             }
         }
         
         return list;
+    }
+
+    /** Count products for pagination (filters: sku, name). */
+    public int countAllProducts(String filterSku, String filterName) throws Exception {
+        StringBuilder whereClause = new StringBuilder();
+        java.util.List<String> conditions = new ArrayList<>();
+        if (filterSku != null && !filterSku.isBlank()) conditions.add("p.sku LIKE ?");
+        if (filterName != null && !filterName.isBlank()) conditions.add("p.name LIKE ?");
+        if (!conditions.isEmpty()) whereClause.append("WHERE ").append(String.join(" AND ", conditions));
+        String sql = "SELECT COUNT(*) AS total FROM product p " + whereClause.toString();
+        try (Connection con = DBContext.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            int idx = 1;
+            if (filterSku != null && !filterSku.isBlank()) ps.setString(idx++, "%" + filterSku + "%");
+            if (filterName != null && !filterName.isBlank()) ps.setString(idx++, "%" + filterName + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("total");
+            }
+        }
+        return 0;
+    }
+
+    /** Get next SKU for category, e.g. TSH -> TSH-001, TSH-002. Prefix must match existing pattern PREFIX-NNN. */
+    public String getNextSkuForCategory(String prefix) throws Exception {
+        if (prefix == null || prefix.isBlank()) return "PRD-001";
+        String like = prefix + "-%";
+        String sql = "SELECT sku FROM product WHERE sku LIKE ? ORDER BY product_id DESC LIMIT 1";
+        try (Connection con = DBContext.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, like);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String last = rs.getString("sku");
+                    int dash = last != null ? last.lastIndexOf('-') : -1;
+                    if (dash >= 0 && dash + 1 < last.length()) {
+                        try {
+                            int num = Integer.parseInt(last.substring(dash + 1));
+                            return prefix + "-" + String.format("%03d", num + 1);
+                        } catch (NumberFormatException ignored) {}
+                    }
+                }
+            }
+        }
+        return prefix + "-001";
+    }
+
+    /** Insert product; product.sku must be set (e.g. from getNextSkuForCategory). base_uom_id bắt buộc trong DB nên dùng mặc định nếu null. */
+    public long insertProduct(model.Product p) throws Exception {
+        Long baseUomId = p.getBaseUomId();
+        if (baseUomId == null) {
+            baseUomId = new dao.UomDAO().getFirstId();
+            if (baseUomId != null) p.setBaseUomId(baseUomId);
+        }
+        if (baseUomId == null) {
+            throw new IllegalStateException("Không thể tạo product: bảng UOM trống. Vui lòng thêm ít nhất một đơn vị đo (UOM) trước.");
+        }
+        String sql = "INSERT INTO product (sku, name, category_id, base_uom_id, weight, length, width, height, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        try (Connection con = DBContext.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, p.getSku());
+            ps.setString(2, p.getName());
+            ps.setObject(3, p.getCategoryId());
+            ps.setLong(4, baseUomId);
+            ps.setObject(5, p.getWeight());
+            ps.setObject(6, p.getLength());
+            ps.setObject(7, p.getWidth());
+            ps.setObject(8, p.getHeight());
+            ps.executeUpdate();
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) return rs.getLong(1);
+            }
+        }
+        return -1;
+    }
+
+    /** Update product (name, category_id, base_uom_id, weight, dimensions). No delete. */
+    public boolean updateProduct(model.Product p) throws Exception {
+        String sql = "UPDATE product SET name = ?, category_id = ?, base_uom_id = ?, weight = ?, length = ?, width = ?, height = ? WHERE product_id = ?";
+        try (Connection con = DBContext.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, p.getName());
+            ps.setObject(2, p.getCategoryId());
+            ps.setObject(3, p.getBaseUomId());
+            ps.setObject(4, p.getWeight());
+            ps.setObject(5, p.getLength());
+            ps.setObject(6, p.getWidth());
+            ps.setObject(7, p.getHeight());
+            ps.setLong(8, p.getProductId());
+            return ps.executeUpdate() > 0;
+        }
     }
 
     public ProductDetailDTO getProductById(Long productId) throws Exception {
@@ -564,7 +650,6 @@ public class ProductDAO extends DBContext {
         try {
             String sql;
             if (warehouseId != null) {
-                // Query với quantity từ inventory
                 sql = """
                     SELECT 
                         pv.variant_id,
@@ -582,7 +667,6 @@ public class ProductDAO extends DBContext {
                     ORDER BY pv.variant_id
                 """;
             } else {
-                // Query không có quantity
                 sql = """
                     SELECT 
                         variant_id,
@@ -614,6 +698,7 @@ public class ProductDAO extends DBContext {
                             dto.setVariantId(rs.getLong("variant_id"));
                             dto.setVariantSku(rs.getString("variant_sku"));
                             dto.setColor(rs.getString("color"));
+                            try { dto.setColorHex(rs.getString("color_hex")); } catch (Exception ignored) {}
                             dto.setSize(rs.getString("size"));
                             dto.setBarcode(rs.getString("barcode"));
                             dto.setStatus(rs.getString("status"));

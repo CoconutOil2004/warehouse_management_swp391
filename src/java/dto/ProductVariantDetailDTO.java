@@ -10,6 +10,7 @@ public class ProductVariantDetailDTO {
     private Long variantId;
     private String variantSku;
     private String color;
+    private String colorHex;
     private String size;
     private String barcode;
     private String status;
