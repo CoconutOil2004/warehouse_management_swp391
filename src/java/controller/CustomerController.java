@@ -7,15 +7,11 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 import model.Customer;
 import util.ViewPath;
 
-@WebServlet(name = "CustomerController", urlPatterns = { "/admin/customer", "/admin/customer/*" })
+@WebServlet(name = "CustomerController", urlPatterns = {"/admin/customer", "/admin/customer/*"})
 public class CustomerController extends HttpServlet {
 
     private static final Long DEFAULT_PAGE = 1L;
@@ -27,7 +23,6 @@ public class CustomerController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String path = request.getPathInfo();
-        System.out.println(path);
         if (path == null || path.equals("/")) {
             viewList(request, response);
             return;
@@ -44,6 +39,28 @@ public class CustomerController extends HttpServlet {
                 viewList(request, response);
         }
     }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String path = request.getPathInfo();
+        if (path == null) {
+            path = "/create";
+        }
+
+        switch (path) {
+            case "/create" ->
+                handleCreate(request, response);
+            case "/update" ->
+                handleUpdate(request, response);
+            case "/delete" ->
+                handleDelete(request, response);
+            default ->
+                response.sendRedirect(request.getContextPath() + "/admin/customer");
+        }
+    }
+
+    // ======================== GET handlers ========================
 
     private void viewList(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -128,33 +145,16 @@ public class CustomerController extends HttpServlet {
         }
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String path = request.getPathInfo();
-        if ("/activate".equals(path)) {
-            try {
-                String idRaw = request.getParameter("id");
-                if (idRaw != null) {
-                    Long id = Long.valueOf(idRaw);
-                    customerDao.activate(id);
-                }
-                response.setHeader("HX-Location", request.getContextPath() + "/admin/customer");
-            } catch (Exception e) {
-                e.printStackTrace();
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Activate failed");
-            }
-            return;
-        }
+    // ======================== POST handlers ========================
 
-        String code = request.getParameter("code");
-        String name = request.getParameter("name");
-        String email = request.getParameter("email");
-        String phone = request.getParameter("phone");
-        String address = request.getParameter("address");
+    private void handleCreate(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String name = request.getParameter("name") != null ? request.getParameter("name").trim() : "";
+        String email = request.getParameter("email") != null ? request.getParameter("email").trim() : "";
+        String phone = request.getParameter("phone") != null ? request.getParameter("phone").trim() : "";
+        String address = request.getParameter("address") != null ? request.getParameter("address").trim() : "";
 
         Customer c = new Customer();
-        c.setCode(code);
         c.setName(name);
         c.setEmail(email);
         c.setPhone(phone);
@@ -162,41 +162,52 @@ public class CustomerController extends HttpServlet {
         c.setStatus("ACTIVE");
 
         try {
-            if (customerDao.codeExists(code, null)) {
-                request.setAttribute("error", "Customer Code already exists");
-                request.setAttribute("customer", c); // keep input
+            // Validate required fields
+            if (name.isEmpty()) {
+                request.setAttribute("error", "Name is required");
+                request.setAttribute("customer", c);
                 request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
                 return;
             }
+
+            // Auto-generate code
+            String code = customerDao.generateNextCode();
+            c.setCode(code);
 
             customerDao.create(c);
             response.sendRedirect(request.getContextPath() + "/admin/customer");
         } catch (SQLException e) {
             e.printStackTrace();
             request.setAttribute("error", "Database error: " + e.getMessage());
-            request.setAttribute("cusomer", c);
             request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
         }
     }
 
-    @Override
-    protected void doPut(HttpServletRequest request, HttpServletResponse response)
+    private void handleUpdate(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            Map<String, String> params = parseFormBody(request);
-
-            String idRaw = params.get("id");
+            String idRaw = request.getParameter("id");
             if (idRaw == null) {
-                idRaw = request.getParameter("id");
+                response.sendRedirect(request.getContextPath() + "/admin/customer");
+                return;
             }
 
             Long id = Long.valueOf(idRaw);
-            String code = params.get("code");
-            String name = params.get("name");
-            String email = params.get("email");
-            String phone = params.get("phone");
-            String address = params.get("address");
-            String status = params.get("status");
+            String code = request.getParameter("code") != null ? request.getParameter("code").trim() : "";
+            String name = request.getParameter("name") != null ? request.getParameter("name").trim() : "";
+            String email = request.getParameter("email") != null ? request.getParameter("email").trim() : "";
+            String phone = request.getParameter("phone") != null ? request.getParameter("phone").trim() : "";
+            String address = request.getParameter("address") != null ? request.getParameter("address").trim() : "";
+            String status = request.getParameter("status") != null ? request.getParameter("status").trim() : "ACTIVE";
+
+            // Validate required fields
+            if (code.isEmpty() || name.isEmpty()) {
+                Customer old = customerDao.getDetail(id);
+                request.setAttribute("error", "Code and Name are required");
+                request.setAttribute("customer", old);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
+                return;
+            }
 
             Customer c = new Customer();
             c.setCustomerId(id);
@@ -207,21 +218,23 @@ public class CustomerController extends HttpServlet {
             c.setAddress(address);
             c.setStatus(status);
 
+            // Check if code already exists for another customer
             if (customerDao.codeExists(code, id)) {
-                response.sendError(HttpServletResponse.SC_CONFLICT, "Customer Code already exists");
+                request.setAttribute("error", "Customer Code already exists");
+                request.setAttribute("customer", c);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
                 return;
             }
 
             customerDao.update(c);
-            response.setHeader("HX-Location", request.getContextPath() + "/admin/customer");
+            response.sendRedirect(request.getContextPath() + "/admin/customer");
         } catch (Exception e) {
             e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Update failed");
+            response.sendRedirect(request.getContextPath() + "/admin/customer");
         }
     }
 
-    @Override
-    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
+    private void handleDelete(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
             String idRaw = request.getParameter("id");
@@ -229,28 +242,14 @@ public class CustomerController extends HttpServlet {
                 Long id = Long.valueOf(idRaw);
                 customerDao.delete(id);
             }
-            response.setHeader("HX-Location", request.getContextPath() + "/admin/customer");
+            response.sendRedirect(request.getContextPath() + "/admin/customer");
+        } catch (java.sql.SQLIntegrityConstraintViolationException e) {
+            e.printStackTrace();
+            response.sendRedirect(request.getContextPath() + "/admin/customer");
         } catch (Exception e) {
             e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Delete failed");
+            response.sendRedirect(request.getContextPath() + "/admin/customer");
         }
     }
-
-    private Map<String, String> parseFormBody(HttpServletRequest request) throws IOException {
-        Map<String, String> params = new HashMap<>();
-        byte[] bytes = request.getInputStream().readAllBytes();
-        String body = new String(bytes, StandardCharsets.UTF_8);
-
-        if (!body.isEmpty()) {
-            String[] pairs = body.split("&");
-            for (String pair : pairs) {
-                String[] kv = pair.split("=");
-                if (kv.length == 2) {
-                    params.put(URLDecoder.decode(kv[0], StandardCharsets.UTF_8),
-                            URLDecoder.decode(kv[1], StandardCharsets.UTF_8));
-                }
-            }
-        }
-        return params;
-    }
+    
 }

@@ -218,4 +218,19 @@ public class CustomerDAO extends DBContext implements Dao<Customer> {
         c.setStatus(rs.getString("status"));
         return c;
     }
+    
+    
+    public String generateNextCode() throws SQLException {
+        String sql = "SELECT code FROM customer WHERE code LIKE 'CUS%' ORDER BY code DESC LIMIT 1";
+        try (Connection con = DBContext.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                String lastCode = rs.getString("code");
+                int num = Integer.parseInt(lastCode.substring(3));
+                return String.format("CUS%03d", num + 1);
+            }
+        }
+        return "CUS001";
+    }
 }

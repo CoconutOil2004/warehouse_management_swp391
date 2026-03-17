@@ -3,19 +3,19 @@
         <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
             <%@taglib tagdir="/WEB-INF/tags/" prefix="t" %>
 
-                <t:layout title="Customer Management">
+                <t:layout title="Supplier Management">
                     <jsp:attribute name="actions">
-                        <t:link url="${pageContext.request.contextPath}/admin/customer/create" color="primary"
+                        <t:link url="${pageContext.request.contextPath}/admin/supplier/create" color="primary"
                             variant="split" icon="plus-lg">
                             Create
                         </t:link>
                     </jsp:attribute>
 
                     <jsp:body>
-                        <c:set var="columns" value='${["Index", "Code", "Name", "Email", "Phone", "Status", "Action"]}' />
+                        <c:set var="columns" value='${["Index", "Code", "Name", "Email", "Phone", "Action"]}' />
                         <t:table columns="${columns}">
                             <jsp:attribute name="head">
-                                <form hx-get="${pageContext.request.contextPath}/admin/customer" hx-target="#wrapper"
+                                <form hx-get="${pageContext.request.contextPath}/admin/supplier" hx-target="#wrapper"
                                     hx-select="#wrapper" hx-swap="outerHTML" hx-push-url="true" class="input-group m-0">
                                     <input name="search" class="form-control"
                                         placeholder="Search by name, code, email, phone" value="${search}" />
@@ -27,64 +27,54 @@
 
                             <jsp:attribute name="foot">
                                 <t:pagination page="${page}" pages="${pages}" size="${size}" total="${total}"
-                                    url="${pageContext.request.contextPath}/admin/customer"
+                                    url="${pageContext.request.contextPath}/admin/supplier"
                                     include="[name='search'], [name='sort']" />
                             </jsp:attribute>
 
                             <jsp:body>
-                                <c:forEach var="c" items="${customers}" varStatus="status">
+                                <c:forEach var="s" items="${suppliers}" varStatus="status">
                                     <tr>
                                         <td>${status.index + 1 + (page - 1) * size}</td>
-                                        <td><strong>${c.code}</strong></td>
-                                        <td>${c.name}</td>
-                                        <td>${c.email}</td>
-                                        <td>${c.phone}</td>
+                                        <td><strong>${s.code}</strong></td>
+                                        <td>${s.name}</td>
+                                        <td>${s.email}</td>
+                                        <td>${s.phone}</td>
                                         <td>
-                                            <span class="badge bg-${c.status == 'ACTIVE' ? 'success' : 'secondary'}">${c.status}</span>
-                                        </td>
-                                        <td>
-                                            <a href="${pageContext.request.contextPath}/admin/customer/detail?id=${c.customerId}"
+                                            <a href="${pageContext.request.contextPath}/admin/supplier/detail?id=${s.supplierId}"
                                                 class="btn btn-sm btn-circle btn-outline-info me-1" title="View Detail">
                                                 <i class="bi bi-eye fab"></i>
                                             </a>
 
-                                            <a href="${pageContext.request.contextPath}/admin/customer/update?id=${c.customerId}"
+                                            <a href="${pageContext.request.contextPath}/admin/supplier/update?id=${s.supplierId}"
                                                 class="btn btn-sm btn-circle btn-outline-primary me-1" title="Update">
                                                 <i class="bi bi-pencil fab"></i>
                                             </a>
 
-                                            <c:if test="${c.status == 'ACTIVE'}">
                                             <button type="button" class="btn btn-sm btn-circle btn-outline-danger"
-                                                data-bs-toggle="modal" data-bs-target="#deactivateModal${c.customerId}"
-                                                title="Deactivate">
-                                                <i class="bi bi-dash-circle fab"></i>
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal${s.supplierId}"
+                                                title="Delete">
+                                                <i class="bi bi-trash fab"></i>
                                             </button>
 
-                                            <t:alert id="deactivateModal${c.customerId}">
-                                                <jsp:attribute name="title">Confirm Deactivate</jsp:attribute>
+                                            <t:alert id="deleteModal${s.supplierId}">
+                                                <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
                                                 <jsp:attribute name="desciption">
-                                                    Are you sure you want to deactivate customer
-                                                    <strong>${c.name}</strong>? The customer will be set to inactive.
+                                                    Are you sure you want to delete supplier
+                                                    <strong>${s.name}</strong>? This action cannot be undone.
                                                 </jsp:attribute>
                                                 <jsp:attribute name="action">
                                                     <button type="button" class="btn btn-danger"
-                                                        hx-delete="${pageContext.request.contextPath}/admin/customer?id=${c.customerId}"
-                                                        hx-target="#wrapper" hx-select="#wrapper" hx-swap="outerHTML"
-                                                        data-bs-dismiss="modal">
-                                                        Deactivate
+                                                        data-bs-dismiss="modal"
+                                                        onclick="document.getElementById('deleteForm${s.supplierId}').submit()">
+                                                        Delete
                                                     </button>
                                                 </jsp:attribute>
                                             </t:alert>
-                                            </c:if>
-
-                                            <c:if test="${c.status == 'INACTIVE'}">
-                                            <button type="button" class="btn btn-sm btn-circle btn-outline-success"
-                                                hx-post="${pageContext.request.contextPath}/admin/customer/activate?id=${c.customerId}"
-                                                hx-target="#wrapper" hx-select="#wrapper" hx-swap="outerHTML"
-                                                title="Activate">
-                                                <i class="bi bi-check-circle fab"></i>
-                                            </button>
-                                            </c:if>
+                                            <form id="deleteForm${s.supplierId}" method="POST"
+                                                action="${pageContext.request.contextPath}/admin/supplier/delete"
+                                                class="d-none">
+                                                <input type="hidden" name="id" value="${s.supplierId}">
+                                            </form>
                                         </td>
                                     </tr>
                                 </c:forEach>
