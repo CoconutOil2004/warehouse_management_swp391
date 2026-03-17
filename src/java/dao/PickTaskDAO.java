@@ -199,6 +199,29 @@ public class PickTaskDAO extends DBContext {
   }
 
   /**
+   * Get all pick tasks related to a specific GDN (directly or via wave).
+   */
+  public List<PickTaskDTO> getTasksByGdnId(Long gdnId) throws Exception {
+    String sql =
+      SELECT_TASK_HEAD +
+      " WHERE COALESCE(pt.gdn_id, pw.gdn_id) = ? ORDER BY pt.pick_task_id";
+    List<PickTaskDTO> list = new ArrayList<>();
+    try (
+      Connection conn = getConnection();
+      PreparedStatement ps = conn.prepareStatement(sql)
+    ) {
+      ps.setLong(1, gdnId);
+      try (ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+          PickTaskDTO dto = mapTaskFromRs(rs);
+          list.add(dto);
+        }
+      }
+    }
+    return list;
+  }
+
+  /**
    * Create pick tasks from wave: group GDN lines by zone/slot, allocate from_slot_id from inventory.
    * Supports multiple GDNs in a single wave.
    *

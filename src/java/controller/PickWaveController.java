@@ -106,7 +106,8 @@ public class PickWaveController extends HttpServlet {
         String soNumber = request.getParameter("soNumber");
         String status = request.getParameter("status");
         if (status == null || status.isBlank()) {
-            status = "PENDING";
+            // Default to newly created GDNs
+            status = "CREATED";
         }
 
         // Get selected zones (multi-select)
@@ -278,12 +279,12 @@ public class PickWaveController extends HttpServlet {
                 return;
             }
 
-            // Validate status
-            if (!"PENDING".equalsIgnoreCase(gdn.getStatus())) {
+            // Validate status: only CREATED GDNs can start picking
+            if (!"CREATED".equalsIgnoreCase(gdn.getStatus())) {
                 request.setAttribute("gdn", gdn);
                 request.setAttribute(
                 "error",
-                "Pick wave can only be created for GDN in PENDING status."
+                "Pick wave can only be created for GDN in CREATED status."
                 );
                 request
                 .getRequestDispatcher(
@@ -435,9 +436,9 @@ public class PickWaveController extends HttpServlet {
         // Update wave status
         waveDao.updateWaveStatus(waveId, "CREATED");
 
-        // Update all GDN statuses to ONGOING
+        // Update all GDN statuses to PICKING
         for (Long gdnId : gdnIds) {
-            gdnDao.updateGDNStatus(gdnId, "ONGOING");
+            gdnDao.updateGDNStatus(gdnId, "PICKING");
         }
 
         request

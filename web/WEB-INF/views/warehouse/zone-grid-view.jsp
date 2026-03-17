@@ -16,7 +16,7 @@
     Long warehouseId = (Long) request.getAttribute("warehouseId");
     List<ProductVariantDTO> variants = (List<ProductVariantDTO>) request.getAttribute("variants");
     
-    // Tính toán maxRow và maxCol
+    // Compute maxRow and maxCol based on slot data
     int maxRow = 0;
     int maxCol = 0;
     
@@ -31,7 +31,7 @@
         }
     }
     
-    // Set vào request attribute để JSTL có thể sử dụng
+    // Set to request attributes so JSTL can use them
     request.setAttribute("maxRow", maxRow);
     request.setAttribute("maxCol", maxCol);
 %>
@@ -85,7 +85,7 @@
         z-index: 10;
     }
     
-    /* Slot trống - nổi bật */
+    /* Empty slot - highlighted */
     .slot-item.empty {
         background-color: #d1ecf1;
         border-color: #0dcaf0;
@@ -98,14 +98,14 @@
         50% { box-shadow: 0 0 20px rgba(13, 202, 240, 0.8); }
     }
     
-    /* Slot có hàng */
+    /* Slot has inventory */
     .slot-item.occupied {
         background-color: #d4edda;
         border-color: #28a745;
         color: #155724;
     }
     
-    /* Slot bị block */
+    /* Slot is blocked */
     .slot-item.blocked {
         background-color: #f8d7da;
         border-color: #dc3545;
@@ -114,7 +114,7 @@
         opacity: 0.6;
     }
     
-    /* Slot đầy */
+    /* Slot is full */
     .slot-item.full {
         background-color: #fff3cd;
         border-color: #ffc107;
@@ -310,7 +310,7 @@
                                 <c:choose>
                                     <c:when test="${!slot.isEmpty}">
                                         <div class="slot-info">
-                                            ${fn:length(slot.products)} SP<br>
+                                            ${fn:length(slot.products)} items<br>
                                             <c:choose>
                                                 <c:when test="${slot.usedCapacity != null}">
                                                     <fmt:formatNumber value="${slot.usedCapacity}" maxFractionDigits="0" />
@@ -336,7 +336,7 @@
         </c:if>
     </div>
 
-    <!-- Modal chi tiết Slot -->
+    <!-- Slot detail modal -->
     <div class="modal fade" id="slotDetailModal" tabindex="-1" aria-labelledby="slotDetailModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">

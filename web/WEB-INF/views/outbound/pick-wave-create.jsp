@@ -36,7 +36,7 @@
                     <i class="fas fa-filter me-2"></i>Filter GDNs
                 </h5>
                 <p class="text-muted small mb-3">
-                    Chọn zones để filter GDNs có hàng trong khu vực đó. Để trống để xem tất cả GDN PENDING.
+                    Select zones to filter GDNs that have inventory in those areas. Leave empty to see all GDNs in CREATED status.
                 </p>
                 <form action="${pageContext.request.contextPath}/pick-wave" method="get" class="row g-3">
                     <input type="hidden" name="action" value="create"/>
@@ -55,7 +55,7 @@
                                 </option>
                             </c:forEach>
                         </select>
-                        <small class="text-muted">Giữ Ctrl để chọn nhiều zones</small>
+                        <small class="text-muted">Hold Ctrl to select multiple zones</small>
                     </div>
 
                     <div class="col-md-3">
@@ -77,9 +77,9 @@
                     <div class="col-md-2">
                         <label class="form-label fw-bold">Status</label>
                         <select class="form-select" name="status">
-                            <option value="PENDING" ${status == 'PENDING' || empty status ? 'selected' : ''}>PENDING</option>
-                            <option value="DRAFT" ${status == 'DRAFT' ? 'selected' : ''}>DRAFT</option>
-                            <option value="ONGOING" ${status == 'ONGOING' ? 'selected' : ''}>ONGOING</option>
+                            <option value="CREATED" ${status == 'CREATED' || empty status ? 'selected' : ''}>CREATED</option>
+                            <option value="PICKING" ${status == 'PICKING' ? 'selected' : ''}>PICKING</option>
+                            <option value="PACKING" ${status == 'PACKING' ? 'selected' : ''}>PACKING</option>
                             <option value="" ${status == '' ? 'selected' : ''}>-- All --</option>
                         </select>
                     </div>
@@ -188,7 +188,12 @@
                                         <td>${g.soNumber}</td>
                                         <td>${g.customerName}</td>
                                         <td class="text-center">
-                                            <span class="badge ${(g.status == 'PENDING' || g.status == 'DRAFT') ? 'bg-secondary' : (g.status == 'ONGOING' ? 'bg-warning text-dark' : 'bg-success')}">
+                                            <span class="badge ${
+                                                g.status == 'CREATED' ? 'bg-secondary' :
+                                                (g.status == 'PICKING' ? 'bg-warning text-dark' :
+                                                (g.status == 'PACKING' ? 'bg-info text-dark' :
+                                                (g.status == 'CANCELLED' ? 'bg-danger' :
+                                                (g.status == 'DONE' || g.status == 'CONFIRMED' ? 'bg-success' : 'bg-secondary'))))}">
                                                 ${g.status}
                                             </span>
                                         </td>
@@ -213,7 +218,7 @@
                 <c:if test="${not empty gdns}">
                     <div class="card-footer text-muted small">
                         <i class="fas fa-info-circle me-1"></i>
-                        Hiển thị ${fn:length(gdns)} GDNs. Chọn ít nhất 1 GDN để tạo Pick Wave.
+                        Showing ${fn:length(gdns)} GDNs. Select at least 1 GDN to create a Pick Wave.
                     </div>
                 </c:if>
             </div>

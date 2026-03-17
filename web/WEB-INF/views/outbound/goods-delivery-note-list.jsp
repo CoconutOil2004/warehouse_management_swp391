@@ -31,17 +31,18 @@
                         <label class="form-label font-weight-bold">Status</label>
                         <select class="form-control" name="status">
                             <option value="">-- All --</option>
-                            <option value="PENDING" ${param.status=='PENDING' ? 'selected' : '' }>PENDING</option>
-                            <option value="DRAFT" ${param.status=='DRAFT' ? 'selected' : '' }>DRAFT</option>
-                            <option value="ONGOING" ${param.status=='ONGOING' ? 'selected' : '' }>ONGOING</option>
+                            <option value="CREATED" ${param.status=='CREATED' ? 'selected' : '' }>CREATED</option>
+                            <option value="PICKING" ${param.status=='PICKING' ? 'selected' : '' }>PICKING</option>
+                            <option value="PACKING" ${param.status=='PACKING' ? 'selected' : '' }>PACKING</option>
                             <option value="CONFIRMED" ${param.status=='CONFIRMED' ? 'selected' : '' }>CONFIRMED</option>
                             <option value="CANCELLED" ${param.status=='CANCELLED' ? 'selected' : '' }>CANCELLED</option>
+                            <option value="DONE" ${param.status=='DONE' ? 'selected' : '' }>DONE</option>
                         </select>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search"></i> Filter
-                        </button>
+                        <t:button type="submit" color="primary" cssClass="w-100">
+                            Filter
+                        </t:button>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <a href="${pageContext.request.contextPath}/goods-delivery-note?action=list"
@@ -52,10 +53,12 @@
         </div>
 
         <div class="mb-3 d-flex justify-content-end">
-            <a href="${pageContext.request.contextPath}/goods-delivery-note?action=create"
-                class="btn btn-success shadow-sm">
-                <i class="fas fa-plus"></i> Create New GDN
-            </a>
+            <form action="${pageContext.request.contextPath}/goods-delivery-note" method="get" class="m-0">
+                <input type="hidden" name="action" value="create">
+                <t:button type="submit" color="success" cssClass="shadow-sm">
+                    Create New GDN
+                </t:button>
+            </form>
         </div>
 
         <div class="card shadow-sm rounded">
@@ -82,7 +85,12 @@
                                     <td>${gdn.soNumber}</td>
                                     <td>${gdn.customerName}</td>
                                     <td class="text-center">
-                                        <span class="badge badge-pill ${(gdn.status == 'PENDING' || gdn.status == 'DRAFT') ? 'badge-secondary' : (gdn.status == 'ONGOING' ? 'badge-warning' : (gdn.status == 'CANCELLED' ? 'badge-danger' : 'badge-success'))}">
+                                        <span class="badge badge-pill ${
+                                            gdn.status == 'CREATED' ? 'badge-secondary' :
+                                            (gdn.status == 'PICKING' ? 'badge-warning' :
+                                            (gdn.status == 'PACKING' ? 'badge-info' :
+                                            (gdn.status == 'CANCELLED' ? 'badge-danger' :
+                                            (gdn.status == 'DONE' || gdn.status == 'CONFIRMED' ? 'badge-success' : 'badge-secondary'))))}">
                                             ${gdn.status}
                                         </span>
                                     </td>
@@ -92,18 +100,22 @@
                                     </td>
                                     <td class="text-center">
                                         <div class="d-flex justify-content-center align-items-center gap-2">
-                                            <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${gdn.gdnId}"
-                                                class="btn btn-sm btn-info shadow-sm text-white d-flex align-items-center justify-content-center"
-                                                style="width: 85px; height: 32px;" title="View Details">
-                                                <i class="fas fa-eye me-1"></i> View
-                                            </a>
-                                            <c:if test="${gdn.status == 'PENDING' || gdn.status == 'DRAFT' || gdn.status == 'ONGOING'}">
-                                    <%-- CONFIRMED and CANCELLED: no Edit --%>
-                                                <a href="${pageContext.request.contextPath}/goods-delivery-note?action=edit&id=${gdn.gdnId}"
-                                                    class="btn btn-sm btn-warning shadow-sm d-flex align-items-center justify-content-center"
-                                                    style="width: 85px; height: 32px;" title="Edit">
-                                                    <i class="fas fa-edit me-1"></i> Edit
-                                                </a>
+                                            <form action="${pageContext.request.contextPath}/goods-delivery-note" method="get" class="m-0">
+                                                <input type="hidden" name="action" value="detail">
+                                                <input type="hidden" name="id" value="${gdn.gdnId}">
+                                                <t:button type="submit" size="sm" variant="outline" color="primary">
+                                                    View
+                                                </t:button>
+                                            </form>
+                                            <c:if test="${gdn.status == 'CREATED' || gdn.status == 'PICKING' || gdn.status == 'PACKING'}">
+                                    <%-- CONFIRMED, CANCELLED, DONE: no Edit --%>
+                                                <form action="${pageContext.request.contextPath}/goods-delivery-note" method="get" class="m-0">
+                                                    <input type="hidden" name="action" value="edit">
+                                                    <input type="hidden" name="id" value="${gdn.gdnId}">
+                                                    <t:button type="submit" size="sm" variant="outline" color="warning">
+                                                        Edit
+                                                    </t:button>
+                                                </form>
                                             </c:if>
                                         </div>
                                     </td>

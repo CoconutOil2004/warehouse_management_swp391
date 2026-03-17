@@ -231,7 +231,8 @@ public class ProductController extends HttpServlet {
             response.sendRedirect(base() + "?action=create&msg=no_uom");
             return;
         }
-        response.sendRedirect(base() + "?msg=created");
+        request.getSession().setAttribute("message", "Product created successfully.");
+        response.sendRedirect(base());
     }
 
     private void handleUpdate(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -262,7 +263,8 @@ public class ProductController extends HttpServlet {
         p.setHeight(parseBigDecimal(request.getParameter("height")));
 
         new ProductDAO().updateProduct(p);
-        response.sendRedirect(base() + "?msg=updated");
+        request.getSession().setAttribute("message", "Product updated successfully.");
+        response.sendRedirect(base());
     }
 
     // --- POST: Variant matrix (tạo tổ hợp màu × size) + Inactive variant ---

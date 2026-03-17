@@ -265,13 +265,13 @@ public class GoodsDeliveryNoteDAO extends DBContext {
     /**
      * Create GDN from Sales Order.
      * Auto-generates lines from SO lines.
-     * Status is always PENDING when created (same as GRN).
+     * Status is always CREATED when first generated.
      */
     public Long createGDNFromSO(Long soId, Long warehouseId, Long createdBy) throws Exception {
         String sqlGDN = """
                 INSERT INTO goods_delivery_note
                     (gdn_number, warehouse_id, so_id, gdn_type, status, created_by, created_at)
-                VALUES (?, ?, ?, 'CUSTOMER', 'PENDING', ?, NOW())
+                VALUES (?, ?, ?, 'CUSTOMER', 'CREATED', ?, NOW())
             """;
 
         String sqlLine = """
@@ -288,7 +288,7 @@ public class GoodsDeliveryNoteDAO extends DBContext {
             try (PreparedStatement psGDN = conn.prepareStatement(sqlGDN, Statement.RETURN_GENERATED_KEYS);
                     PreparedStatement psLine = conn.prepareStatement(sqlLine)) {
 
-                // Insert GDN header (status = PENDING like GRN)
+                // Insert GDN header (status = CREATED)
                 psGDN.setString(1, gdnNumber);
                 psGDN.setLong(2, warehouseId);
                 psGDN.setLong(3, soId);
