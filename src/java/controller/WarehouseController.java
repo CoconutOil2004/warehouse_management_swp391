@@ -232,6 +232,7 @@ public class WarehouseController extends HttpServlet {
             return;
         }
 
+        request.getSession().setAttribute("message", "Warehouse created successfully.");
         response.sendRedirect(request.getContextPath() + "/admin/warehouse");
     }
 
@@ -287,6 +288,7 @@ public class WarehouseController extends HttpServlet {
             return;
         }
 
+        request.getSession().setAttribute("message", "Warehouse updated successfully.");
         response.sendRedirect(request.getContextPath() + "/admin/warehouse");
     }
 
@@ -361,7 +363,7 @@ public class WarehouseController extends HttpServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Failed to delete warehouse.");
             return;
         }
-
+        request.getSession().setAttribute("message", "Warehouse deleted successfully.");
         response.sendRedirect(request.getContextPath() + "/admin/warehouse");
     }
 
@@ -382,6 +384,7 @@ public class WarehouseController extends HttpServlet {
         }
 
         // htmx will follow redirect and swap the returned HTML into #wrapper
+        request.getSession().setAttribute("message", "Warehouse deleted successfully.");
         response.sendRedirect(request.getContextPath() + "/admin/warehouse");
     }
 

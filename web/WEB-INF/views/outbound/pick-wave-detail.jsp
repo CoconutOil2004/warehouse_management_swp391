@@ -106,7 +106,12 @@
                                                 <td>${gdn.soNumber}</td>
                                                 <td>${gdn.customerName}</td>
                                                 <td>
-                                                    <span class="badge ${gdn.status == 'PENDING' ? 'bg-secondary' : (gdn.status == 'ONGOING' ? 'bg-warning text-dark' : 'bg-success')}">
+                                                    <span class="badge ${
+                                                        gdn.status == 'CREATED' ? 'bg-secondary' :
+                                                        (gdn.status == 'PICKING' ? 'bg-warning text-dark' :
+                                                        (gdn.status == 'PACKING' ? 'bg-info text-dark' :
+                                                        (gdn.status == 'CANCELLED' ? 'bg-danger' :
+                                                        (gdn.status == 'DONE' || gdn.status == 'CONFIRMED' ? 'bg-success' : 'bg-secondary'))))}">
                                                         ${gdn.status}
                                                     </span>
                                                 </td>

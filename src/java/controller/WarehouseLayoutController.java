@@ -190,6 +190,7 @@ public class WarehouseLayoutController extends HttpServlet {
         ZoneDAO zoneDAO = new ZoneDAO();
         try {
             zoneDAO.createZone(warehouseId, code, name, zoneType);
+            request.getSession().setAttribute("message", "Zone created successfully.");
             response.sendRedirect(request.getContextPath() + "/warehouse-layout");
         } catch (Exception e) {
             // Hiển thị lỗi và quay lại form
@@ -228,7 +229,7 @@ public class WarehouseLayoutController extends HttpServlet {
         SlotDAO slotDAO = new SlotDAO();
         try {
             slotDAO.createSlotsBatch(zoneId, rows, cols, codePrefix);
-            
+            request.getSession().setAttribute("message", "Slots created successfully.");
             response.sendRedirect(request.getContextPath() + "/warehouse-layout");
         } catch (Exception e) {
             String errorMessage = e.getMessage();
@@ -381,7 +382,7 @@ public class WarehouseLayoutController extends HttpServlet {
         }
         
         invDAO.assignProductToSlot(warehouseId, slotId, variantId, condition, qty);
-        
+        request.getSession().setAttribute("message", "Product assigned to slot successfully.");
         response.sendRedirect(request.getContextPath() + "/warehouse-layout?action=view-zone&zoneId=" 
             + request.getParameter("zoneId"));
     }

@@ -241,7 +241,7 @@ public class PickTaskController extends HttpServlet {
     GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
     PickTaskDTO task = pickTaskDao.getPickTaskById(pickTaskId);
     if (task != null) {
-      gdnDao.updateGDNStatus(task.getGdnId(), "ONGOING");
+      gdnDao.updateGDNStatus(task.getGdnId(), "PICKING");
     }
 
     if (waveId > 0) {
@@ -326,7 +326,7 @@ public class PickTaskController extends HttpServlet {
     for (PickTaskDTO task : tasks) {
       if (task != null && task.getGdnId() != null) {
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
-        gdnDao.updateGDNStatus(task.getGdnId(), "ONGOING");
+        gdnDao.updateGDNStatus(task.getGdnId(), "PICKING");
       }
     }
 
@@ -393,7 +393,7 @@ public class PickTaskController extends HttpServlet {
       PickTaskDTO task = pickTaskDao.getPickTaskById(taskId);
       if (task != null && task.getGdnId() != null) {
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
-        gdnDao.updateGDNStatus(task.getGdnId(), "ONGOING");
+        gdnDao.updateGDNStatus(task.getGdnId(), "PICKING");
       }
     }
 

@@ -103,29 +103,29 @@
                             <c:if test="${param.msg == 'no_uom'}">
                                 <div class="alert alert-danger alert-dismissible fade show mb-3 py-2" role="alert">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
-                                    Không thể tạo sản phẩm: chưa có đơn vị đo (UOM). Vui lòng thêm ít nhất một UOM trong hệ thống trước.
+                                    Cannot create product: no Unit of Measure (UOM) defined. Please create at least one UOM in the system first.
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <div class="alert alert-light border mb-3 py-2 small d-flex align-items-center" role="status">
                                 <i class="fas fa-barcode text-muted me-2"></i>
-                                <span>SKU tự sinh theo category (vd: TSH-001, PANTS-001).</span>
+                                <span>SKU is auto-generated from category (e.g., TSH-001, PANTS-001).</span>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label fw-semibold">Tên sản phẩm <span class="text-danger">*</span></label>
-                                <input type="text" name="name" class="form-control form-control-sm" required placeholder="Nhập tên sản phẩm">
+                                <label class="form-label fw-semibold">Product Name <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control form-control-sm" required placeholder="Enter product name">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
                                 <select name="categoryId" class="form-select form-select-sm" required>
-                                    <option value="">-- Chọn category --</option>
+                                    <option value="">-- Select category --</option>
                                     <c:forEach var="c" items="${categories}">
                                         <option value="${c.categoryId}">${c.name}<c:if test="${not empty categoryDisplayCodeMap[c.categoryId]}"> (${categoryDisplayCodeMap[c.categoryId]})</c:if></option>
                                     </c:forEach>
                                 </select>
                             </div>
                             <hr class="my-3">
-                            <p class="small text-muted mb-2 fw-semibold"><i class="fas fa-ruler-combined me-1"></i> Kích thước &amp; khối lượng (tùy chọn)</p>
+                            <p class="small text-muted mb-2 fw-semibold"><i class="fas fa-ruler-combined me-1"></i> Dimensions &amp; weight (optional)</p>
                             <div class="row g-2">
                                 <div class="col-6">
                                     <label class="form-label small">Weight (kg)</label>
@@ -298,28 +298,28 @@
                             <button type="button" class="btn-close btn-close-white" aria-label="Close" id="variantModalCloseBtn"></button>
                         </div>
                         <div class="modal-body p-3 variant-modal-body">
-                            <%-- Thông báo hiển thị ngay trong modal (UX: user đang ở đây nên thấy ngay) --%>
+                            <%-- Notifications are shown inside the modal for better UX --%>
                             <c:if test="${param.msg == 'variant_has_stock'}">
                                 <div class="alert alert-warning alert-dismissible fade show mb-3 py-2" role="alert">
                                     <i class="fas fa-exclamation-triangle me-2"></i>
-                                    <strong>Không thể Inactive:</strong> Variant này đang còn tồn trong kho. Vui lòng xuất hết tồn trước khi chuyển sang Inactive.
+                                    <strong>Cannot set to Inactive:</strong> This variant still has stock in the warehouse. Please clear all stock before setting it to Inactive.
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${param.msg == 'variant_inactive'}">
                                 <div class="alert alert-info alert-dismissible fade show mb-3 py-2" role="alert">
-                                    <i class="fas fa-info-circle me-2"></i>Variant đã chuyển sang Inactive.
+                                    <i class="fas fa-info-circle me-2"></i>The variant has been set to Inactive.
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             </c:if>
                             <c:if test="${param.msg == 'variant_active'}">
                                 <div class="alert alert-success alert-dismissible fade show mb-3 py-2" role="alert">
-                                    <i class="fas fa-check-circle me-2"></i>Variant đã được kích hoạt lại (Active).
+                                    <i class="fas fa-check-circle me-2"></i>The variant has been reactivated (Active).
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             </c:if>
 
-                            <p class="small text-muted mb-3">Chọn màu (ô swatch) và size theo category. Sau đó bấm Generate Variant để tạo tổ hợp. Có thể chuyển variant sang Inactive bên dưới.</p>
+                            <p class="small text-muted mb-3">Select colors (swatches) and sizes by category, then click Generate Variant to create combinations. You can set variants to Inactive below.</p>
 
                             <form id="variantMatrixForm" action="${pageContext.request.contextPath}/products" method="post">
                                 <input type="hidden" name="action" value="generateVariants">
@@ -327,7 +327,7 @@
 
                                 <div class="card border-0 bg-light mb-3">
                                     <div class="card-body py-3">
-                                        <label class="form-label fw-semibold mb-2"><i class="fas fa-fill-drip text-info me-1"></i> Màu (Color swatches)</label>
+                                        <label class="form-label fw-semibold mb-2"><i class="fas fa-fill-drip text-info me-1"></i> Colors (Color swatches)</label>
                                         <div class="d-flex flex-wrap gap-2">
                                             <label class="variant-color-chip"><input type="checkbox" name="colors" value="Red|#FF0000"><span class="chip-swatch" style="background:#FF0000;"></span><span>Red</span></label>
                                             <label class="variant-color-chip"><input type="checkbox" name="colors" value="Blue|#0000FF"><span class="chip-swatch" style="background:#0000FF;"></span><span>Blue</span></label>
@@ -348,7 +348,7 @@
                                         <label class="form-label fw-semibold mb-2"><i class="fas fa-ruler me-1 text-info"></i> Size</label>
                                         <c:choose>
                                             <c:when test="${variantMatrixCategory != null && variantMatrixCategory.sizeType == 'LETTER'}">
-                                                <p class="small text-muted mb-2">Category áo (TSH, HD): chọn size chữ.</p>
+                                                <p class="small text-muted mb-2">For top categories (TSH, HD): choose letter sizes.</p>
                                                 <div class="d-flex flex-wrap gap-2">
                                                     <c:forEach var="s" items="${['XS','S','M','L','XL']}">
                                                         <label class="variant-size-chip">
@@ -358,7 +358,7 @@
                                                 </div>
                                             </c:when>
                                             <c:otherwise>
-                                                <p class="small text-muted mb-2">Category quần: chọn size số.</p>
+                                                <p class="small text-muted mb-2">For bottom categories (pants): choose numeric sizes.</p>
                                                 <div class="d-flex flex-wrap gap-2">
                                                     <c:forEach var="n" begin="26" end="40">
                                                         <label class="variant-size-chip">
@@ -375,7 +375,7 @@
                             </form>
 
                             <hr class="my-4">
-                            <h6 class="fw-semibold mb-2"><i class="fas fa-list me-1"></i> Danh sách variant</h6>
+                            <h6 class="fw-semibold mb-2"><i class="fas fa-list me-1"></i> Variant list</h6>
                             <div class="table-responsive rounded border">
                                 <table class="table table-sm table-hover mb-0 table-variant-list">
                                     <thead class="table-info">
@@ -418,7 +418,7 @@
                                             </tr>
                                         </c:forEach>
                                         <c:if test="${empty variantMatrixProduct.variants}">
-                                            <tr><td colspan="5" class="text-muted text-center py-3">Chưa có variant. Chọn màu và size rồi bấm Generate Variant.</td></tr>
+                                            <tr><td colspan="5" class="text-muted text-center py-3">No variants yet. Select colors and sizes, then click Generate Variant.</td></tr>
                                         </c:if>
                                     </tbody>
                                 </table>
@@ -634,7 +634,7 @@
                                 viewModalInstance.show();
                             })
                             .catch(function() {
-                                alert('Không thể tải thông tin sản phẩm. Vui lòng thử lại.');
+                                alert('Cannot load product information. Please try again.');
                             });
                         });
                     });
