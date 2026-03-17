@@ -1,5 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<%@taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
 <%@taglib tagdir="/WEB-INF/tags/" prefix="t"%>
 
 <t:layout title="Edit Purchase Order">
@@ -141,12 +142,14 @@
 
                 <c:otherwise>
                     <c:forEach var="l" items="${lines}">
+                        <fmt:formatNumber var="qtyStr" value="${l.orderedQty}" groupingUsed="false" minFractionDigits="0" maxFractionDigits="0"/>
+                        <fmt:formatNumber var="unitPriceStr" value="${l.unitPrice}" groupingUsed="false" minFractionDigits="0" maxFractionDigits="0"/>
             window.existingLines.push({
                 poLineId: "${l.poLineId}",
                 productId: "${l.productId}",
                 variantId: "${l.variantId}",
-                qty: "${l.orderedQty}",
-                unitPrice: "${l.unitPrice}",
+                qty: "<c:out value='${qtyStr}'/>",
+                unitPrice: "<c:out value='${unitPriceStr}'/>",
                 currency: "VND"
             });
                     </c:forEach>
@@ -174,9 +177,9 @@
                         '    <option value="">-- Select product first --</option>' +
                         '  </select>' +
                         '</td>' +
-                        '<td><input class="form-control qty-input" type="number" step="0.0001" min="0.0001" name="lines[' + idx + '].qty"></td>' +
-                        '<td><input class="form-control unit-input" type="number" step="0.01" min="0" name="lines[' + idx + '].unitPrice"></td>' +
-                        '<td><input class="form-control currency-input" name="lines[' + idx + '].currency" value="VND"></td>' +
+                        '<td><input class="form-control qty-input" type="number" step="1" min="1" name="lines[' + idx + '].qty"></td>' +
+                        '<td><input class="form-control unit-input" type="number" step="1" min="0" name="lines[' + idx + '].unitPrice"></td>' +
+                        '<td><input class="form-control currency-input" name="lines[' + idx + '].currency" value="VND" readonly></td>' +
                         '<td class="text-center"><button type="button" class="btn btn-sm btn-danger btn-remove">X</button></td>';
                 tbody.appendChild(tr);
                 idx++;

@@ -7,11 +7,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 import model.Supplier;
 import util.ViewPath;
 
@@ -43,6 +39,28 @@ public class SupplierController extends HttpServlet {
                 viewList(request, response);
         }
     }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String path = request.getPathInfo();
+        if (path == null) {
+            path = "/create";
+        }
+
+        switch (path) {
+            case "/create" ->
+                handleCreate(request, response);
+            case "/update" ->
+                handleUpdate(request, response);
+            case "/delete" ->
+                handleDelete(request, response);
+            default ->
+                response.sendRedirect(request.getContextPath() + "/admin/supplier");
+        }
+    }
+
+    // ======================== GET handlers ========================
 
     private void viewList(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -127,17 +145,16 @@ public class SupplierController extends HttpServlet {
         }
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    // ======================== POST handlers ========================
+
+    private void handleCreate(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        String code = request.getParameter("code");
-        String name = request.getParameter("name");
-        String email = request.getParameter("email");
-        String phone = request.getParameter("phone");
-        String address = request.getParameter("address");
+        String name = request.getParameter("name") != null ? request.getParameter("name").trim() : "";
+        String email = request.getParameter("email") != null ? request.getParameter("email").trim() : "";
+        String phone = request.getParameter("phone") != null ? request.getParameter("phone").trim() : "";
+        String address = request.getParameter("address") != null ? request.getParameter("address").trim() : "";
 
         Supplier s = new Supplier();
-        s.setCode(code);
         s.setName(name);
         s.setEmail(email);
         s.setPhone(phone);
@@ -145,12 +162,17 @@ public class SupplierController extends HttpServlet {
         s.setStatus("ACTIVE");
 
         try {
-            if (!supplierDao.codeExists(code, null)) {
-                request.setAttribute("error", "Supplier Code already exists");
-                request.setAttribute("supplier", s); // keep input
+            // Validate required fields
+            if (name.isEmpty()) {
+                request.setAttribute("error", "Name is required");
+                request.setAttribute("supplier", s);
                 request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
                 return;
             }
+
+            // Auto-generate code
+            String code = supplierDao.generateNextCode();
+            s.setCode(code);
 
             supplierDao.create(s);
             response.sendRedirect(request.getContextPath() + "/admin/supplier");
@@ -161,24 +183,31 @@ public class SupplierController extends HttpServlet {
         }
     }
 
-    @Override
-    protected void doPut(HttpServletRequest request, HttpServletResponse response)
+    private void handleUpdate(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            Map<String, String> params = parseFormBody(request);
-
-            String idRaw = params.get("id");
+            String idRaw = request.getParameter("id");
             if (idRaw == null) {
-                idRaw = request.getParameter("id");
+                response.sendRedirect(request.getContextPath() + "/admin/supplier");
+                return;
             }
 
             Long id = Long.valueOf(idRaw);
-            String code = params.get("code");
-            String name = params.get("name");
-            String email = params.get("email");
-            String phone = params.get("phone");
-            String address = params.get("address");
-            String status = params.get("status");
+            String code = request.getParameter("code") != null ? request.getParameter("code").trim() : "";
+            String name = request.getParameter("name") != null ? request.getParameter("name").trim() : "";
+            String email = request.getParameter("email") != null ? request.getParameter("email").trim() : "";
+            String phone = request.getParameter("phone") != null ? request.getParameter("phone").trim() : "";
+            String address = request.getParameter("address") != null ? request.getParameter("address").trim() : "";
+            String status = request.getParameter("status") != null ? request.getParameter("status").trim() : "ACTIVE";
+
+            // Validate required fields
+            if (code.isEmpty() || name.isEmpty()) {
+                Supplier old = supplierDao.getDetail(id);
+                request.setAttribute("error", "Code and Name are required");
+                request.setAttribute("supplier", old);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
+                return;
+            }
 
             Supplier s = new Supplier();
             s.setSupplierId(id);
@@ -189,50 +218,37 @@ public class SupplierController extends HttpServlet {
             s.setAddress(address);
             s.setStatus(status);
 
+            // Check if code already exists for another supplier
             if (supplierDao.codeExists(code, id)) {
-                response.sendError(HttpServletResponse.SC_CONFLICT, "Supplier Code already exists");
+                request.setAttribute("error", "Supplier Code already exists");
+                request.setAttribute("supplier", s);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
                 return;
             }
 
             supplierDao.update(s);
-            response.setHeader("HX-Location", request.getContextPath() + "/admin/supplier");
+            response.sendRedirect(request.getContextPath() + "/admin/supplier");
         } catch (Exception e) {
             e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Update failed");
+            response.sendRedirect(request.getContextPath() + "/admin/supplier");
         }
     }
 
-    @Override
-    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
+    private void handleDelete(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
             String idRaw = request.getParameter("id");
             if (idRaw != null) {
-                Long id = Long.valueOf(idRaw); // kieu dl cua id
+                Long id = Long.valueOf(idRaw);
                 supplierDao.delete(id);
             }
-            response.setHeader("HX-Location", request.getContextPath() + "/admin/supplier");
+            response.sendRedirect(request.getContextPath() + "/admin/supplier");
+        } catch (java.sql.SQLIntegrityConstraintViolationException e) {
+            e.printStackTrace();
+            response.sendRedirect(request.getContextPath() + "/admin/supplier");
         } catch (Exception e) {
             e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Delete failed");
+            response.sendRedirect(request.getContextPath() + "/admin/supplier");
         }
-    }
-
-    private Map<String, String> parseFormBody(HttpServletRequest request) throws IOException {
-        Map<String, String> params = new HashMap<>();
-        byte[] bytes = request.getInputStream().readAllBytes();
-        String body = new String(bytes, StandardCharsets.UTF_8);
-
-        if (!body.isEmpty()) {
-            String[] pairs = body.split("&");
-            for (String pair : pairs) {
-                String[] kv = pair.split("=");
-                if (kv.length == 2) {
-                    params.put(URLDecoder.decode(kv[0], StandardCharsets.UTF_8),
-                            URLDecoder.decode(kv[1], StandardCharsets.UTF_8));
-                }
-            }
-        }
-        return params;
     }
 }

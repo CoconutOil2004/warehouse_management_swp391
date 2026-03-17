@@ -52,12 +52,14 @@
                         </div>
                     </div>
 
-                    <div class="mb-3 d-flex justify-content-end">
-                        <a href="${pageContext.request.contextPath}/goods-receipt?action=create"
-                            class="btn btn-success shadow-sm">
-                            <i class="fas fa-plus"></i> Create New GRN
-                        </a>
-                    </div>
+                    <c:if test="${canMutation}">
+                        <div class="mb-3 d-flex justify-content-end">
+                            <a href="${pageContext.request.contextPath}/goods-receipt?action=create"
+                                class="btn btn-success shadow-sm">
+                                <i class="fas fa-plus"></i> Create New GRN
+                            </a>
+                        </div>
+                    </c:if>
 
                     <div class="table-responsive shadow-sm rounded">
                         <table class="table table-bordered table-hover table-striped align-middle mb-0">
@@ -103,7 +105,7 @@
 
                                                 <!-- Delete 버튼 Slot -->
                                                 <div style="width: 70px;" class="d-flex justify-content-center">
-                                                    <c:if test="${gr.status == 'PENDING' || gr.status == 'DRAFT'}">
+                                                    <c:if test="${canMutation && (gr.status == 'PENDING' || gr.status == 'DRAFT')}">
                                                         <form action="${pageContext.request.contextPath}/goods-receipt" method="get" class="mb-0" onsubmit="return confirm('Are you sure you want to delete this GRN?');">
                                                             <input type="hidden" name="action" value="delete">
                                                             <input type="hidden" name="id" value="${gr.grnId}">
@@ -114,7 +116,7 @@
 
                                                 <!-- Edit 버튼 Slot -->
                                                 <div style="width: 60px;" class="d-flex justify-content-center">
-                                                    <c:if test="${gr.status == 'PENDING' || gr.status == 'DRAFT'}">
+                                                    <c:if test="${canMutation && (gr.status == 'PENDING' || gr.status == 'DRAFT')}">
                                                         <form action="${pageContext.request.contextPath}/goods-receipt" method="get" class="mb-0">
                                                             <input type="hidden" name="action" value="edit">
                                                             <input type="hidden" name="id" value="${gr.grnId}">

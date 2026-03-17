@@ -22,29 +22,21 @@
 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label for="code" class="form-label">
-                                            Code <span class="text-danger">*</span>
-                                        </label>
-                                        <input type="text" class="form-control" id="code" name="code" required
-                                            value="${customer.code}" placeholder="Example: CUS001">
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
                                         <label for="name" class="form-label">
                                             Name <span class="text-danger">*</span>
                                         </label>
                                         <input type="text" class="form-control" id="name" name="name" required
                                             value="${customer.name}" placeholder="Customer Name">
                                     </div>
-                                </div>
 
-                                <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="email" class="form-label">Email</label>
                                         <input type="email" class="form-control" id="email" name="email"
                                             value="${customer.email}" placeholder="contact@customer.com">
                                     </div>
+                                </div>
 
+                                <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="phone" class="form-label">Phone</label>
                                         <input type="tel" class="form-control" id="phone" name="phone"

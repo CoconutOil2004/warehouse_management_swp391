@@ -153,7 +153,7 @@
                 '<td><input class="form-control qty-input" type="number" step="1"  name="lines[' + idx + '].qty"></td>' +
                 '<td><input class="form-control unit-input" type="number" step="1"  \n\
  name="lines[' + idx + '].unitPrice"></td>' +
-                '<td><input class="form-control" name="lines[' + idx + '].currency" value="VND"></td>' +
+                '<td><input class="form-control" name="lines[' + idx + '].currency" value="VND" readonly></td>' +
                 '<td class="text-center"><button type="button" class="btn btn-sm btn-danger btn-remove">X</button></td>';
         //apend vào tbody
         tbody.appendChild(tr);

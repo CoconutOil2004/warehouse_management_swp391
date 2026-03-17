@@ -14,7 +14,7 @@ import org.mindrot.jbcrypt.BCrypt;
 
 public class UserDAO extends DBContext implements Dao<User> {
 
-    private final Connection conn = DBContext.getConnection();
+     Connection conn = DBContext.getConnection();
     private static final Duration RESET_TOKEN_TTL = Duration.ofMinutes(15);
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -588,5 +588,21 @@ public class UserDAO extends DBContext implements Dao<User> {
         } catch (Exception e) {
             throw new RuntimeException("SHA-256 not available", e);
         }
+    }
+    
+    
+       public String createOtpForUser(Long userId) throws SQLException {
+        String otp = generateOtp6Digits();
+        String tokenHash = sha256Hex(otp);
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + RESET_TOKEN_TTL.toMillis());
+
+        String sql = "INSERT INTO password_reset_token (user_id, token_hash, expires_at) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, userId);
+            ps.setString(2, tokenHash);
+            ps.setTimestamp(3, expiresAt);
+            ps.executeUpdate();
+        }
+        return otp;
     }
 }

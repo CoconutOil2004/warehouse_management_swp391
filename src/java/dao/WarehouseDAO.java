@@ -146,14 +146,8 @@ public class WarehouseDAO extends DBContext implements Dao<Warehouse> {
             ps.setString(4, warehouse.getStatus());
             ps.setLong(5, warehouse.getWarehouseId());
 
-            System.out.println("Executing UPDATE: " + sql);
-            System.out.println("Parameters: code=" + warehouse.getCode() + ", name=" + warehouse.getName() 
-                + ", address=" + warehouse.getAddress() + ", status=" + warehouse.getStatus() 
-                + ", id=" + warehouse.getWarehouseId());
-
             int rowsAffected = ps.executeUpdate();
-            System.out.println("Rows affected: " + rowsAffected);
-            
+
             return rowsAffected > 0;
         }
     }
@@ -163,40 +157,11 @@ public class WarehouseDAO extends DBContext implements Dao<Warehouse> {
         String sql = "DELETE FROM warehouse WHERE warehouse_id = ?";
         try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setLong(1, id);
-            
-            System.out.println("Executing DELETE: " + sql);
-            System.out.println("Parameter: id=" + id);
-            
+
             int rowsAffected = ps.executeUpdate();
-            System.out.println("Rows affected: " + rowsAffected);
-            
+
             return rowsAffected > 0;
         }
-    }
-
-    /** Check if warehouse has zones, GRNs, GDN or users assigned (cannot delete if true). */
-    public boolean hasDependencies(Long warehouseId) throws SQLException {
-        if (warehouseId == null) return false;
-        String sql = """
-                    SELECT (SELECT COUNT(*) FROM zone WHERE warehouse_id = ?) +
-                            (SELECT COUNT(*) FROM goods_receipt WHERE warehouse_id = ?) +
-                            (SELECT COUNT(*) FROM goods_delivery_note WHERE warehouse_id = ?) +
-                            (SELECT COUNT(*) FROM user WHERE warehouse_id = ? AND (is_deleted IS NULL OR is_deleted = 0))
-                """;
-        try (Connection con = DBContext.getConnection();
-                PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setLong(1, warehouseId);
-            ps.setLong(2, warehouseId);
-            ps.setLong(3, warehouseId);
-            ps.setLong(4, warehouseId);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    long total = rs.getLong(1);
-                    return total > 0;
-                }
-            }
-        }
-        return false;
     }
 
     public boolean codeExists(String code, Long excludeId) throws SQLException {

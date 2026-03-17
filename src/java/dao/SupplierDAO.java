@@ -209,4 +209,18 @@ public class SupplierDAO extends DBContext implements Dao<Supplier> {
         s.setStatus(rs.getString("status"));
         return s;
     }
+    
+    public String generateNextCode() throws SQLException {
+        String sql = "SELECT code FROM supplier WHERE code LIKE 'SUP%' ORDER BY code DESC LIMIT 1";
+        try (Connection con = DBContext.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                String lastCode = rs.getString("code");
+                int num = Integer.parseInt(lastCode.substring(3));
+                return String.format("SUP%03d", num + 1);
+            }
+        }
+        return "SUP001";
+    }
 }
