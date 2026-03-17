@@ -12,5 +12,9 @@ public class ProductListDTO {
     private String sku;
     private String name;
     private String barcode;
+    private Long categoryId;
+    private String categoryName;
+    private String categoryCode;
+    private String sizeType;   // LETTER or NUMBER for variant matrix
     private LocalDateTime createdAt;
 }
