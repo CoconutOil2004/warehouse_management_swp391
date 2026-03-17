@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.sql.Date;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -370,6 +371,7 @@ public class PurchaseOrderController extends HttpServlet {
         poService.createManualPO(poNumber, supplierId, expectedDate, note, userId, lines);
         // toast.jspf listens on sessionScope.message and auto-clears it after rendering
         request.getSession().setAttribute("message", "Create Purchase Order successfully: " + poNumber);
+        request.getSession().setAttribute("type", "success");
         response.sendRedirect(request.getContextPath() + "/purchase-orders");
 
     }
@@ -567,9 +569,24 @@ public class PurchaseOrderController extends HttpServlet {
         header.setExpectedDeliveryDate(expectedDate);
         header.setNote(note);
 
-        poService.updatePurchaseOrder(header, lines);
-        request.getSession().setAttribute("message", "Update Purchase Order successfully: " + poNumber);
-        response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+        try {
+            poService.updatePurchaseOrder(header, lines);
+            request.getSession().setAttribute("message", "Update Purchase Order successfully: " + poNumber);
+            request.getSession().setAttribute("type", "success");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+        } catch (IllegalArgumentException ex) {
+            // DAO throws when status != CREATED
+            request.getSession().setAttribute("message",
+                    "Purchase Order cannot be updated because it already has GRN / status is not CREATED.");
+            request.getSession().setAttribute("type", "error");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+        } catch (SQLIntegrityConstraintViolationException ex) {
+            // FK violation: goods_receipt_line.po_line_id -> purchase_order_line.po_line_id
+            request.getSession().setAttribute("message",
+                    "Purchase Order cannot be updated because GRN has been created from this PO.");
+            request.getSession().setAttribute("type", "error");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+        }
     }
 
     private void handleDelete(HttpServletRequest request, HttpServletResponse response)
