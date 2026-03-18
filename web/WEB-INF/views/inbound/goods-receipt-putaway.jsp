@@ -4,6 +4,7 @@
 <%@taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 
 <t:layout title="Goods Receipt Putaway">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <div class="container-fluid py-4">
         <!-- Back Link -->
         <div class="mb-3">
@@ -635,16 +636,64 @@
 
             if (putawayForm) {
                 putawayForm.addEventListener('submit', function (e) {
-                    if (isSubmitting) {
-                        e.preventDefault();
-                        return;
-                    }
-                    isSubmitting = true;
+                    e.preventDefault();
+                    if (isSubmitting) return;
 
-                    if (submitBtn) {
-                        submitBtn.disabled = true;
-                        submitBtn.setAttribute('aria-busy', 'true');
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Confirming...';
+                    var grnId = putawayForm.querySelector('input[name="grnId"]').value;
+
+                    // Capacity Check trước khi confirm putaway
+                    fetch('${pageContext.request.contextPath}/goods-receipt?action=checkCapacity&id=' + grnId)
+                        .then(function(resp) { return resp.json(); })
+                        .then(function(data) {
+                            if (!data.sufficient) {
+                                var html = '<div class="text-start small">';
+                                if (data.details.good && !data.details.good.isSufficient) {
+                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>GOOD ITEMS:</b> Need ' + data.details.good.required + ', available ' + data.details.good.available + '</p>';
+                                }
+                                if (data.details.damaged && !data.details.damaged.isSufficient) {
+                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>DAMAGED ITEMS:</b> Need ' + data.details.damaged.required + ', available ' + data.details.damaged.available + '</p>';
+                                }
+                                if (data.details.excess && !data.details.excess.isSufficient) {
+                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>EXCESS ITEMS:</b> Need ' + data.details.excess.required + ', available ' + data.details.excess.available + '</p>';
+                                }
+                                html += '</div><hr><p class="mb-0">Do you want to go to <b>Warehouse Layout</b> to add more slots?</p>';
+
+                                Swal.fire({
+                                    title: 'Insufficient Capacity!',
+                                    html: html,
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    showDenyButton: true,
+                                    confirmButtonText: 'Go to Warehouse Layout',
+                                    denyButtonText: 'Continue Anyway',
+                                    cancelButtonText: 'Close',
+                                    confirmButtonColor: '#0d6efd',
+                                    denyButtonColor: '#fd7e14',
+                                    cancelButtonColor: '#6e7881'
+                                }).then(function(result) {
+                                    if (result.isConfirmed) {
+                                        window.location.href = '${pageContext.request.contextPath}/warehouse-layout';
+                                    } else if (result.isDenied) {
+                                        doSubmit();
+                                    }
+                                });
+                            } else {
+                                doSubmit();
+                            }
+                        })
+                        .catch(function(err) {
+                            console.error('Capacity check error:', err);
+                            doSubmit(); // Nếu check lỗi thì cho submit luôn
+                        });
+
+                    function doSubmit() {
+                        isSubmitting = true;
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.setAttribute('aria-busy', 'true');
+                            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Confirming...';
+                        }
+                        putawayForm.submit();
                     }
                 });
             }

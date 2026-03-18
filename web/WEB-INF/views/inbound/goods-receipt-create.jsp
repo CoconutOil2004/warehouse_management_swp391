@@ -510,19 +510,17 @@
                                         Swal.fire({ icon: 'warning', title: 'No Items', text: 'Please select a Purchase Order.' });
                                         return;
                                     }
-                                    
-                                    // Capacity Check
-                                    let totalGood = 0;
-                                    let totalDamaged = 0;
-                                    let totalExtra = 0;
-                                    rows.forEach(row => {
-                                        totalGood += parseFloat(row.querySelector('.server-good').value) || 0;
-                                        totalDamaged += parseFloat(row.querySelector('.server-damaged').value) || 0;
-                                        totalExtra += parseFloat(row.querySelector('.server-extra').value) || 0;
-                                    });
-                                    
+
                                     const warehouseId = document.getElementById('warehouseIdHidden').value;
                                     if (warehouseId) {
+                                        // Tính tổng số lượng từ các dòng
+                                        let totalGood = 0, totalDamaged = 0, totalExtra = 0;
+                                        rows.forEach(row => {
+                                            totalGood    += parseFloat(row.querySelector('.server-good').value)    || 0;
+                                            totalDamaged += parseFloat(row.querySelector('.server-damaged').value) || 0;
+                                            totalExtra   += parseFloat(row.querySelector('.server-extra').value)   || 0;
+                                        });
+
                                         try {
                                             const params = new URLSearchParams({
                                                 action: 'checkCapacity',
@@ -532,40 +530,38 @@
                                                 totalExtra: totalExtra
                                             });
                                             const resp = await fetch(`${pageContext.request.contextPath}/goods-receipt?` + params.toString());
-                                            const data = await resp.json();
-                                            
-                                            if (!data.sufficient) {
-                                                let html = '<div class="text-start small">';
-                                                if (data.details.good && !data.details.good.isSufficient) {
-                                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>GOOD ITEMS:</b> Need ' + data.details.good.required + ', available ' + data.details.good.available + '</p>';
-                                                }
-                                                if (data.details.damaged && !data.details.damaged.isSufficient) {
-                                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>DAMAGED ITEMS:</b> Need ' + data.details.damaged.required + ', available ' + data.details.damaged.available + '</p>';
-                                                }
-                                                if (data.details.excess && !data.details.excess.isSufficient) {
-                                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>EXCESS ITEMS:</b> Need ' + data.details.excess.required + ', available ' + data.details.excess.available + '</p>';
-                                                }
-                                                html += '</div><hr><p class="mb-0">Do you want to go to <b>Warehouse Layout</b> to create more storage slots?</p>';
-
-                                                Swal.fire({
-                                                    title: 'Insufficient Capacity!',
-                                                    html: html,
-                                                    icon: 'warning',
-                                                    showCancelButton: true,
-                                                    confirmButtonText: 'Go to Warehouse Layout',
-                                                    cancelButtonText: 'Close',
-                                                    confirmButtonColor: '#0d6efd',
-                                                    cancelButtonColor: '#6e7881'
-                                                }).then((result) => {
-                                                    if (result.isConfirmed) {
-                                                        window.location.href = `${pageContext.request.contextPath}/warehouse-layout`;
+                                            if (resp.ok) {
+                                                const data = await resp.json();
+                                                if (!data.sufficient) {
+                                                    // Not enough space → redirect to warehouse layout
+                                                    let html = '<div class="text-start small">';
+                                                    if (data.details.good && !data.details.good.isSufficient) {
+                                                        html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>GOOD:</b> Need ' + data.details.good.required + ', available ' + data.details.good.available + '</p>';
                                                     }
-                                                });
-                                                return; // Block submission
+                                                    if (data.details.damaged && !data.details.damaged.isSufficient) {
+                                                        html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>DAMAGED:</b> Need ' + data.details.damaged.required + ', available ' + data.details.damaged.available + '</p>';
+                                                    }
+                                                    if (data.details.excess && !data.details.excess.isSufficient) {
+                                                        html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>EXCESS:</b> Need ' + data.details.excess.required + ', available ' + data.details.excess.available + '</p>';
+                                                    }
+                                                    html += '</div><hr><p class="mb-0">Please create more slots in <b>Warehouse Layout</b> before continuing.</p>';
+
+                                                    Swal.fire({
+                                                        title: 'Insufficient Warehouse Capacity!',
+                                                        html: html,
+                                                        icon: 'warning',
+                                                        confirmButtonText: '<i class="fas fa-th me-1"></i> Go to Warehouse Layout',
+                                                        confirmButtonColor: '#0d6efd'
+                                                    }).then(() => {
+                                                        window.location.href = `${pageContext.request.contextPath}/warehouse-layout`;
+                                                    });
+                                                    return; // Stop submission
+                                                }
                                             }
+                                            // resp không ok (400, 500,...) hoặc đủ chỗ → submit bình thường
                                         } catch (err) {
-                                            console.error("Capacity check error:", err);
-                                            // Fallback: continue if check fails
+                                            console.error('Capacity check error:', err);
+                                            // Nếu check lỗi → vẫn cho submit
                                         }
                                     }
 
