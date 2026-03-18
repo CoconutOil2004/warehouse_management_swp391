@@ -6,6 +6,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import model.Supplier;
@@ -16,6 +17,7 @@ public class SupplierController extends HttpServlet {
 
     private static final Long DEFAULT_PAGE = 1L;
     private static final Long DEFAULT_SIZE = 10L;
+    private static final int MAX_ADDRESS_LENGTH = 255;
 
     private final SupplierDAO supplierDao = new SupplierDAO();
 
@@ -164,7 +166,16 @@ public class SupplierController extends HttpServlet {
         try {
             // Validate required fields
             if (name.isEmpty()) {
-                request.setAttribute("error", "Name is required");
+                setToast(request.getSession(true), "Name is required", "error");
+                request.setAttribute("supplier", s);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                return;
+            }
+
+            if (address.length() > MAX_ADDRESS_LENGTH) {
+                setToast(request.getSession(true),
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
                 request.setAttribute("supplier", s);
                 request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
                 return;
@@ -178,7 +189,14 @@ public class SupplierController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/admin/supplier");
         } catch (SQLException e) {
             e.printStackTrace();
-            request.setAttribute("error", "Database error: " + e.getMessage());
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("data too long")
+                    && e.getMessage().toLowerCase().contains("address")) {
+                setToast(request.getSession(true),
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
+            } else {
+                setToast(request.getSession(true), "Database error. Please try again.", "error");
+            }
             request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
         }
     }
@@ -203,7 +221,7 @@ public class SupplierController extends HttpServlet {
             // Validate required fields
             if (code.isEmpty() || name.isEmpty()) {
                 Supplier old = supplierDao.getDetail(id);
-                request.setAttribute("error", "Code and Name are required");
+                setToast(request.getSession(true), "Code and Name are required", "error");
                 request.setAttribute("supplier", old);
                 request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
                 return;
@@ -218,9 +236,18 @@ public class SupplierController extends HttpServlet {
             s.setAddress(address);
             s.setStatus(status);
 
+            if (address.length() > MAX_ADDRESS_LENGTH) {
+                setToast(request.getSession(true),
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
+                request.setAttribute("supplier", s);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
+                return;
+            }
+
             // Check if code already exists for another supplier
             if (supplierDao.codeExists(code, id)) {
-                request.setAttribute("error", "Supplier Code already exists");
+                setToast(request.getSession(true), "Supplier Code already exists", "error");
                 request.setAttribute("supplier", s);
                 request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
                 return;
@@ -228,8 +255,20 @@ public class SupplierController extends HttpServlet {
 
             supplierDao.update(s);
             response.sendRedirect(request.getContextPath() + "/admin/supplier");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("data too long")
+                    && e.getMessage().toLowerCase().contains("address")) {
+                setToast(request.getSession(true),
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
+            } else {
+                setToast(request.getSession(true), "Database error. Please try again.", "error");
+            }
+            response.sendRedirect(request.getContextPath() + "/admin/supplier");
         } catch (Exception e) {
             e.printStackTrace();
+            setToast(request.getSession(true), "An error occurred. Please try again.", "error");
             response.sendRedirect(request.getContextPath() + "/admin/supplier");
         }
     }
@@ -250,5 +289,10 @@ public class SupplierController extends HttpServlet {
             e.printStackTrace();
             response.sendRedirect(request.getContextPath() + "/admin/supplier");
         }
+    }
+
+    private void setToast(HttpSession session, String message, String type) {
+        session.setAttribute("message", message);
+        session.setAttribute("type", type);
     }
 }

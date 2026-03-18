@@ -15,13 +15,13 @@ import util.ViewPath;
 public class AuthenticationController extends HttpServlet {
 
     private static final String SESSION_USER_KEY = "USER";
-    private static final boolean IS_OTP_ENABLED = false; // Set to false to bypass OTP for testing
+    private static final boolean IS_OTP_ENABLED = false;
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // đọc action từ query param
+        // read action from query param
         String action = trimOrEmpty(request.getParameter("action"));
 
         // logout
@@ -155,15 +155,14 @@ public class AuthenticationController extends HttpServlet {
 
         UserDAO dao = new UserDAO();
         try {
-            // Check email exists
-            User user = dao.findByEmail(email);
-            if (user == null) {
+            // Tạo OTP lưu DB + trả OTP raw để gửi email
+            String otp = dao.createPasswordResetOtpByEmail(email);
+            if (otp == null) {
                 request.setAttribute("error", "Email does not exist in the system");
                 request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
                 return;
             }
 
-            // Gửi OTP qua email
             SendEmail.sendOTP(email, otp);
 
             // lưu email vào session
@@ -197,37 +196,18 @@ public class AuthenticationController extends HttpServlet {
             return;
         }
 
-        String sessionOtp = (String) session.getAttribute("CURRENT_OTP");
-        Long creationTime = (Long) session.getAttribute("OTP_CREATION_TIME");
+        UserDAO dao = new UserDAO();
+        try {
+            Long verifiedUserId = dao.verifyResetOtpAndGetUserId(otp);
 
-        if (sessionOtp == null || creationTime == null) {
-            request.setAttribute("error", "Request expired. Please try again");
-            if ("RESET".equals(session.getAttribute("AUTH_TYPE"))) {
-                request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
-            } else {
-                request.getRequestDispatcher(ViewPath.VIEW_LOGIN).forward(request, response);
+            if (verifiedUserId == null) {
+                request.setAttribute("error", "OTP is invalid or expired");
+                request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
+                return;
             }
-            return;
-        }
 
-        // Check Expiry (5 minutes)
-        if (System.currentTimeMillis() - creationTime > 5 * 60 * 1000) {
-            session.removeAttribute("CURRENT_OTP");
-            session.removeAttribute("OTP_CREATION_TIME");
-            request.setAttribute("error", "OTP has expired. Please request a new one");
-            request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
-            return;
-        }
-
-        // Check Match
-        if (!sessionOtp.equals(otp)) {
-            request.setAttribute("error", "Invalid OTP");
-            request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
-            return;
-        }
-
-        // OTP Valid
-        session.removeAttribute("CURRENT_OTP"); // Clear OTP to prevent replay
+            // OTP hợp lệ -> đánh dấu đã sử dụng
+            dao.markResetOtpUsed(otp);
 
             String authType = (String) session.getAttribute("AUTH_TYPE");
 
@@ -252,12 +232,10 @@ public class AuthenticationController extends HttpServlet {
             session.setAttribute("VERIFIED_OTP", "TRUE");
             session.setAttribute("VERIFIED_USER_ID", verifiedUserId);
 
-            // Chuyển sang trang reset password
             request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
-
         } catch (SQLException e) {
             e.printStackTrace();
-            request.setAttribute("error", "Có lỗi xảy ra. Vui lòng thử lại.");
+            request.setAttribute("error", "An error occurred. Please try again.");
             request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
         }
     }
@@ -270,7 +248,7 @@ public class AuthenticationController extends HttpServlet {
         String otp = (session != null) ? (String) session.getAttribute("VERIFIED_OTP") : null;
 
         if (otp == null) {
-            // Chưa verify OTP mà nhảy vào đây -> đá về forgot
+            // OTP not verified yet -> redirect to forgot
             response.sendRedirect(request.getContextPath() + "/authen?action=forgot");
             return;
         }
@@ -326,7 +304,7 @@ public class AuthenticationController extends HttpServlet {
                 session.removeAttribute("OTP_CREATION_TIME");
             }
 
-            // thành công → quay về login
+            // success -> back to login
             request.setAttribute("message",
                     "Password changed successfully. Please log in again");
             request.getRequestDispatcher(ViewPath.VIEW_LOGIN).forward(request, response);
