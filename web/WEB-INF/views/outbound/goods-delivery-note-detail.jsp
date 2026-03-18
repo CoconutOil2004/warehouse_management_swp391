@@ -246,7 +246,7 @@
                                                     ${s.status}
                                                 </span>
                                             </td>
-                                            <td class="text-start">
+                                            <td class="text-center">
                                                 <c:out value="${s.trackingCode != null ? s.trackingCode : '-'}" />
                                             </td>
                                         </tr>
