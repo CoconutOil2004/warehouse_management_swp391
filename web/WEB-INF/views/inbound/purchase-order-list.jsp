@@ -87,12 +87,30 @@
                                     <input type="hidden" name="id" value="${po.poId}">
                                     <t:button type="submit" size="sm" variant="outline" color="primary">View</t:button>
                                     </form>
-                                    <form action="${pageContext.request.contextPath}/purchase-orders" method="post" style="display:inline;" onsubmit="return confirm('Delete PO ${po.poNumber}?');">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="id" value="${po.poId}">
-                                        <input type="hidden" name="page" value="${page}">
-                                        <t:button type="submit" size="sm" variant="outline" color="danger">Delete</t:button>
-                                        </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal" data-bs-target="#deleteModal${po.poId}">
+                                    Delete
+                                </button>
+
+                                <t:alert id="deleteModal${po.poId}">
+                                    <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
+                                    <jsp:attribute name="desciption">
+                                        Are you sure you want to delete purchase order
+                                        <strong>${po.poNumber}</strong>? This action cannot be undone.
+                                    </jsp:attribute>
+                                    <jsp:attribute name="action">
+                                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                                                onclick="document.getElementById('deleteForm${po.poId}').submit()">
+                                            Delete
+                                        </button>
+                                    </jsp:attribute>
+                                </t:alert>
+                                <form id="deleteForm${po.poId}" action="${pageContext.request.contextPath}/purchase-orders"
+                                      method="post" class="d-none">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="${po.poId}">
+                                    <input type="hidden" name="page" value="${page}">
+                                </form>
                                 <form action="${pageContext.request.contextPath}/purchase-orders" method="get" style="display:inline;">
                                     <input type="hidden" name="action" value="edit">
                                     <input type="hidden" name="id" value="${po.poId}">
