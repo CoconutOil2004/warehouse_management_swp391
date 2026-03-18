@@ -22,4 +22,6 @@ public class PackingDTO {
     private String notes;
     private Integer totalPackages;
     private Integer currentPackageNum;
+    private String customerName;
+    private String soNumber;
 }
