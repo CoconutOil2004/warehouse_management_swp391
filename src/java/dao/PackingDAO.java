@@ -68,6 +68,28 @@ public class PackingDAO extends DBContext {
         return null;
     }
 
+    public List<PackingDTO> listByGdnId(Long gdnId) throws Exception {
+        List<PackingDTO> list = new ArrayList<>();
+        String sql = """
+                SELECT p.pack_id, p.gdn_id, gdn.gdn_number, p.status, p.packed_by, u.full_name AS packed_by_name, p.packed_at, p.package_label
+                FROM packing p
+                JOIN goods_delivery_note gdn ON gdn.gdn_id = p.gdn_id
+                LEFT JOIN `user` u ON u.user_id = p.packed_by
+                WHERE p.gdn_id = ?
+                ORDER BY p.pack_id DESC
+                """;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, gdnId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapPackingDTO(rs));
+                }
+            }
+        }
+        return list;
+    }
+
     private static PackingDTO mapPackingDTO(ResultSet rs) throws SQLException {
         PackingDTO dto = new PackingDTO();
         dto.setPackId(rs.getLong("pack_id"));

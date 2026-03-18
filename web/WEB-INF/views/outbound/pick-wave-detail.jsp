@@ -138,8 +138,9 @@
                                                         gdn.status == 'CREATED' ? 'bg-secondary' :
                                                         (gdn.status == 'PICKING' ? 'bg-warning text-dark' :
                                                         (gdn.status == 'PACKING' ? 'bg-info text-dark' :
+                                                        (gdn.status == 'SHIPPING' ? 'bg-primary' :
                                                         (gdn.status == 'CANCELLED' ? 'bg-danger' :
-                                                        (gdn.status == 'DONE' || gdn.status == 'CONFIRMED' ? 'bg-success' : 'bg-secondary'))))}">
+                                                        (gdn.status == 'DONE' ? 'bg-success' : 'bg-secondary')))))}">
                                                         ${gdn.status}
                                                     </span>
                                                 </td>

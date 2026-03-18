@@ -34,7 +34,7 @@
                             <option value="CREATED" ${param.status=='CREATED' ? 'selected' : '' }>CREATED</option>
                             <option value="PICKING" ${param.status=='PICKING' ? 'selected' : '' }>PICKING</option>
                             <option value="PACKING" ${param.status=='PACKING' ? 'selected' : '' }>PACKING</option>
-                            <option value="CONFIRMED" ${param.status=='CONFIRMED' ? 'selected' : '' }>CONFIRMED</option>
+                            <option value="SHIPPING" ${param.status=='SHIPPING' ? 'selected' : '' }>SHIPPING</option>
                             <option value="CANCELLED" ${param.status=='CANCELLED' ? 'selected' : '' }>CANCELLED</option>
                             <option value="DONE" ${param.status=='DONE' ? 'selected' : '' }>DONE</option>
                         </select>
@@ -90,8 +90,9 @@
                                             gdn.status == 'CREATED' ? 'badge-secondary' :
                                             (gdn.status == 'PICKING' ? 'badge-warning' :
                                             (gdn.status == 'PACKING' ? 'badge-info' :
+                                            (gdn.status == 'SHIPPING' ? 'badge-primary' :
                                             (gdn.status == 'CANCELLED' ? 'badge-danger' :
-                                            (gdn.status == 'DONE' || gdn.status == 'CONFIRMED' ? 'badge-success' : 'badge-secondary'))))}">
+                                            (gdn.status == 'DONE' ? 'badge-success' : 'badge-secondary')))))}">
                                             ${gdn.status}
                                         </span>
                                     </td>
@@ -124,7 +125,7 @@
                                                 </t:button>
                                             </form>
                                             <c:if test="${gdn.status == 'CREATED' || gdn.status == 'PICKING' || gdn.status == 'PACKING'}">
-                                    <%-- CONFIRMED, CANCELLED, DONE: no Edit --%>
+                                    <%-- SHIPPING, CANCELLED, DONE: no Edit --%>
                                                 <form action="${pageContext.request.contextPath}/goods-delivery-note" method="get" class="m-0">
                                                     <input type="hidden" name="action" value="edit">
                                                     <input type="hidden" name="id" value="${gdn.gdnId}">

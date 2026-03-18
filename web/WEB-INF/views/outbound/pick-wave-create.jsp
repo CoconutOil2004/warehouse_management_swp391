@@ -192,8 +192,9 @@
                                                 g.status == 'CREATED' ? 'bg-secondary' :
                                                 (g.status == 'PICKING' ? 'bg-warning text-dark' :
                                                 (g.status == 'PACKING' ? 'bg-info text-dark' :
+                                                (g.status == 'SHIPPING' ? 'bg-primary' :
                                                 (g.status == 'CANCELLED' ? 'bg-danger' :
-                                                (g.status == 'DONE' || g.status == 'CONFIRMED' ? 'bg-success' : 'bg-secondary'))))}">
+                                                (g.status == 'DONE' ? 'bg-success' : 'bg-secondary')))))}">
                                                 ${g.status}
                                             </span>
                                         </td>

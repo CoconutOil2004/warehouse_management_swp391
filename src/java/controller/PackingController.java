@@ -122,6 +122,13 @@ public class PackingController extends HttpServlet {
             packingDao.updateGDNLinesPacked(gdnId, lineQtyPacked);
         }
 
+        // When packing is done, move GDN to SHIPPING (shipment creation can start).
+        try {
+            gdnDao.updateGDNStatus(gdnId, "SHIPPING");
+        } catch (Exception ignored) {
+        }
+
+        request.getSession().setAttribute("message", "Packing completed.");
         response.sendRedirect(request.getContextPath() + "/packing?action=form&gdnId=" + gdnId);
     }
 
