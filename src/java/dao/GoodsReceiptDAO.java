@@ -599,7 +599,8 @@ public class GoodsReceiptDAO extends DBContext {
     }
 
     public boolean isPutawayComplete(Long grnId) throws SQLException {
-        String sqlExpected = "SELECT SUM(qty_good + qty_damaged) FROM goods_receipt_line WHERE grn_id = ?";
+        // Putaway must cover all physically received items: GOOD + DAMAGED + EXCESS
+        String sqlExpected = "SELECT SUM(qty_good + qty_damaged + qty_extra) FROM goods_receipt_line WHERE grn_id = ?";
         String sqlActual = "SELECT SUM(pl.qty_putaway) FROM putaway_line pl JOIN putaway_order po ON pl.putaway_id = po.putaway_id WHERE po.grn_id = ?";
 
         java.math.BigDecimal expected = java.math.BigDecimal.ZERO;
