@@ -16,17 +16,6 @@
                         Upload Excel File
                     </div>
                     <div class="card-body">
-                        <c:if test="${not empty errorMsg}">
-                            <div class="alert alert-danger">
-                                ${errorMsg}
-                            </div>
-                        </c:if>
-                        <c:if test="${not empty successMsg}">
-                            <div class="alert alert-success">
-                                ${successMsg}
-                            </div>
-                        </c:if>
-
                         <form action="${pageContext.request.contextPath}/sales-orders" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="action" value="processImport">
 

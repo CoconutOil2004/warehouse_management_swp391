@@ -4,6 +4,13 @@
 <c:if test="${not empty sessionScope.message}">
     <%-- Infer toast type if not provided --%>
     <c:set var="toastType" value="${sessionScope.type}" />
+    <%-- Normalize common bootstrap-like types --%>
+    <c:if test="${toastType == 'danger'}">
+        <c:set var="toastType" value="error" />
+    </c:if>
+    <c:if test="${toastType == 'warning'}">
+        <c:set var="toastType" value="info" />
+    </c:if>
     <c:if test="${empty toastType}">
         <c:set var="msgLower" value="${fn:toLowerCase(sessionScope.message)}" />
         <c:choose>
