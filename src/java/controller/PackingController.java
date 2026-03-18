@@ -38,6 +38,7 @@ public class PackingController extends HttpServlet {
                 case "station" -> handleStation(request, response);
                 case "packLine" -> handlePackLine(request, response);
                 case "ready" -> handleReadyList(request, response);
+                case "start" -> handleStart(request, response);
                 default -> response.sendRedirect(request.getContextPath() + "/packing?action=list");
             }
         } catch (Exception e) {
@@ -52,13 +53,36 @@ public class PackingController extends HttpServlet {
         List<PackingDTO> list = packingDao.listByStatus(status);
         request.setAttribute("packings", list);
         request.setAttribute("status", status);
+        request.setAttribute("isReadyView", false);
         request.getRequestDispatcher("/WEB-INF/views/outbound/packing-list.jsp").forward(request, response);
+    }
+
+    private void handleStart(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        long gdnId = parseLong(request.getParameter("gdnId"), -1);
+        if (gdnId <= 0) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=ready");
+            return;
+        }
+
+        PackingDAO packingDao = new PackingDAO();
+        PackingDTO existing = packingDao.getByGdnId(gdnId);
+        
+        if (existing != null) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=form&gdnId=" + gdnId);
+            return;
+        }
+
+        Long packId = packingDao.createPackingForGDN(gdnId);
+        
+        request.getSession().setAttribute("message", "Packing record created successfully!");
+        response.sendRedirect(request.getContextPath() + "/packing?action=form&gdnId=" + gdnId);
     }
 
     private void handleReadyList(HttpServletRequest request, HttpServletResponse response) throws Exception {
         PackingDAO packingDao = new PackingDAO();
-        List<PackingDTO> list = packingDao.listReadyForPacking();
+        List<PackingDTO> list = packingDao.listGDNsReadyForPacking();
         request.setAttribute("packings", list);
+        request.setAttribute("isReadyView", true);
         request.getRequestDispatcher("/WEB-INF/views/outbound/packing-list.jsp").forward(request, response);
     }
 
@@ -78,10 +102,6 @@ public class PackingController extends HttpServlet {
 
         PackingDAO packingDao = new PackingDAO();
         PackingDTO packing = packingDao.getByGdnId(gdnId);
-        if (packing == null) {
-            Long packId = packingDao.createPackingForGDN(gdnId);
-            packing = packingDao.getByPackId(packId);
-        }
 
         if ("PICKING".equals(gdn.getStatus())) {
             gdnDao.updateGDNStatus(gdnId, "PACKING");
@@ -112,10 +132,6 @@ public class PackingController extends HttpServlet {
 
         PackingDAO packingDao = new PackingDAO();
         PackingDTO packing = packingDao.getByGdnId(gdnId);
-        if (packing == null) {
-            Long packId = packingDao.createPackingForGDN(gdnId);
-            packing = packingDao.getByPackId(packId);
-        }
 
         if ("PICKING".equals(gdn.getStatus())) {
             gdnDao.updateGDNStatus(gdnId, "PACKING");

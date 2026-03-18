@@ -26,8 +26,8 @@
                 <div class="row row-cols-2 row-cols-md-4 g-2 small">
                     <div class="col"><strong>Customer:</strong> ${gdn.customerName}</div>
                     <div class="col"><strong>Status:</strong> <span class="badge bg-info">${gdn.status}</span></div>
-                    <div class="col"><strong>Packing:</strong> <span class="badge ${packing.status == 'DONE' ? 'bg-success' : packing.status == 'IN_PROGRESS' ? 'bg-info' : 'bg-warning text-dark'}">${packing.status}</span></div>
-                    <div class="col"><strong>Package:</strong> ${packing.packageType != null ? packing.packageType : '-'}</div>
+                    <div class="col"><strong>Packing:</strong> <span class="badge ${packing != null ? (packing.status == 'DONE' ? 'bg-success' : packing.status == 'IN_PROGRESS' ? 'bg-info' : 'bg-warning text-dark') : 'bg-secondary'}">${packing != null ? packing.status : 'NOT_STARTED'}</span></div>
+                    <div class="col"><strong>Package:</strong> ${packing != null && packing.packageType != null ? packing.packageType : '-'}</div>
                 </div>
             </div>
         </div>
@@ -88,7 +88,17 @@
         <div class="card shadow-sm">
             <div class="card-header bg-secondary text-white py-2"><h5 class="mb-0">Package Information</h5></div>
             <div class="card-body">
-                <c:if test="${packing.status != 'DONE' && packing.status != 'CONFIRMED'}">
+                <c:if test="${empty packing}">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No packing record found. Click "Start Packing" below to create one.
+                    </div>
+                    <a href="${pageContext.request.contextPath}/packing?action=start&gdnId=${gdn.gdnId}" class="btn btn-primary">
+                        <i class="fas fa-box-open me-1"></i> Start Packing
+                    </a>
+                </c:if>
+                
+                <c:if test="${not empty packing && packing.status != 'DONE' && packing.status != 'CONFIRMED'}">
                     <form action="${pageContext.request.contextPath}/packing" method="post">
                         <input type="hidden" name="action" value="save"/>
                         <input type="hidden" name="packId" value="${packing.packId}"/>
