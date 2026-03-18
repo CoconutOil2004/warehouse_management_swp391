@@ -6,6 +6,7 @@ import dao.PickWaveDAO;
 import dao.UserDAO;
 import dto.PickTaskDTO;
 import dto.PickTaskLineDTO;
+import dto.PickWaveDTO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -305,6 +306,18 @@ public class PickTaskController extends HttpServlet {
             request.getContextPath() + "/pick-task?action=myLines"
             );
             return;
+        }
+
+        if (targetLine.getWaveId() != null) {
+            PickWaveDAO waveDao = new PickWaveDAO();
+            PickWaveDTO wave = waveDao.getWaveById(targetLine.getWaveId());
+            if (wave == null || !"RELEASED".equals(wave.getStatus())) {
+                request.getSession().setAttribute("error", "Wave is not released yet. Please wait for release.");
+                response.sendRedirect(
+                request.getContextPath() + "/pick-task?action=myLines"
+                );
+                return;
+            }
         }
 
         request.setAttribute("line", targetLine);

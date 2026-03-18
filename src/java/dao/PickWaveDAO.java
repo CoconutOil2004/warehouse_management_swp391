@@ -59,6 +59,10 @@ public class PickWaveDAO extends DBContext {
                 }
 
                 conn.commit();
+
+                PickTaskDAO taskDao = new PickTaskDAO();
+                taskDao.createTasksFromWave(waveId);
+
                 return waveId;
             } catch (Exception e) {
                 conn.rollback();
@@ -515,9 +519,8 @@ public class PickWaveDAO extends DBContext {
     }
 
     /**
-     * Release a wave - creates pick tasks from GDN lines and updates wave
-     * status. Returns true if successful, false if tasks cannot be created
-     * (e.g., insufficient inventory).
+     * Release a wave - updates wave status to RELEASED.
+     * Tasks are already created when wave is created.
      */
     public boolean releaseWave(Long waveId) throws Exception {
         PickWaveDTO wave = getWaveById(waveId);
@@ -527,13 +530,6 @@ public class PickWaveDAO extends DBContext {
 
         if (!STATUS_CREATED.equals(wave.getStatus())) {
             throw new SQLException("Wave is not in CREATED status. Current status: " + wave.getStatus());
-        }
-
-        PickTaskDAO taskDao = new PickTaskDAO();
-        boolean tasksCreated = taskDao.createTasksFromWave(waveId);
-
-        if (!tasksCreated) {
-            return false;
         }
 
         updateWaveStatus(waveId, STATUS_RELEASED);

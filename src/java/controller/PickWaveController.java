@@ -186,6 +186,7 @@ public class PickWaveController extends HttpServlet {
         PickTaskDAO taskDao = new PickTaskDAO();
         request.setAttribute("wave", wave);
         request.setAttribute("tasks", taskDao.getTasksByWaveId(waveId));
+        request.setAttribute("unassignedCount", taskDao.countUnassignedLinesByWave(waveId));
         request
         .getRequestDispatcher("/WEB-INF/views/outbound/pick-wave-detail.jsp")
         .forward(request, response);

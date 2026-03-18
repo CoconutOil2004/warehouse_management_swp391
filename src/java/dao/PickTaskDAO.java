@@ -268,7 +268,7 @@ public class PickTaskDAO extends DBContext {
     String sql =
       "SELECT pt.pick_task_id, pt.wave_id, pt.gdn_id, gdn.gdn_number, so.so_number, so.so_id, " +
       "pt.status, pt.started_at, pt.completed_at, " +
-      "ptl.assigned_to, u.full_name AS assigned_to_name " +
+      "ptl.assigned_to, u.full_name AS assigned_to_name, ptl.assigned_at " +
       "FROM pick_task pt " +
       "LEFT JOIN pick_wave pw ON pt.wave_id = pw.wave_id " +
       "LEFT JOIN pick_wave_gdn pwg ON pw.wave_id = pwg.wave_id " +
@@ -1148,6 +1148,22 @@ public class PickTaskDAO extends DBContext {
   }
 
   /**
+   * Count unassigned lines in a wave.
+   */
+  public int countUnassignedLinesByWave(Long waveId) throws Exception {
+    String sql = "SELECT COUNT(*) FROM pick_task_line ptl JOIN pick_task pt ON ptl.pick_task_id = pt.pick_task_id WHERE pt.wave_id = ? AND ptl.assigned_to IS NULL";
+    try (
+      Connection conn = getConnection();
+      PreparedStatement ps = conn.prepareStatement(sql)
+    ) {
+      ps.setLong(1, waveId);
+      try (ResultSet rs = ps.executeQuery()) {
+        return rs.next() ? rs.getInt(1) : 0;
+      }
+    }
+  }
+
+  /**
    * Get lines assigned to a specific user (for PDA/Mobile view).
    */
   public List<PickTaskLineDTO> getMyAssignedLines(Long userId)
@@ -1207,6 +1223,8 @@ public class PickTaskDAO extends DBContext {
           );
           line.setPickStatus(rs.getString("pick_status"));
           line.setAssignedTo(userId);
+          line.setWaveId(rs.getObject("wave_id") != null ? rs.getLong("wave_id") : null);
+          line.setWaveCode(rs.getString("wave_code"));
           Timestamp t = rs.getTimestamp("assigned_at");
           if (t != null) line.setAssignedAt(t.toLocalDateTime());
           t = rs.getTimestamp("completed_at");

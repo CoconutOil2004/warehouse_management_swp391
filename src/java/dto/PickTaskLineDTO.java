@@ -42,6 +42,8 @@ public class PickTaskLineDTO {
     private LocalDateTime completedAt;
     private String note;
     private Long pickedBy;
+    private Long waveId;
+    private String waveCode;
 
     public String getAssignedAtDisplay() {
         return assignedAt == null ? "" : assignedAt.format(DISPLAY_FORMAT);

@@ -12,14 +12,21 @@
               </t:link>
             </div>
             <c:if test="${wave.status == 'CREATED'}">
-                <form method="post" action="${pageContext.request.contextPath}/pick-wave">
-                    <input type="hidden" name="action" value="release"/>
-                    <input type="hidden" name="id" value="${wave.waveId}"/>
-                    <button type="submit" class="btn btn-success"
-                        onclick="return confirm('Release wave? Tasks will be created.')">
-                        <i class="bi bi-play-fill"></i> Release
-                    </button>
-                </form>
+                <c:if test="${unassignedCount == 0}">
+                    <form method="post" action="${pageContext.request.contextPath}/pick-wave">
+                        <input type="hidden" name="action" value="release"/>
+                        <input type="hidden" name="id" value="${wave.waveId}"/>
+                        <button type="submit" class="btn btn-success"
+                            onclick="return confirm('Release wave? Workers can start picking.')">
+                            <i class="bi bi-play-fill"></i> Release
+                        </button>
+                    </form>
+                </c:if>
+                <c:if test="${unassignedCount > 0}">
+                    <div class="btn btn-secondary" title="Assign all tasks before releasing">
+                        <i class="bi bi-hourglass-split"></i> Release (${unassignedCount} lines pending)
+                    </div>
+                </c:if>
             </c:if>
             <c:if test="${wave.status == 'CREATED' || wave.status == 'RELEASED'}">
                 <form method="post" action="${pageContext.request.contextPath}/pick-wave">
