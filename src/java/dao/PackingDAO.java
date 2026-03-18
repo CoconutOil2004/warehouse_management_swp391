@@ -173,6 +173,20 @@ public class PackingDAO extends DBContext {
         }
     }
 
+    public void assignPacking(Long packId, Long packedBy) throws Exception {
+        String sql = "UPDATE packing SET packed_by = ? WHERE pack_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (packedBy != null) {
+                ps.setLong(1, packedBy);
+            } else {
+                ps.setNull(1, Types.BIGINT);
+            }
+            ps.setLong(2, packId);
+            ps.executeUpdate();
+        }
+    }
+
     public void updateGDNLinesPacked(Long gdnId, Map<Long, BigDecimal> lineQtyPacked) throws Exception {
         if (lineQtyPacked == null || lineQtyPacked.isEmpty()) {
             return;
@@ -236,7 +250,7 @@ public class PackingDAO extends DBContext {
                 LEFT JOIN customer c ON so.customer_id = c.customer_id
                 LEFT JOIN `user` u ON u.user_id = p.packed_by
                 WHERE p.status IN ('PENDING', 'IN_PROGRESS')
-                AND gdn.status IN ('PACKING', 'CONFIRMED')
+                AND gdn.status IN ('PACKING')
                 ORDER BY p.pack_id ASC
                 """;
         List<PackingDTO> list = new ArrayList<>();
@@ -258,7 +272,7 @@ public class PackingDAO extends DBContext {
                 FROM goods_delivery_note gdn
                 LEFT JOIN sales_order so ON gdn.so_id = so.so_id
                 LEFT JOIN customer c ON so.customer_id = c.customer_id
-                WHERE gdn.status IN ('PACKING', 'CONFIRMED')
+                WHERE gdn.status IN ('PACKING')
                 ORDER BY gdn.gdn_id DESC
                 """;
         List<PackingDTO> list = new ArrayList<>();

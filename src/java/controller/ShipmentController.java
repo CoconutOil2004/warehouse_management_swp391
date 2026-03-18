@@ -109,7 +109,7 @@ public class ShipmentController extends HttpServlet {
                 try {
                     dto.GDNDetailDTO gdn = gdnDao.getGDNDetailById(gdnId);
                     if (gdn == null || !"SHIPPING".equals(gdn.getStatus())) {
-                        request.setAttribute("error", "Error: Can only create shipment for GDN in SHIPPING status (after packing).");
+                        request.setAttribute("error", "Lỗi: Chỉ có thể tạo lô hàng cho Phiếu Xuất Kho đã hoàn thành packing (SHIPPING).");
                         request.getRequestDispatcher(ViewPath.SHIPMENT_CREATE).forward(request, response);
                         return;
                     }
@@ -146,7 +146,7 @@ public class ShipmentController extends HttpServlet {
         try {
             dto.GDNDetailDTO gdn = gdnDao.getGDNDetailById(gdnId);
             if (gdn == null || !"SHIPPING".equals(gdn.getStatus())) {
-                request.setAttribute("error", "Error: GDN must be in SHIPPING status to create a shipment.");
+                request.setAttribute("error", "Lỗi: Phiếu Xuất Kho phải ở trạng thái SHIPPING mới có thể tạo lô hàng.");
                 handleCreate(request, response);
                 return;
             }

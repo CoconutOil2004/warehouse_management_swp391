@@ -11,6 +11,16 @@
             </a>
         </div>
 
+        <c:if test="${not empty error}">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                ${error}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </c:if>
+
         <form action="${pageContext.request.contextPath}/goods-delivery-note" method="post" id="gdnForm">
             <input type="hidden" name="action" value="create" />
 

@@ -235,7 +235,7 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         Long warehouseId = getWarehouseId(request);
 
         if (warehouseId == null) {
-            request.setAttribute("error", "No warehouse found");
+            request.setAttribute("error", "No warehouse found. Please ensure your user is assigned to a warehouse.");
             handleCreateForm(request, response);
             return;
         }
@@ -276,7 +276,15 @@ public class GoodsDeliveryNoteController extends HttpServlet {
 
         User user = (User) request.getSession().getAttribute("USER");
         Long createdBy = user != null ? user.getUserId() : null;
-        Long gdnId = gdnDao.createGDNFromSO(so.getSoId(), warehouseId, createdBy);
+        Long gdnId;
+        try {
+            gdnId = gdnDao.createGDNFromSO(so.getSoId(), warehouseId, createdBy);
+        } catch (Exception ex) {
+            // Surface a readable error on the create form instead of a 500 page.
+            request.setAttribute("error", ex.getMessage() != null ? ex.getMessage() : "Failed to create GDN.");
+            handleCreateForm(request, response);
+            return;
+        }
 
         if (gdnId == null) {
             request.setAttribute("error", "Failed to create GDN.");
@@ -328,9 +336,28 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             return;
         }
 
-        if (newStatus != null && !newStatus.isBlank() && !"CREATED".equals(newStatus)) {
-            // For safety, do not allow switching to other statuses manually here.
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Status+can+only+be+changed+to+CANCELLED+manually");
+        // 2) If switching to SHIPPING manually: still enforce Qty Picked/Packed = Qty Required for all lines
+        if ("SHIPPING".equals(status)) {
+            dto.GDNDetailDTO gdnAfterUpdate = gdnDao.getGDNDetailById(gdnId);
+            if (gdnAfterUpdate != null && gdnAfterUpdate.getLines() != null) {
+                for (dto.GDNLineDTO line : gdnAfterUpdate.getLines()) {
+                    java.math.BigDecimal req = line.getQtyRequired() != null ? line.getQtyRequired() : java.math.BigDecimal.ZERO;
+                    java.math.BigDecimal picked = line.getQtyPicked() != null ? line.getQtyPicked() : java.math.BigDecimal.ZERO;
+                    java.math.BigDecimal packed = line.getQtyPacked() != null ? line.getQtyPacked() : java.math.BigDecimal.ZERO;
+                    if (picked.compareTo(req) != 0 || packed.compareTo(req) != 0) {
+                        response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+set+SHIPPING%3A+Qty+Picked+and+Qty+Packed+must+equal+Qty+Required+for+all+lines");
+                        return;
+                    }
+                }
+            }
+            gdnDao.updateGDNStatus(gdnId, "SHIPPING");
+            gdnDao.deductInventoryOnConfirm(gdnId);
+            request.getSession().setAttribute("message", "GDN is now SHIPPING.");
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
+            return;
+        } else if (newStatus != null && !newStatus.isBlank() && !"CREATED".equals(newStatus)) {
+            // For safety, do not allow switching to other statuses (PICKING, PACKING, DONE) manually here.
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Status+can+only+be+changed+to+CANCELLED+or+SHIPPING+manually");
             return;
         }
 

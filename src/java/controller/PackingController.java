@@ -2,6 +2,7 @@ package controller;
 
 import dao.PackingDAO;
 import dao.GoodsDeliveryNoteDAO;
+import dao.UserDAO;
 import dto.GDNDetailDTO;
 import dto.GDNLineDTO;
 import dto.PackingDTO;
@@ -39,6 +40,7 @@ public class PackingController extends HttpServlet {
                 case "packLine" -> handlePackLine(request, response);
                 case "ready" -> handleReadyList(request, response);
                 case "start" -> handleStart(request, response);
+                case "assign" -> handleAssignForm(request, response);
                 default -> response.sendRedirect(request.getContextPath() + "/packing?action=list");
             }
         } catch (Exception e) {
@@ -103,6 +105,12 @@ public class PackingController extends HttpServlet {
         PackingDAO packingDao = new PackingDAO();
         PackingDTO packing = packingDao.getByGdnId(gdnId);
 
+        User user = (User) request.getSession().getAttribute("USER");
+        if (!canAccessPacking(user, packing)) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=list&error=not_assigned");
+            return;
+        }
+
         if ("PICKING".equals(gdn.getStatus())) {
             gdnDao.updateGDNStatus(gdnId, "PACKING");
             gdn = gdnDao.getGDNDetailById(gdnId);
@@ -132,6 +140,12 @@ public class PackingController extends HttpServlet {
 
         PackingDAO packingDao = new PackingDAO();
         PackingDTO packing = packingDao.getByGdnId(gdnId);
+
+        User user = (User) request.getSession().getAttribute("USER");
+        if (!canAccessPacking(user, packing)) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=list&error=not_assigned");
+            return;
+        }
 
         if ("PICKING".equals(gdn.getStatus())) {
             gdnDao.updateGDNStatus(gdnId, "PACKING");
@@ -197,8 +211,88 @@ public class PackingController extends HttpServlet {
                     throw new ServletException(e);
                 }
             }
+            case "assign" -> {
+                try {
+                    handleAssign(request, response);
+                } catch (Exception e) {
+                    Logger.getLogger(PackingController.class.getName()).log(Level.SEVERE, null, e);
+                    throw new ServletException(e);
+                }
+            }
             default -> response.sendRedirect(request.getContextPath() + "/packing?action=list");
         }
+    }
+
+    private void handleAssignForm(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        User user = (User) request.getSession().getAttribute("USER");
+        if (user == null) {
+            response.sendRedirect(request.getContextPath() + "/authen?action=login");
+            return;
+        }
+        String roles = user.getRoleNames() != null ? user.getRoleNames() : "";
+        if (!roles.contains("ADMIN") && !roles.contains("WAREHOUSE_MANAGER")) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=list");
+            return;
+        }
+
+        long gdnId = parseLong(request.getParameter("gdnId"), -1);
+        if (gdnId <= 0) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=ready");
+            return;
+        }
+
+        PackingDAO packingDao = new PackingDAO();
+        PackingDTO packing = packingDao.getByGdnId(gdnId);
+        if (packing == null || packing.getPackId() == null) {
+            packingDao.createPackingForGDN(gdnId);
+            packing = packingDao.getByGdnId(gdnId);
+        }
+
+        UserDAO userDao = new UserDAO();
+        List<model.User> warehouseStaff = userDao.getUsersByRole("WAREHOUSE_STAFF");
+        request.setAttribute("packing", packing);
+        request.setAttribute("warehouseStaff", warehouseStaff);
+        request.getRequestDispatcher("/WEB-INF/views/outbound/packing-assign.jsp").forward(request, response);
+    }
+
+    private void handleAssign(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        User user = (User) request.getSession().getAttribute("USER");
+        if (user == null) {
+            response.sendRedirect(request.getContextPath() + "/authen?action=login");
+            return;
+        }
+        String roles = user.getRoleNames() != null ? user.getRoleNames() : "";
+        if (!roles.contains("ADMIN") && !roles.contains("WAREHOUSE_MANAGER")) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=list");
+            return;
+        }
+
+        long packId = parseLong(request.getParameter("packId"), -1);
+        long gdnId = parseLong(request.getParameter("gdnId"), -1);
+        long assignedTo = parseLong(request.getParameter("assignedTo"), -1);
+        if (packId <= 0 || gdnId <= 0 || assignedTo <= 0) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=assign&gdnId=" + gdnId + "&error=invalid");
+            return;
+        }
+
+        PackingDAO packingDao = new PackingDAO();
+        packingDao.assignPacking(packId, assignedTo);
+        request.getSession().setAttribute("message", "Assigned packing successfully.");
+        response.sendRedirect(request.getContextPath() + "/packing?action=form&gdnId=" + gdnId);
+    }
+
+    private boolean canAccessPacking(User user, PackingDTO packing) {
+        if (user == null) return false;
+        String roles = user.getRoleNames() != null ? user.getRoleNames() : "";
+        // Managers/admin can access all
+        if (roles.contains("ADMIN") || roles.contains("WAREHOUSE_MANAGER")) return true;
+        // Warehouse staff must be assigned (packed_by) to access
+        if (roles.contains("WAREHOUSE_STAFF")) {
+            if (packing == null) return false;
+            Long assignedTo = packing.getPackedBy();
+            return assignedTo != null && assignedTo.equals(user.getUserId());
+        }
+        return false;
     }
 
     private void handleSave(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -222,9 +316,14 @@ public class PackingController extends HttpServlet {
         }
 
         User user = (User) request.getSession().getAttribute("USER");
+        PackingDAO packingDao = new PackingDAO();
+        PackingDTO current = packingDao.getByGdnId(gdnId);
+        if (!canAccessPacking(user, current)) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=list&error=not_assigned");
+            return;
+        }
         Long packedBy = user != null ? user.getUserId() : null;
 
-        PackingDAO packingDao = new PackingDAO();
         packingDao.updatePacking(packId, "PENDING", packedBy, packageLabel, packageType, weight, weightUnit, notes, null, null);
 
         response.sendRedirect(request.getContextPath() + "/packing?action=form&gdnId=" + gdnId);
@@ -255,9 +354,14 @@ public class PackingController extends HttpServlet {
         }
 
         User user = (User) request.getSession().getAttribute("USER");
+        PackingDAO packingDao = new PackingDAO();
+        PackingDTO current = packingDao.getByGdnId(gdnId);
+        if (!canAccessPacking(user, current)) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=list&error=not_assigned");
+            return;
+        }
         Long packedBy = user != null ? user.getUserId() : null;
 
-        PackingDAO packingDao = new PackingDAO();
         packingDao.updatePacking(packId, "IN_PROGRESS", packedBy, packageLabel, packageType, weight, weightUnit, notes, totalPackages, currentPackage);
 
         response.sendRedirect(request.getContextPath() + "/packing?action=station&gdnId=" + gdnId);
@@ -284,9 +388,14 @@ public class PackingController extends HttpServlet {
         }
 
         User user = (User) request.getSession().getAttribute("USER");
+        PackingDAO packingDao = new PackingDAO();
+        PackingDTO current = packingDao.getByGdnId(gdnId);
+        if (!canAccessPacking(user, current)) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=list&error=not_assigned");
+            return;
+        }
         Long packedBy = user != null ? user.getUserId() : null;
 
-        PackingDAO packingDao = new PackingDAO();
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
 
         packingDao.updatePacking(packId, "DONE", packedBy, packageLabel, packageType, weight, weightUnit, notes, null, null);

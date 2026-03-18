@@ -86,13 +86,16 @@
                                     <td>${gdn.soNumber}</td>
                                     <td>${gdn.customerName}</td>
                                     <td class="text-center">
-                                        <span class="badge badge-pill ${
-                                            gdn.status == 'CREATED' ? 'badge-secondary' :
-                                            (gdn.status == 'PICKING' ? 'badge-warning' :
-                                            (gdn.status == 'PACKING' ? 'badge-info' :
-                                            (gdn.status == 'SHIPPING' ? 'badge-primary' :
-                                            (gdn.status == 'CANCELLED' ? 'badge-danger' :
-                                            (gdn.status == 'DONE' ? 'badge-success' : 'badge-secondary')))))}">
+                                        <c:set var="gdnStatusBadge" value="badge-secondary" />
+                                        <c:choose>
+                                            <c:when test="${gdn.status == 'CREATED'}"><c:set var="gdnStatusBadge" value="badge-secondary" /></c:when>
+                                            <c:when test="${gdn.status == 'PICKING'}"><c:set var="gdnStatusBadge" value="badge-warning" /></c:when>
+                                            <c:when test="${gdn.status == 'PACKING'}"><c:set var="gdnStatusBadge" value="badge-info" /></c:when>
+                                            <c:when test="${gdn.status == 'SHIPPING'}"><c:set var="gdnStatusBadge" value="badge-primary" /></c:when>
+                                            <c:when test="${gdn.status == 'DONE'}"><c:set var="gdnStatusBadge" value="badge-success" /></c:when>
+                                            <c:when test="${gdn.status == 'CANCELLED'}"><c:set var="gdnStatusBadge" value="badge-danger" /></c:when>
+                                        </c:choose>
+                                        <span class="badge badge-pill ${gdnStatusBadge}">
                                             ${gdn.status}
                                         </span>
                                     </td>
