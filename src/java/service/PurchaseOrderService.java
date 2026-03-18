@@ -50,4 +50,8 @@ public class PurchaseOrderService {
     public boolean deletePurchaseOrder(long poId) throws Exception {
         return poDao.deletePurchaseOrder(poId);
     }
+
+    public boolean hasAnyGrn(long poId) throws Exception {
+        return poDao.hasAnyGrn(poId);
+    }
 }
