@@ -380,9 +380,9 @@ public class PurchaseOrderDAO extends DBContext {
         try {
             conn.setAutoCommit(false);
 
-            // 1. Check status
+            // 1. Check status: Cho phép sửa cả PO mới tạo (CREATED) và PO nhập từ Excel (IMPORTED)
             String status = getPoStatusForUpdate(header.getPoId());
-            if (!"CREATED".equalsIgnoreCase(status)) {
+            if (!"CREATED".equalsIgnoreCase(status) && !"IMPORTED".equalsIgnoreCase(status)) {
                 throw new IllegalArgumentException(
                         "PO cannot be updated when status = " + status);
             }
@@ -390,11 +390,8 @@ public class PurchaseOrderDAO extends DBContext {
             // 2. Update header
             updateHeader(header);
 
-            // 3. Delete old lines
-            deleteLinesByPoId(header.getPoId());
-
-            // 4. Insert new lines
-            insertLines(header.getPoId(), lines);
+            // 3. Smart update lines: Cập nhật dòng hàng thông minh, tránh lỗi khóa ngoại khi có GRN
+            smartUpdateLines(header.getPoId(), lines);
 
             conn.commit();
         } catch (Exception e) {
@@ -441,40 +438,106 @@ public class PurchaseOrderDAO extends DBContext {
         }
     }
 
-    private void deleteLinesByPoId(long poId) throws Exception {
+    /**
+     * Logic cập nhật dòng hàng thông minh:
+     * - Chỉ xóa những dòng không bị tham chiếu bởi Goods Receipt (GRN).
+     * - Giữ nguyên ID của các dòng cũ để tránh lỗi xóa-chèn lại gây vi phạm Foreign Key.
+     */
+    private void smartUpdateLines(long poId, List<PurchaseOrderLineDTO> newLines) throws Exception {
+        // 1. Lấy danh sách các dòng hiện có trong DB của PO này
+        List<PurchaseOrderLineDTO> currentLines = getPurchaseOrderDetailLines(poId);
+        
+        // 2. Identify lines to delete (in current but not in new)
+        for (PurchaseOrderLineDTO current : currentLines) {
+            boolean found = false;
+            for (PurchaseOrderLineDTO newLine : newLines) {
+                if (newLine.getPoLineId() == current.getPoLineId()) {
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found) {
+                // Check if this line is referenced in GRN
+                if (isPoLineReferenced(current.getPoLineId())) {
+                    throw new SQLException("Cannot delete product '" + current.getProductName() 
+                        + "' because it is already associated with a Goods Receipt. "
+                        + "Please delete the related Goods Receipt first.");
+                }
+                // Not referenced, delete it
+                deleteLineById(current.getPoLineId());
+            }
+        }
+        
+        // 3. Update or Insert
+        for (PurchaseOrderLineDTO line : newLines) {
+            if (line.getPoLineId() > 0) {
+                // Optional: Check if variant_id changed for referenced line
+                if (isPoLineReferenced(line.getPoLineId())) {
+                    long oldVariantId = getVariantIdOfLine(line.getPoLineId());
+                    if (oldVariantId != line.getVariantId()) {
+                         throw new SQLException("Cannot change product for '" + line.getVariantSku() 
+                            + "' because it is already associated with a Goods Receipt.");
+                    }
+                }
+                updateLine(line);
+            } else {
+                insertSingleLine(poId, line);
+            }
+        }
+    }
 
-        String sql = "DELETE FROM purchase_order_line WHERE po_id=?";
-
+    private boolean isPoLineReferenced(long poLineId) throws SQLException {
+        String sql = "SELECT 1 FROM goods_receipt_line WHERE po_line_id = ? LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setLong(1, poId);
+            ps.setLong(1, poLineId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    private long getVariantIdOfLine(long poLineId) throws SQLException {
+        String sql = "SELECT variant_id FROM purchase_order_line WHERE po_line_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, poLineId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getLong(1);
+            }
+        }
+        return -1;
+    }
+
+    private void deleteLineById(long poLineId) throws SQLException {
+        String sql = "DELETE FROM purchase_order_line WHERE po_line_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, poLineId);
             ps.executeUpdate();
         }
     }
 
-    private void insertLines(long poId,
-            List<PurchaseOrderLineDTO> lines) throws Exception {
-
-        String sql = """
-                    INSERT INTO purchase_order_line
-                    (po_id, variant_id, qty_ordered, unit_price)
-                    VALUES (?,?,?,?)
-                """;
-
+    private void updateLine(PurchaseOrderLineDTO l) throws SQLException {
+        String sql = "UPDATE purchase_order_line SET variant_id = ?, qty_ordered = ?, unit_price = ? WHERE po_line_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            for (PurchaseOrderLineDTO l : lines) {
-
-                ps.setLong(1, poId);
-                ps.setLong(2, l.getVariantId());
-                ps.setBigDecimal(3, l.getOrderedQty());
-                ps.setBigDecimal(4, l.getUnitPrice());
-
-                ps.addBatch();
-            }
-
-            ps.executeBatch();
+            ps.setLong(1, l.getVariantId());
+            ps.setBigDecimal(2, l.getOrderedQty());
+            ps.setBigDecimal(3, l.getUnitPrice());
+            ps.setLong(4, l.getPoLineId());
+            ps.executeUpdate();
         }
     }
+
+    private void insertSingleLine(long poId, PurchaseOrderLineDTO l) throws SQLException {
+        String sql = "INSERT INTO purchase_order_line (po_id, variant_id, qty_ordered, unit_price) VALUES (?,?,?,?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, poId);
+            ps.setLong(2, l.getVariantId());
+            ps.setBigDecimal(3, l.getOrderedQty());
+            ps.setBigDecimal(4, l.getUnitPrice());
+            ps.executeUpdate();
+        }
+    }
+
 
     public boolean updateStatus(long poId, String status) throws SQLException {
         String sql = "UPDATE purchase_order SET status = ? WHERE po_id = ?";

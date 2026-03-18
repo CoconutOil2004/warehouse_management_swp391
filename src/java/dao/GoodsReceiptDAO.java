@@ -542,6 +542,8 @@ public class GoodsReceiptDAO extends DBContext {
                         d.setType("DAMAGED");
                     } else if ("Z-STO".equals(zCode)) {
                         d.setType("GOOD");
+                    } else if ("Z-EXC".equals(zCode)) {
+                        d.setType("EXCESS");
                     } else {
                         d.setType("STORAGE");
                     }

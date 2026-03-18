@@ -8,7 +8,10 @@ import dto.PurchaseOrderHeaderDTO;
 import dto.PurchaseOrderLineDTO;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import model.GoodsReceipt;
 import model.User;
 import util.ViewPath;
@@ -58,6 +61,8 @@ public class GoodsReceiptController extends HttpServlet {
                     handleGetPoDetails(request, response);
                 case "putaway" ->
                     handlePutaway(request, response);
+                case "checkCapacity" ->
+                    handleCheckCapacity(request, response);
                 default ->
                     response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list");
             }
@@ -229,6 +234,8 @@ public class GoodsReceiptController extends HttpServlet {
                     .append("\",");
             sb.append("\"qtyMissing\":\"").append(l.getQtyMissing() != null ? l.getQtyMissing().toBigInteger() : 0)
                     .append("\",");
+            sb.append("\"qtyExtra\":\"").append(l.getQtyExtra() != null ? l.getQtyExtra().toBigInteger() : 0)
+                    .append("\",");
 
             String safeNote = l.getNote() != null ? l.getNote()
                     .replace("\\", "\\\\")
@@ -240,6 +247,77 @@ public class GoodsReceiptController extends HttpServlet {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    private void handleCheckCapacity(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String idStr = request.getParameter("id");
+        Long warehouseId = null;
+        BigDecimal totalGood = BigDecimal.ZERO;
+        BigDecimal totalDamaged = BigDecimal.ZERO;
+        BigDecimal totalExtra = BigDecimal.ZERO;
+
+        GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
+        SlotDAO slotDao = new SlotDAO();
+        ZoneDAO zoneDao = new ZoneDAO();
+
+        if (idStr != null && !idStr.isEmpty()) {
+            Long id = Long.parseLong(idStr);
+            GoodsReceipt grn = grnDao.getById(id);
+            if (grn != null) {
+                warehouseId = grn.getWarehouseId();
+                List<GoodsReceiptLine> lines = grnDao.getLinesByGrnId(id);
+                for (GoodsReceiptLine line : lines) {
+                    totalGood = totalGood.add(line.getQtyGood() != null ? line.getQtyGood() : BigDecimal.ZERO);
+                    totalDamaged = totalDamaged.add(line.getQtyDamaged() != null ? line.getQtyDamaged() : BigDecimal.ZERO);
+                    totalExtra = totalExtra.add(line.getQtyExtra() != null ? line.getQtyExtra() : BigDecimal.ZERO);
+                }
+            }
+        } else {
+            String whIdStr = request.getParameter("warehouseId");
+            if (whIdStr != null && !whIdStr.isEmpty()) {
+                warehouseId = Long.parseLong(whIdStr);
+            }
+            String qGoodStr = request.getParameter("totalGood");
+            String qDamagedStr = request.getParameter("totalDamaged");
+            String qExtraStr = request.getParameter("totalExtra");
+
+            if (qGoodStr != null && !qGoodStr.isEmpty()) totalGood = new BigDecimal(qGoodStr);
+            if (qDamagedStr != null && !qDamagedStr.isEmpty()) totalDamaged = new BigDecimal(qDamagedStr);
+            if (qExtraStr != null && !qExtraStr.isEmpty()) totalExtra = new BigDecimal(qExtraStr);
+        }
+
+        if (warehouseId == null) {
+            response.setStatus(400); // Bad Request
+            return;
+        }
+
+        List<Zone> zones = zoneDao.getZonesByWarehouseId(warehouseId);
+        Zone stoZone = zones.stream().filter(z -> "Z-STO".equals(z.getCode())).findFirst().orElse(null);
+        Zone damZone = zones.stream().filter(z -> "Z-DAM".equals(z.getCode())).findFirst().orElse(null);
+        Zone excZone = zones.stream().filter(z -> "Z-EXC".equals(z.getCode())).findFirst().orElse(null);
+
+        BigDecimal stoAvail = stoZone != null ? slotDao.getTotalAvailableCapacityByZoneId(stoZone.getZoneId()) : BigDecimal.ZERO;
+        BigDecimal damAvail = damZone != null ? slotDao.getTotalAvailableCapacityByZoneId(damZone.getZoneId()) : BigDecimal.ZERO;
+        BigDecimal excAvail = excZone != null ? slotDao.getTotalAvailableCapacityByZoneId(excZone.getZoneId()) : BigDecimal.ZERO;
+
+        boolean goodOk = totalGood.compareTo(stoAvail) <= 0;
+        boolean damOk = totalDamaged.compareTo(damAvail) <= 0;
+        boolean excOk = totalExtra.compareTo(excAvail) <= 0;
+        boolean sufficient = goodOk && damOk && excOk;
+
+        response.setContentType("application/json;charset=UTF-8");
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        sb.append("\"success\":true,");
+        sb.append("\"sufficient\":").append(sufficient).append(",");
+        sb.append("\"details\":{");
+        sb.append("\"good\":{\"required\":").append(totalGood).append(",\"available\":").append(stoAvail).append(",\"isSufficient\":").append(goodOk).append("},");
+        sb.append("\"damaged\":{\"required\":").append(totalDamaged).append(",\"available\":").append(damAvail).append(",\"isSufficient\":").append(damOk).append("},");
+        sb.append("\"excess\":{\"required\":").append(totalExtra).append(",\"available\":").append(excAvail).append(",\"isSufficient\":").append(excOk).append("}");
+        sb.append("}");
+        sb.append("}");
+
+        response.getWriter().write(sb.toString());
     }
 
     private void handleGetPoDetails(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -373,6 +451,7 @@ public class GoodsReceiptController extends HttpServlet {
             rowData.put("qtyGood", qGood != null ? qGood : "0");
             rowData.put("qtyDamaged", request.getParameter("lines[" + i + "].qtyDamaged"));
             rowData.put("qtyMissing", request.getParameter("lines[" + i + "].qtyMissing"));
+            rowData.put("qtyExtra", request.getParameter("lines[" + i + "].qtyExtra"));
             rowData.put("note", request.getParameter("lines[" + i + "].note"));
             allSubmittedLines.add(rowData);
 
@@ -401,35 +480,35 @@ public class GoodsReceiptController extends HttpServlet {
                         : java.math.BigDecimal.ZERO;
                 java.math.BigDecimal m = (qMiss != null && !qMiss.isBlank()) ? new java.math.BigDecimal(qMiss)
                         : java.math.BigDecimal.ZERO;
+                String qExt = rowData.get("qtyExtra");
+                java.math.BigDecimal e = (qExt != null && !qExt.isBlank()) ? new java.math.BigDecimal(qExt)
+                        : java.math.BigDecimal.ZERO;
 
-                if (g.add(d).add(m).compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                if (g.add(d).add(m).add(e).compareTo(java.math.BigDecimal.ZERO) <= 0) {
                     fieldErrors.put("lines",
-                            "Mỗi dòng hàng phải có ít nhất một giá trị Số lượng (Good/Damaged/Missing) lớn hơn 0.");
+                            "Mỗi dòng hàng phải có ít nhất một giá trị Số lượng (Good/Damaged/Missing/Excess) lớn hơn 0.");
                 }
 
                 line.setQtyGood(g);
-                line.setQtyReceived(g);
+                line.setQtyReceived(g.add(d).add(e)); // Total physical items received
                 line.setQtyDamaged(d);
                 line.setQtyMissing(m);
-
-                String qExt = request.getParameter("lines[" + i + "].qtyExtra");
-                line.setQtyExtra(
-                        qExt != null && !qExt.isBlank() ? new java.math.BigDecimal(qExt) : java.math.BigDecimal.ZERO);
+                line.setQtyExtra(e);
 
                 line.setNote(rowData.get("note"));
                 validLines.add(line);
             } catch (Exception e) {
-                fieldErrors.put("lines", "Dữ liệu dòng hàng không hợp lệ: " + e.getMessage());
+                fieldErrors.put("lines", "Invalid line item data: " + e.getMessage());
             }
         }
 
         if (allSubmittedLines.isEmpty()) {
-            fieldErrors.put("lines", "Vui lòng bấm 'Add Line' để nhập hàng.");
+            fieldErrors.put("lines", "Please select a Purchase Order to load items.");
         } else if (validLines.isEmpty() || hasIncompleteRow) {
             if (validLines.isEmpty()) {
-                fieldErrors.put("lines", "Bạn chưa chọn Sản phẩm cho (các) dòng hàng.");
+                fieldErrors.put("lines", "No products selected.");
             } else {
-                fieldErrors.put("lines", "Vui lòng chọn Sản phẩm cho tất cả các dòng hàng đã thêm.");
+                fieldErrors.put("lines", "Please ensure all rows have a selected product.");
             }
         }
 
@@ -460,6 +539,7 @@ public class GoodsReceiptController extends HttpServlet {
                     dl.setQtyGood(new BigDecimal(m.get("qtyGood")));
                     dl.setQtyDamaged(new BigDecimal(m.get("qtyDamaged")));
                     dl.setQtyMissing(new BigDecimal(m.get("qtyMissing")));
+                    dl.setQtyExtra(new BigDecimal(m.get("qtyExtra")));
                     dl.setNote(m.get("note"));
                     dummyLines.add(dl);
                 } catch (Exception e) {
@@ -488,7 +568,7 @@ public class GoodsReceiptController extends HttpServlet {
         Long warehouseId = (whIdStr != null && !whIdStr.isBlank()) ? Long.parseLong(whIdStr) : 1L;
         Warehouse wh = new WarehouseDAO().getWarehouseById(warehouseId);
         if (wh == null) {
-            fieldErrors.put("warehouseId", "Warehouse không tồn tại.");
+            fieldErrors.put("warehouseId", "Warehouse does not exist.");
             request.setAttribute("fieldErrors", fieldErrors);
             request.setAttribute("grnId", existingId);
             request.setAttribute("oldGrnNumber", grnNumber);
@@ -500,7 +580,7 @@ public class GoodsReceiptController extends HttpServlet {
             return;
         }
         if (!"ACTIVE".equals(wh.getStatus())) {
-            fieldErrors.put("warehouseId", "Chỉ được chọn warehouse đang ACTIVE.");
+            fieldErrors.put("warehouseId", "Only ACTIVE warehouses can be selected.");
             request.setAttribute("fieldErrors", fieldErrors);
             request.setAttribute("grnId", existingId);
             request.setAttribute("oldGrnNumber", grnNumber);
@@ -517,7 +597,7 @@ public class GoodsReceiptController extends HttpServlet {
         PurchaseOrderDAO poDaoForValidation = new PurchaseOrderDAO();
         PurchaseOrderHeaderDTO poHeader = poDaoForValidation.getPurchaseOrderHeader(poId);
         if (poHeader == null) {
-            fieldErrors.put("poId", "Purchase Order không tồn tại.");
+            fieldErrors.put("poId", "Purchase Order does not exist.");
             request.setAttribute("fieldErrors", fieldErrors);
             request.setAttribute("grnId", existingId);
             request.setAttribute("oldGrnNumber", grnNumber);
@@ -528,8 +608,9 @@ public class GoodsReceiptController extends HttpServlet {
             handleCreateForm(request, response);
             return;
         }
-        if (!"CREATED".equals(poHeader.getStatus())) {
-            fieldErrors.put("poId", "Chỉ được tạo/sửa phiếu nhập từ Purchase Order có trạng thái CREATED. PO hiện tại: " + poHeader.getStatus());
+        // Cho phép tạo phiếu nhập từ PO trạng thái CREATED hoặc IMPORTED (PO từ Excel)
+        if (!"CREATED".equals(poHeader.getStatus()) && !"IMPORTED".equals(poHeader.getStatus())) {
+            fieldErrors.put("poId", "Chỉ được tạo/sửa phiếu nhập từ Purchase Order có trạng thái CREATED hoặc IMPORTED. PO hiện tại: " + poHeader.getStatus());
             request.setAttribute("fieldErrors", fieldErrors);
             request.setAttribute("grnId", existingId);
             request.setAttribute("oldGrnNumber", grnNumber);
@@ -545,12 +626,13 @@ public class GoodsReceiptController extends HttpServlet {
         grn.setNote(note);
 
         Long resultGrnId = null;
-        dao.PurchaseOrderDAO poDao = new dao.PurchaseOrderDAO();
         if (existingId != null) {
             grnDao.updateGRN(grn, validLines);
             resultGrnId = existingId;
+            request.getSession().setAttribute("message", "Goods Receipt updated successfully.");
         } else {
             resultGrnId = grnDao.createGRN(grn, validLines);
+            request.getSession().setAttribute("message", "Goods Receipt created successfully.");
         }
 
         // Sau khi lưu thành công, chuyển đến màn hình Putaway
@@ -588,6 +670,7 @@ public class GoodsReceiptController extends HttpServlet {
         List<Zone> zones = zoneDao.getZonesByWarehouseId(grn.getWarehouseId());
         Zone stoZone = zones.stream().filter(z -> "Z-STO".equals(z.getCode())).findFirst().orElse(null);
         Zone damZone = zones.stream().filter(z -> "Z-DAM".equals(z.getCode())).findFirst().orElse(null);
+        Zone excZone = zones.stream().filter(z -> "Z-EXC".equals(z.getCode())).findFirst().orElse(null);
 
         if (stoZone != null) {
             request.setAttribute("storageSlots",
@@ -596,6 +679,10 @@ public class GoodsReceiptController extends HttpServlet {
         if (damZone != null) {
             request.setAttribute("damageSlots",
                     slotDao.getSlotsWithInventoryByZoneId(damZone.getZoneId(), grn.getWarehouseId()));
+        }
+        if (excZone != null) {
+            request.setAttribute("excessSlots",
+                    slotDao.getSlotsWithInventoryByZoneId(excZone.getZoneId(), grn.getWarehouseId()));
         }
 
         // Pass RBAC flags to JSP
@@ -679,6 +766,27 @@ public class GoodsReceiptController extends HttpServlet {
                     }
                 }
             }
+
+            // 3. Process EXCESS assignments
+            String[] excessQtys = request.getParameterValues("qty_" + grnLineId + "_EXCESS[]");
+            String[] excessSlots = request.getParameterValues("slotId_" + grnLineId + "_EXCESS[]");
+
+            if (excessQtys != null && excessSlots != null) {
+                for (int i = 0; i < Math.min(excessQtys.length, excessSlots.length); i++) {
+                    String qStr = excessQtys[i];
+                    String sStr = excessSlots[i];
+                    if (qStr != null && !qStr.isEmpty() && sStr != null && !sStr.isEmpty()) {
+                        BigDecimal qty = new BigDecimal(qStr);
+                        if (qty.compareTo(BigDecimal.ZERO) > 0) {
+                            model.PutAwayLine pl = new model.PutAwayLine();
+                            pl.setGrnLineId(grnLineId);
+                            pl.setToSlotId(Long.parseLong(sStr));
+                            pl.setQtyPutaway(qty);
+                            putawayLines.add(pl);
+                        }
+                    }
+                }
+            }
         }
 
         // Validate: each slot must belong to GRN warehouse; per-line putaway total <= qty_good
@@ -695,7 +803,8 @@ public class GoodsReceiptController extends HttpServlet {
                 BigDecimal totalPutaway = putawaySumByLine.getOrDefault(line.getGrnLineId(), BigDecimal.ZERO);
                 BigDecimal qtyGood = line.getQtyGood() != null ? line.getQtyGood() : BigDecimal.ZERO;
                 BigDecimal qtyDamaged = line.getQtyDamaged() != null ? line.getQtyDamaged() : BigDecimal.ZERO;
-                BigDecimal maxQtyToPutaway = qtyGood.add(qtyDamaged);
+                BigDecimal qtyExtra = line.getQtyExtra() != null ? line.getQtyExtra() : BigDecimal.ZERO;
+                BigDecimal maxQtyToPutaway = qtyGood.add(qtyDamaged).add(qtyExtra);
 
                 if (totalPutaway.compareTo(maxQtyToPutaway) > 0) {
                     response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=Putaway+qty+exceeds+received+qty+for+line");
@@ -705,6 +814,7 @@ public class GoodsReceiptController extends HttpServlet {
             grnDao.savePutawayInfo(grnId, userId, putawayLines);
         }
 
+        request.getSession().setAttribute("message", "Putaway confirmed successfully.");
         response.sendRedirect(
                 request.getContextPath() + "/goods-receipt?action=detail&id=" + grnId + "&putaway=success");
     }
@@ -729,6 +839,7 @@ public class GoodsReceiptController extends HttpServlet {
                     dao.PurchaseOrderDAO poDao = new dao.PurchaseOrderDAO();
                     poDao.updateStatus(grn.getPoId(), "CREATED");
                 }
+                request.getSession().setAttribute("message", "Goods Receipt deleted successfully.");
             }
         }
         response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list");
@@ -816,6 +927,8 @@ public class GoodsReceiptController extends HttpServlet {
                     }
 
                     if (success) {
+                        String msg = "APPROVED".equals(status) ? "Goods Receipt approved successfully." : "Goods Receipt rejected successfully.";
+                        request.getSession().setAttribute("message", msg);
                         response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + id);
                     } else {
                         response.sendRedirect(

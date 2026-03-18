@@ -25,7 +25,8 @@ public class PickWaveDTO {
   private List<GDNListDTO> gdns; // Multiple GDNs in this wave
   private Integer gdnCount; // Number of GDNs in this wave
 
-  /** For JSP display; avoids fmt:formatDate with LocalDateTime */
+  /** For JSP display; avoids fmt:formatDate with LocalDateTime
+     * @return  */
   public String getCreatedAtDisplay() {
     return createdAt == null ? "" : createdAt.format(DISPLAY_FORMAT);
   }
