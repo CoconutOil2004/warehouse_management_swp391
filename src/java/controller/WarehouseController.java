@@ -27,6 +27,7 @@ public class WarehouseController extends HttpServlet {
 
     private static final int DEFAULT_PAGE = 1;
     private static final int DEFAULT_SIZE = 10;
+    private static final int MAX_ADDRESS_LENGTH = 255;
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -218,15 +219,38 @@ public class WarehouseController extends HttpServlet {
         }
 
         if (error != null) {
-            request.setAttribute("error", error);
+            setToast(request, error, "error");
             request.setAttribute("warehouse", warehouse);
             request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/create.jsp").forward(request, response);
             return;
         }
 
-        boolean created = dao.create(warehouse);
+        if (address != null && address.length() > MAX_ADDRESS_LENGTH) {
+            setToast(request,
+                    "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                    "error");
+            request.setAttribute("warehouse", warehouse);
+            request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/create.jsp").forward(request, response);
+            return;
+        }
+
+        boolean created;
+        try {
+            created = dao.create(warehouse);
+        } catch (SQLException e) {
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("data too long")
+                    && e.getMessage().toLowerCase().contains("address")) {
+                setToast(request,
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
+                request.setAttribute("warehouse", warehouse);
+                request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/create.jsp").forward(request, response);
+                return;
+            }
+            throw e;
+        }
         if (!created) {
-            request.setAttribute("error", "Failed to create warehouse. Please try again.");
+            setToast(request, "Failed to create warehouse. Please try again.", "error");
             request.setAttribute("warehouse", warehouse);
             request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/create.jsp").forward(request, response);
             return;
@@ -272,17 +296,40 @@ public class WarehouseController extends HttpServlet {
 
         if (error != null) {
             Logger.getLogger(WarehouseController.class.getName()).log(Level.WARNING, "Validation error: " + error);
-            request.setAttribute("error", error);
+            setToast(request, error, "error");
             request.setAttribute("warehouse", warehouse);
             request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/update.jsp").forward(request, response);
             return;
         }
 
-        boolean updated = dao.update(warehouse);
+        if (address != null && address.length() > MAX_ADDRESS_LENGTH) {
+            setToast(request,
+                    "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                    "error");
+            request.setAttribute("warehouse", warehouse);
+            request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/update.jsp").forward(request, response);
+            return;
+        }
+
+        boolean updated;
+        try {
+            updated = dao.update(warehouse);
+        } catch (SQLException e) {
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("data too long")
+                    && e.getMessage().toLowerCase().contains("address")) {
+                setToast(request,
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
+                request.setAttribute("warehouse", warehouse);
+                request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/update.jsp").forward(request, response);
+                return;
+            }
+            throw e;
+        }
         Logger.getLogger(WarehouseController.class.getName()).log(Level.INFO, "Update result: " + updated);
 
         if (!updated) {
-            request.setAttribute("error", "Failed to update warehouse. Please try again.");
+            setToast(request, "Failed to update warehouse. Please try again.", "error");
             request.setAttribute("warehouse", warehouse);
             request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/update.jsp").forward(request, response);
             return;
@@ -396,6 +443,11 @@ public class WarehouseController extends HttpServlet {
             return "Name is required.";
         }
         return null;
+    }
+
+    private void setToast(HttpServletRequest request, String message, String type) {
+        request.getSession(true).setAttribute("message", message);
+        request.getSession(true).setAttribute("type", type);
     }
 
     private int parseInt(String raw, int def) {

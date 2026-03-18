@@ -23,8 +23,10 @@
                     <select class="form-select" name="status" onchange="this.form.requestSubmit()">
                         <option value="">-- All Status --</option>
                         <option value="CREATED" ${param.status == 'CREATED' ? 'selected' : ''}>CREATED</option>
+                        <option value="RELEASED" ${param.status == 'RELEASED' ? 'selected' : ''}>RELEASED</option>
                         <option value="IN_PROGRESS" ${param.status == 'IN_PROGRESS' ? 'selected' : ''}>IN_PROGRESS</option>
                         <option value="DONE" ${param.status == 'DONE' ? 'selected' : ''}>DONE</option>
+                        <option value="CANCELLED" ${param.status == 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
                     </select>
                 </form>
             </jsp:attribute>
@@ -61,13 +63,19 @@
                         <td class="text-center">
                             <c:choose>
                                 <c:when test="${w.status == 'CREATED'}">
-                                    <span class="badge bg-secondary">CREATED</span>
+                                    <span class="badge bg-secondary">Chờ phát hành</span>
+                                </c:when>
+                                <c:when test="${w.status == 'RELEASED'}">
+                                    <span class="badge bg-info">Đã phát hành</span>
                                 </c:when>
                                 <c:when test="${w.status == 'IN_PROGRESS'}">
-                                    <span class="badge bg-warning text-dark">IN_PROGRESS</span>
+                                    <span class="badge bg-warning text-dark">Đang thực hiện</span>
                                 </c:when>
                                 <c:when test="${w.status == 'DONE'}">
-                                    <span class="badge bg-success">DONE</span>
+                                    <span class="badge bg-success">Hoàn thành</span>
+                                </c:when>
+                                <c:when test="${w.status == 'CANCELLED'}">
+                                    <span class="badge bg-danger">Đã hủy</span>
                                 </c:when>
                                 <c:otherwise>
                                     <span class="badge bg-info">${w.status}</span>
@@ -81,6 +89,26 @@
                             ${w.createdAtDisplay}
                         </td>
                         <td>
+                            <c:if test="${w.status == 'CREATED'}">
+                                <form method="post" action="${pageContext.request.contextPath}/pick-wave" class="d-inline">
+                                    <input type="hidden" name="action" value="release"/>
+                                    <input type="hidden" name="id" value="${w.waveId}"/>
+                                    <button type="submit" class="btn btn-sm btn-outline-success me-1" title="Release Wave"
+                                        onclick="return confirm('Release this wave? Tasks will be created.')">
+                                        <i class="bi bi-play-fill"></i> Release
+                                    </button>
+                                </form>
+                            </c:if>
+                            <c:if test="${w.status == 'CREATED' || w.status == 'RELEASED'}">
+                                <form method="post" action="${pageContext.request.contextPath}/pick-wave" class="d-inline">
+                                    <input type="hidden" name="action" value="cancel"/>
+                                    <input type="hidden" name="id" value="${w.waveId}"/>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger me-1" title="Cancel Wave"
+                                        onclick="return confirm('Cancel this wave?')">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </form>
+                            </c:if>
                             <a href="${pageContext.request.contextPath}/pick-task?action=assign&waveId=${w.waveId}"
                                class="btn btn-sm btn-circle btn-outline-primary me-1" title="Assign tasks">
                                 <i class="bi bi-list-check"></i>

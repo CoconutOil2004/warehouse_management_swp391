@@ -25,12 +25,6 @@
     </jsp:attribute>
 
     <jsp:body>
-        <c:if test="${param.msg == 'cannotdelete'}">
-            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                Cannot delete Purchase Order with status CLOSED.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        </c:if>
         <c:set var="columns" value='${["STT", "PO Number", "Supplier", "Expected Date", "Status", "Imported By", "Imported At", "Action"]}' />
         <t:table id="poTable" columns="${columns}">
             <jsp:attribute name="head">
@@ -93,14 +87,30 @@
                                     <input type="hidden" name="id" value="${po.poId}">
                                     <t:button type="submit" size="sm" variant="outline" color="primary">View</t:button>
                                     </form>
-                                <c:if test="${po.status != 'CLOSED'}">
-                                    <form action="${pageContext.request.contextPath}/purchase-orders" method="post" style="display:inline;" onsubmit="return confirm('Delete PO ${po.poNumber}?');">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="id" value="${po.poId}">
-                                        <input type="hidden" name="page" value="${page}">
-                                        <t:button type="submit" size="sm" variant="outline" color="danger">Delete</t:button>
-                                        </form>
-                                </c:if>
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal" data-bs-target="#deleteModal${po.poId}">
+                                    Delete
+                                </button>
+
+                                <t:alert id="deleteModal${po.poId}">
+                                    <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
+                                    <jsp:attribute name="desciption">
+                                        Are you sure you want to delete purchase order
+                                        <strong>${po.poNumber}</strong>? This action cannot be undone.
+                                    </jsp:attribute>
+                                    <jsp:attribute name="action">
+                                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                                                onclick="document.getElementById('deleteForm${po.poId}').submit()">
+                                            Delete
+                                        </button>
+                                    </jsp:attribute>
+                                </t:alert>
+                                <form id="deleteForm${po.poId}" action="${pageContext.request.contextPath}/purchase-orders"
+                                      method="post" class="d-none">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="${po.poId}">
+                                    <input type="hidden" name="page" value="${page}">
+                                </form>
                                 <form action="${pageContext.request.contextPath}/purchase-orders" method="get" style="display:inline;">
                                     <input type="hidden" name="action" value="edit">
                                     <input type="hidden" name="id" value="${po.poId}">

@@ -6,14 +6,44 @@
 <t:layout title="Wave Detail: #${wave.waveId}">
     <jsp:attribute name="actions">
         <div class="d-flex gap-2">
-            <t:link url="${pageContext.request.contextPath}/pick-wave?action=list"
-                    color="dark" variant="split" icon="arrow-left">
-                Back to List
-            </t:link>
-            <t:link url="${pageContext.request.contextPath}/pick-task?action=assign&waveId=${wave.waveId}"
-                    color="primary" variant="split" icon="person-check">
-                Assign Tasks
-            </t:link>
+            <div>
+              <t:link url="${pageContext.request.contextPath}/pick-wave?action=list" color="dark" variant="split" icon="arrow-left">
+                Back
+              </t:link>
+            </div>
+            <c:if test="${wave.status == 'CREATED'}">
+                <c:if test="${unassignedCount == 0}">
+                    <form method="post" action="${pageContext.request.contextPath}/pick-wave">
+                        <input type="hidden" name="action" value="release"/>
+                        <input type="hidden" name="id" value="${wave.waveId}"/>
+                        <button type="submit" class="btn btn-success"
+                            onclick="return confirm('Release wave? Workers can start picking.')">
+                            <i class="bi bi-play-fill"></i> Release
+                        </button>
+                    </form>
+                </c:if>
+                <c:if test="${unassignedCount > 0}">
+                    <div class="btn btn-secondary" title="Assign all tasks before releasing">
+                        <i class="bi bi-hourglass-split"></i> Release (${unassignedCount} lines pending)
+                    </div>
+                </c:if>
+            </c:if>
+            <c:if test="${wave.status == 'CREATED' || wave.status == 'RELEASED'}">
+                <form method="post" action="${pageContext.request.contextPath}/pick-wave">
+                    <input type="hidden" name="action" value="cancel"/>
+                    <input type="hidden" name="id" value="${wave.waveId}"/>
+                    <button type="submit" class="btn btn-danger"
+                        onclick="return confirm('Cancel wave?')">
+                        <i class="bi bi-x-lg"></i> Cancel
+                    </button>
+                </form>
+            </c:if>
+            <div>
+              <t:link url="${pageContext.request.contextPath}/pick-task?action=assign&waveId=${wave.waveId}"
+                      color="primary" variant="split" icon="person-check">
+                  Assign
+              </t:link>
+            </div>
         </div>
     </jsp:attribute>
 
@@ -44,7 +74,7 @@
                         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3">
                             <div class="col">
                                 <p class="text-muted small mb-1 text-uppercase fw-bold">Wave Code</p>
-                                <p class="mb-0 fw-semibold">${wave.waveCode != null ? wave.waveCode : '#' + wave.waveId}</p>
+                                <p class="mb-0 fw-semibold">${wave.waveCode != null ? wave.waveCode : '#'.concat(wave.waveId)}</p>
                             </div>
                             <div class="col">
                                 <p class="text-muted small mb-1 text-uppercase fw-bold">Wave ID</p>
@@ -57,9 +87,7 @@
                             <div class="col">
                                 <p class="text-muted small mb-1 text-uppercase fw-bold">Status</p>
                                 <p class="mb-0">
-                                    <span class="badge ${wave.status == 'CREATED' ? 'bg-secondary' : (wave.status == 'IN_PROGRESS' ? 'bg-warning text-dark' : 'bg-success')} fw-semibold">
-                                        ${wave.status}
-                                    </span>
+                                  ${wave.status}
                                 </p>
                             </div>
                             <div class="col">
@@ -176,56 +204,94 @@
 
             <!-- Tasks Table -->
             <div class="col-lg-12">
-                <c:set var="columns" value='${["Task ID", "GDN", "SO", "Status", "Assigned to"]}' />
-                <t:table columns="${columns}">
-                    <jsp:attribute name="head">
-                        <div class="p-2 fw-bold text-uppercase small text-muted">
-                            <i class="bi bi-list-task me-2"></i>Pick Tasks
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-primary text-white py-3">
+                        <h5 class="card-title mb-0"><i class="bi bi-list-task me-2"></i>Pick Tasks</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Task ID</th>
+                                        <th>Zone</th>
+                                        <th>Lines</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:forEach var="t" items="${tasks}">
+                                        <tr>
+                                            <td class="fw-semibold">#${t.pickTaskId}</td>
+                                            <td>
+                                                <c:if test="${not empty t.lines}">
+                                                    ${t.lines[0].zoneCode}
+                                                </c:if>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">${t.totalLines != null ? t.totalLines : (t.lines != null ? fn:length(t.lines) : 0)}</span>
+                                            </td>
+                                            <td>
+                                              <c:if test="${not empty t.status}">
+                                                  ${t.status}
+                                              </c:if>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" type="button"
+                                                    data-bs-toggle="collapse" data-bs-target="#taskLines${t.pickTaskId}">
+                                                    <i class="bi bi-chevron-down"></i> View Lines
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <!-- Lines sub-table -->
+                                        <tr class="collapse" id="taskLines${t.pickTaskId}">
+                                            <td colspan="5" class="p-0">
+                                                <div class="bg-light p-3">
+                                                    <table class="table table-sm mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Line ID</th>
+                                                                <th>Slot</th>
+                                                                <th>Product</th>
+                                                                <th>Qty Required</th>
+                                                                <th>Qty Picked</th>
+                                                                <th>Status</th>
+                                                                <th>Assigned To</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <c:forEach var="line" items="${t.lines}">
+                                                                <tr>
+                                                                    <td>#${line.pickTaskLineId}</td>
+                                                                    <td>${line.slotCode}</td>
+                                                                    <td>${line.variantSku} - ${line.productName}</td>
+                                                                    <td>${line.qtyToPick}</td>
+                                                                    <td>${line.qtyPicked}</td>
+                                                                    <td>
+                                                                      ${line.pickStatus}
+                                                                    </td>
+                                                                    <td>${line.assignedToName != null ? line.assignedToName : '-'}</td>
+                                                                </tr>
+                                                            </c:forEach>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                    <c:if test="${empty tasks}">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-muted">
+                                                No tasks found for this wave.
+                                            </td>
+                                        </tr>
+                                    </c:if>
+                                </tbody>
+                            </table>
                         </div>
-                    </jsp:attribute>
-                    <jsp:body>
-                        <c:forEach var="t" items="${tasks}">
-                            <tr>
-                                <td>${t.pickTaskId}</td>
-                                <td>
-                                    <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${t.gdnId}" class="text-decoration-none">
-                                        ${t.gdnNumber}
-                                    </a>
-                                </td>
-                                <td>
-                                    <c:choose>
-                                        <c:when test="${not empty t.soId}">
-                                            <a href="${pageContext.request.contextPath}/sales-orders?action=detail&id=${t.soId}" class="text-decoration-none">
-                                                ${t.soNumber}
-                                            </a>
-                                        </c:when>
-                                        <c:otherwise>${t.soNumber != null ? t.soNumber : "-"}</c:otherwise>
-                                    </c:choose>
-                                </td>
-                                <td>
-                                    <span class="badge bg-info">${t.status}</span>
-                                </td>
-                                <td>
-                                    <c:choose>
-                                        <c:when test="${not empty t.assignedTo}">
-                                            <a href="${pageContext.request.contextPath}/admin/user/detail?id=${t.assignedTo}" class="text-decoration-none">
-                                                ${t.assignedToName}
-                                            </a>
-                                        </c:when>
-                                        <c:otherwise>-</c:otherwise>
-                                    </c:choose>
-                                </td>
-                            </tr>
-                        </c:forEach>
-                        <c:if test="${empty tasks}">
-                            <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">
-                                    No tasks found for this wave.
-                                </td>
-                            </tr>
-                        </c:if>
-                    </jsp:body>
-                </t:table>
+                    </div>
+                </div>
             </div>
         </div>
     </jsp:body>

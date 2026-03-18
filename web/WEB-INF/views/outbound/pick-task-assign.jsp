@@ -13,15 +13,19 @@
                         <a href="${pageContext.request.contextPath}/pick-wave?action=list">Pick Wave</a>
                     </li>
                     <li class="breadcrumb-item">
-                        <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${wave.gdnId}">${wave.gdnNumber}</a>
+                        <c:forEach var="gdn" items="${wave.gdns}" varStatus="status">
+                            <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${gdn.gdnId}">${gdn.gdnNumber}</a><c:if test="${!status.last}">, </c:if>
+                        </c:forEach>
                     </li>
                     <li class="breadcrumb-item active">Assign tasks</li>
                 </ol>
             </nav>
-            <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${wave.gdnId}"
+            <c:if test="${not empty wave.gdns}">
+            <a href="${pageContext.request.contextPath}/pick-wave?action=detail&id=${wave.waveId}"
                class="btn btn-outline-secondary btn-sm">
                 <i class="fas fa-arrow-left me-1"></i> Back
             </a>
+            </c:if>
         </div>
 
         <!-- Alert Messages -->
@@ -52,7 +56,8 @@
                             <c:if test="${not empty wave.waveCode}"><small class="text-muted">(${wave.waveCode})</small></c:if>
                         </h6>
                         <p class="text-muted mb-0 small mt-1">
-                            GDN: ${wave.gdnNumber} | Status: <span class="badge bg-info">${wave.status}</span> | ${tasks.size()} tasks
+                            <c:forEach var="gdn" items="${wave.gdns}" varStatus="status">${gdn.gdnNumber}<c:if test="${!status.last}">, </c:if></c:forEach>
+                            | Status: <span class="badge bg-info">${wave.status}</span> | ${tasks.size()} tasks
                         </p>
                     </div>
                     <div class="col-md-4 text-end">
@@ -71,14 +76,14 @@
 
         <!-- Main Assign Form -->
         <form id="assignAllForm" action="${pageContext.request.contextPath}/pick-task" method="post">
-            <input type="hidden" name="action" value="assign-all-batch"/>
+            <input type="hidden" name="action" value="assign-lines-batch"/>
             <input type="hidden" name="waveId" value="${wave.waveId}"/>
 
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white border-0 py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 fw-bold">
-                            <i class="fas fa-users-cog me-2 text-primary"></i>Assign Tasks to Staff
+                            <i class="fas fa-users-cog me-2 text-primary"></i>Assign Pick Lines to Staff
                         </h6>
                         <button type="submit" class="btn btn-primary btn-sm">
                             <i class="fas fa-paper-plane me-2"></i>Submit All Assignments
@@ -90,62 +95,67 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light">
                                 <tr>
-                                    <th class="ps-4">Task ID</th>
+                                    <th class="ps-4">Line ID</th>
                                     <th>GDN</th>
-                                    <th>SO</th>
+                                    <th>Product</th>
+                                    <th>Slot</th>
+                                    <th>Zone</th>
+                                    <th>Qty</th>
                                     <th>Status</th>
-                                    <th>Lines</th>
                                     <th class="pe-4">
                                         <i class="fas fa-user-tie me-1"></i>Assign to
                                     </th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <c:forEach var="t" items="${tasks}" varStatus="status">
-                                    <tr class="${status.index % 2 == 0 ? '' : 'bg-light-subtle'}">
-                                        <td class="ps-4 fw-bold text-primary">#${t.pickTaskId}</td>
-                                        <td>
-                                            <div class="fw-semibold">${t.gdnNumber}</div>
-                                        </td>
-                                        <td>
-                                            <c:if test="${not empty t.soNumber}">
-                                                <small class="text-muted">${t.soNumber}</small>
-                                            </c:if>
-                                        </td>
-                                        <td>
-                                            <span class="badge
-                                                <c:choose>
-                                                    <c:when test="${t.status == 'CREATED'}">bg-secondary</c:when>
-                                                    <c:when test="${t.status == 'ASSIGNED'}">bg-info</c:when>
-                                                    <c:when test="${t.status == 'IN_PROGRESS'}">bg-warning text-dark</c:when>
-                                                    <c:otherwise>bg-success</c:otherwise>
-                                                </c:choose>">
-                                                ${t.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-light text-dark border">${t.totalLines != null ? t.totalLines : (t.lines != null ? t.lines.size() : 0)}</span>
-                                        </td>
-                                        <td class="pe-4">
-                                            <div class="d-flex align-items-center">
-                                                <select name="assignedTo_${t.pickTaskId}"
-                                                        class="form-select form-select-sm staff-select"
-                                                        data-task-id="${t.pickTaskId}">
-                                                    <option value="">-- Select staff --</option>
-                                                    <c:forEach var="u" items="${warehouseStaff}">
-                                                        <option value="${u.userId}" ${t.assignedTo != null && t.assignedTo == u.userId ? 'selected' : ''}>
-                                                            ${u.fullName}
-                                                        </option>
-                                                    </c:forEach>
-                                                </select>
-                                                <input type="hidden" name="taskIds" value="${t.pickTaskId}"/>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                <c:forEach var="t" items="${tasks}">
+                                    <c:forEach var="line" items="${t.lines}" varStatus="lineStatus">
+                                        <tr class="${lineStatus.index % 2 == 0 ? '' : 'bg-light-subtle'}">
+                                            <td class="ps-4 fw-bold text-primary">#${line.pickTaskLineId}</td>
+                                            <td>
+                                                <div class="fw-semibold">${t.gdnNumber}</div>
+                                                <small class="text-muted">Task #${t.pickTaskId}</small>
+                                            </td>
+                                            <td>
+                                                <div>${line.productName}</div>
+                                                <small class="text-muted">${line.variantSku}</small>
+                                            </td>
+                                            <td>${line.slotCode}</td>
+                                            <td>${line.zoneCode}</td>
+                                            <td>${line.qtyToPick}</td>
+                                            <td>
+                                                <span class="badge
+                                                    <c:choose>
+                                                        <c:when test="${line.pickStatus == 'PENDING'}">bg-secondary</c:when>
+                                                        <c:when test="${line.pickStatus == 'PICKED'}">bg-info</c:when>
+                                                        <c:when test="${line.pickStatus == 'DONE'}">bg-success</c:when>
+                                                        <c:otherwise>bg-warning</c:otherwise>
+                                                    </c:choose>">
+                                                    ${line.pickStatus}
+                                                </span>
+                                            </td>
+                                            <td class="pe-4">
+                                                <div class="d-flex align-items-center">
+                                                    <select name="assignedTo_${line.pickTaskLineId}"
+                                                            class="form-select form-select-sm staff-select"
+                                                            data-line-id="${line.pickTaskLineId}"
+                                                            ${line.pickStatus == 'DONE' || line.pickStatus == 'COMPLETED' ? 'disabled' : ''}>
+                                                        <option value="">-- Select staff --</option>
+                                                        <c:forEach var="u" items="${warehouseStaff}">
+                                                            <option value="${u.userId}" ${line.assignedTo != null && line.assignedTo == u.userId ? 'selected' : ''}>
+                                                                ${u.fullName}
+                                                            </option>
+                                                        </c:forEach>
+                                                    </select>
+                                                    <input type="hidden" name="lineIds" value="${line.pickTaskLineId}"/>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
                                 </c:forEach>
                                 <c:if test="${empty tasks}">
                                     <tr>
-                                        <td colspan="5" class="text-center py-5 text-muted">
+                                        <td colspan="8" class="text-center py-5 text-muted">
                                             <i class="fas fa-inbox fa-3x mb-3 d-block opacity-25"></i>
                                             <p>No tasks found in this wave.</p>
                                         </td>
