@@ -206,6 +206,14 @@ public class WarehouseLayoutController extends HttpServlet {
         int rows = Integer.parseInt(request.getParameter("rows"));
         int cols = Integer.parseInt(request.getParameter("cols"));
         String codePrefix = request.getParameter("codePrefix");
+
+        // Force prefix to match the zone code to prevent cross-zone codes
+        ZoneDAO zoneDAO = new ZoneDAO();
+        model.Zone zone = zoneDAO.getZoneById(zoneId);
+        if (zone == null) {
+            throw new Exception("Zone not found");
+        }
+        String expectedPrefix = zone.getCode() != null ? zone.getCode().trim().toUpperCase() : null;
         
         // Validate input
         if (rows <= 0 || rows > 100) {
@@ -214,12 +222,19 @@ public class WarehouseLayoutController extends HttpServlet {
         if (cols <= 0 || cols > 100) {
             throw new Exception("Number of columns must be between 1 and 100");
         }
-        if (codePrefix == null || codePrefix.isBlank()) {
-            codePrefix = "SLOT";
+
+        if (expectedPrefix == null || expectedPrefix.isBlank()) {
+            throw new Exception("Zone code is missing; cannot generate slot codes");
         }
-        
-        // Normalize codePrefix
-        codePrefix = codePrefix.trim().toUpperCase();
+
+        if (codePrefix == null || codePrefix.isBlank()) {
+            codePrefix = expectedPrefix;
+        } else {
+            codePrefix = codePrefix.trim().toUpperCase();
+            if (!expectedPrefix.equals(codePrefix)) {
+                throw new Exception("Slot code prefix must match zone code (" + expectedPrefix + ")");
+            }
+        }
         
         // Validate codePrefix không được chứa ký tự đặc biệt
         if (!codePrefix.matches("^[A-Z0-9_-]+$")) {
