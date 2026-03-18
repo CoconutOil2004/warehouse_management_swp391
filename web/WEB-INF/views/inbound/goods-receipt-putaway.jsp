@@ -1,4 +1,4 @@
-<%@page contentType="text/html" pageEncoding="UTF-8" %>
+    <%@page contentType="text/html" pageEncoding="UTF-8" %>
 <%@taglib tagdir="/WEB-INF/tags/" prefix="t" %>
 <%@taglib uri="jakarta.tags.core" prefix="c" %>
 <%@taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
@@ -332,6 +332,7 @@
             var putawayTable = document.getElementById('putawayTable');
             var putawayForm = document.getElementById('putawayForm');
             var submitBtn = document.getElementById('submitBtn');
+            var isSubmitting = false;
 
             function updateSummaryAndLogic() {
                 var totals = {};
@@ -468,15 +469,14 @@
                         var usageByOthers = (currentUsage[option.value] || 0) - (option.value === currentValue ? currentQtyThisRow : 0);
                         var effectiveAvail = origAvail - usageByOthers;
 
-                        // UNIQUE CONSTRAINT REMOVED: No longer disabling if selected in another row.
-                        // Only disable if the slot is full (capacity <= 0).
-                        option.disabled = (effectiveAvail <= 0 && option.value !== currentValue);
-
                         var baseText = option.text.split(' (')[0];
-                        if (effectiveAvail <= 0 && option.value !== currentValue) {
-                            option.text = baseText + " (FULL)";
-                            option.style.color = "#dc3545";
-                        } else {
+                        // Hide slots that are full (effective available <= 0),
+                        // but keep the currently selected one visible so user can change it.
+                        var isFull = effectiveAvail <= 0;
+                        option.hidden = (isFull && option.value !== currentValue);
+                        option.disabled = false;
+
+                        if (!option.hidden) {
                             option.text = baseText + " (" + (effectiveAvail < 0 ? 0 : effectiveAvail) + " left)";
                             option.style.color = "";
                         }
@@ -632,6 +632,22 @@
                     }
                 }
             });
+
+            if (putawayForm) {
+                putawayForm.addEventListener('submit', function (e) {
+                    if (isSubmitting) {
+                        e.preventDefault();
+                        return;
+                    }
+                    isSubmitting = true;
+
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.setAttribute('aria-busy', 'true');
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Confirming...';
+                    }
+                });
+            }
 
             updateSummaryAndLogic();
         });
