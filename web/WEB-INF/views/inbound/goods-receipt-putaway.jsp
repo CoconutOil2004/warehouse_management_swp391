@@ -146,7 +146,7 @@
                                             </td>
                                             <td><span
                                                     class="badge bg-success-subtle text-success border border-success-subtle w-100">GOOD
-                                                    (Z-STO)</span></td>
+                                                    (STORAGE)</span></td>
                                             <td>
                                                 <input type="number" class="form-control text-center qty-input"
                                                     name="qty_${l.grnLineId}_STORAGE[]"
@@ -202,7 +202,7 @@
                                             </td>
                                             <td><span
                                                     class="badge bg-danger-subtle text-danger border border-danger-subtle w-100">DAMAGED
-                                                    (Z-DAM)</span></td>
+                                                    (DAMAGE)</span></td>
                                             <td>
                                                 <input type="number" class="form-control text-center qty-input"
                                                     name="qty_${l.grnLineId}_DAMAGE[]"
@@ -260,7 +260,7 @@
                                             </td>
                                             <td><span
                                                     class="badge bg-info-subtle text-info border border-info-subtle w-100">EXCESS
-                                                    (Z-EXC)</span></td>
+                                                    (EXCESS)</span></td>
                                             <td>
                                                 <input type="number" class="form-control text-center qty-input"
                                                     name="qty_${l.grnLineId}_EXCESS[]"
