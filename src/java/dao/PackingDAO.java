@@ -235,8 +235,8 @@ public class PackingDAO extends DBContext {
                 LEFT JOIN sales_order so ON gdn.so_id = so.so_id
                 LEFT JOIN customer c ON so.customer_id = c.customer_id
                 LEFT JOIN `user` u ON u.user_id = p.packed_by
-                WHERE p.status = 'PENDING'
-                AND gdn.status IN ('PICKING', 'PACKING')
+                WHERE p.status IN ('PENDING', 'IN_PROGRESS')
+                AND gdn.status IN ('PACKING', 'CONFIRMED')
                 ORDER BY p.pack_id ASC
                 """;
         List<PackingDTO> list = new ArrayList<>();
@@ -245,6 +245,34 @@ public class PackingDAO extends DBContext {
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 list.add(mapPackingDTO(rs));
+            }
+        }
+        return list;
+    }
+
+    public List<PackingDTO> listGDNsReadyForPacking() throws Exception {
+        String sql = """
+                SELECT DISTINCT gdn.gdn_id, gdn.gdn_number, gdn.status as gdn_status,
+                       so.so_number, c.name AS customer_name,
+                       (SELECT p.pack_id FROM packing p WHERE p.gdn_id = gdn.gdn_id ORDER BY p.pack_id DESC LIMIT 1) as pack_id
+                FROM goods_delivery_note gdn
+                LEFT JOIN sales_order so ON gdn.so_id = so.so_id
+                LEFT JOIN customer c ON so.customer_id = c.customer_id
+                WHERE gdn.status IN ('PACKING', 'CONFIRMED')
+                ORDER BY gdn.gdn_id DESC
+                """;
+        List<PackingDTO> list = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                PackingDTO dto = new PackingDTO();
+                dto.setGdnId(rs.getLong("gdn_id"));
+                dto.setGdnNumber(rs.getString("gdn_number"));
+                dto.setStatus("PENDING");
+                dto.setCustomerName(rs.getString("customer_name"));
+                dto.setPackId(rs.getObject("pack_id") != null ? rs.getLong("pack_id") : null);
+                list.add(dto);
             }
         }
         return list;
