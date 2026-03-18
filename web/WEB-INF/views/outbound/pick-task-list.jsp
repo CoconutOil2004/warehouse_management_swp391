@@ -85,7 +85,7 @@
               </span>
             </td>
             <td class="text-center text-muted small">
-              <c:out value="${task.assignedAt}" />
+              <c:out value="${task.assignedAtDisplay != null ? task.assignedAtDisplay : '-'}" />
             </td>
             <td class="text-center text-muted small">
               <c:out value="${task.completedAt != null ? task.completedAt : '-'}" />

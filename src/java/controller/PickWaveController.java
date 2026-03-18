@@ -36,6 +36,8 @@ public class PickWaveController extends HttpServlet {
                 case "create" -> handleCreateForm(request, response);
                 case "add-gdn" -> handleAddGdn(request, response);
                 case "remove-gdn" -> handleRemoveGdn(request, response);
+                case "release" -> handleRelease(request, response);
+                case "cancel" -> handleCancel(request, response);
                 default -> response.sendRedirect(
                     request.getContextPath() + "/pick-wave?action=list"
                     );
@@ -209,6 +211,28 @@ public class PickWaveController extends HttpServlet {
                 );
                 throw new ServletException(e);
             }
+        } else if ("release".equals(action)) {
+            try {
+                handleRelease(request, response);
+            } catch (Exception e) {
+                Logger.getLogger(PickWaveController.class.getName()).log(
+                Level.SEVERE,
+                "Error in doPost (release action)",
+                e
+                );
+                throw new ServletException(e);
+            }
+        } else if ("cancel".equals(action)) {
+            try {
+                handleCancel(request, response);
+            } catch (Exception e) {
+                Logger.getLogger(PickWaveController.class.getName()).log(
+                Level.SEVERE,
+                "Error in doPost (cancel action)",
+                e
+                );
+                throw new ServletException(e);
+            }
         } else {
             response.sendRedirect(
             request.getContextPath() + "/pick-wave?action=list"
@@ -365,8 +389,8 @@ public class PickWaveController extends HttpServlet {
                 return;
             }
 
-            // Check if wave already exists for this GDN
-            if (waveDao.getWaveByGdnId(gdnId) != null) {
+            // Check if wave already exists for this GDN (via pick_wave or pick_wave_gdn)
+            if (waveDao.getWaveIdByGdnId(gdnId) != null) {
                 response.sendRedirect(
                 request.getContextPath()
                 + "/goods-delivery-note?action=detail&id="
@@ -378,19 +402,17 @@ public class PickWaveController extends HttpServlet {
 
         Long createdBy = user.getUserId();
 
-        // Create wave with first GDN (for backward compatibility)
-        Long waveId = waveDao.createWaveFromGDN(gdnIds.get(0), createdBy);
+        Logger.getLogger(PickWaveController.class.getName()).log(Level.INFO, 
+            "Creating pick wave with " + gdnIds.size() + " GDNs: " + gdnIds);
+
+        // Create wave with multiple GDNs (includes linking GDNs)
+        Long waveId = waveDao.createWave(gdnIds, createdBy);
         if (waveId == null) {
             response.sendRedirect(
             request.getContextPath()
             + "/pick-wave?action=create&error=create_failed"
             );
             return;
-        }
-
-        // Link all other GDNs to the wave
-        for (int i = 1; i < gdnIds.size(); i++) {
-            waveDao.addGdnToWave(waveId, gdnIds.get(i));
         }
 
         // Create tasks from wave
@@ -433,8 +455,8 @@ public class PickWaveController extends HttpServlet {
             return;
         }
 
-        // Update wave status
-        waveDao.updateWaveStatus(waveId, "CREATED");
+        // Update wave status (tasks already created, wave is CREATED)
+        waveDao.updateWaveStatus(waveId, dto.PickWaveDTO.STATUS_CREATED);
 
         // Update all GDN statuses to PICKING
         for (Long gdnId : gdnIds) {
@@ -448,7 +470,7 @@ public class PickWaveController extends HttpServlet {
         "Pick wave created successfully for " + gdnIds.size() + " GDN(s)"
         );
         response.sendRedirect(
-        request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId
+        request.getContextPath() + "/pick-wave?action=detail&id=" + waveId
         );
     }
 
@@ -521,11 +543,8 @@ public class PickWaveController extends HttpServlet {
 
         // Check if wave has any assigned tasks
         List<PickTaskDTO> tasks = taskDao.getTasksByWaveId(waveId);
-        boolean hasAssignedTasks = tasks
-        .stream()
-        .anyMatch(
-        t -> t.getAssignedTo() != null || !"CREATED".equals(t.getStatus())
-        );
+        boolean hasAssignedTasks = tasks.stream()
+            .anyMatch(t -> t.getStatus() != null && !"CREATED".equals(t.getStatus()));
 
         if (hasAssignedTasks) {
             request.setAttribute(
@@ -558,6 +577,106 @@ public class PickWaveController extends HttpServlet {
             request.getContextPath() + "/pick-wave?action=detail&id=" + waveId
             );
         }
+    }
+
+    /**
+     * Release a wave - creates tasks and changes status to RELEASED.
+     */
+    private void handleRelease(
+    HttpServletRequest request,
+    HttpServletResponse response
+    ) throws Exception {
+        User user = (User) request.getSession().getAttribute("USER");
+        if (user == null) {
+            response.sendRedirect(request.getContextPath() + "/authen?action=login");
+            return;
+        }
+        
+        String roles = user.getRoleNames() != null ? user.getRoleNames() : "";
+        if (!roles.contains("ADMIN") && !roles.contains("WAREHOUSE_MANAGER")) {
+            response.sendRedirect(
+            request.getContextPath() + "/pick-wave?action=list"
+            );
+            return;
+        }
+
+        Long waveId = parseLong(request.getParameter("id"), -1);
+        if (waveId <= 0) {
+            response.sendRedirect(
+            request.getContextPath() + "/pick-wave?action=list"
+            );
+            return;
+        }
+
+        PickWaveDAO waveDao = new PickWaveDAO();
+        
+        try {
+            boolean success = waveDao.releaseWave(waveId);
+            if (success) {
+                request.getSession().setAttribute("message", "Wave released successfully!");
+            } else {
+                request.getSession().setAttribute("error", "Cannot release wave: Insufficient inventory.");
+            }
+        } catch (Exception e) {
+            Logger.getLogger(PickWaveController.class.getName()).log(
+                Level.SEVERE,
+                "Error releasing wave",
+                e
+            );
+            request.getSession().setAttribute("error", "Error releasing wave: " + e.getMessage());
+        }
+
+        response.sendRedirect(
+            request.getContextPath() + "/pick-wave?action=detail&id=" + waveId
+        );
+    }
+
+    /**
+     * Cancel a wave.
+     */
+    private void handleCancel(
+    HttpServletRequest request,
+    HttpServletResponse response
+    ) throws Exception {
+        User user = (User) request.getSession().getAttribute("USER");
+        if (user == null) {
+            response.sendRedirect(request.getContextPath() + "/authen?action=login");
+            return;
+        }
+        
+        String roles = user.getRoleNames() != null ? user.getRoleNames() : "";
+        if (!roles.contains("ADMIN") && !roles.contains("WAREHOUSE_MANAGER")) {
+            response.sendRedirect(
+            request.getContextPath() + "/pick-wave?action=list"
+            );
+            return;
+        }
+
+        Long waveId = parseLong(request.getParameter("id"), -1);
+        if (waveId <= 0) {
+            response.sendRedirect(
+            request.getContextPath() + "/pick-wave?action=list"
+            );
+            return;
+        }
+
+        PickWaveDAO waveDao = new PickWaveDAO();
+        
+        try {
+            waveDao.cancelWave(waveId);
+            request.getSession().setAttribute("message", "Wave cancelled successfully!");
+        } catch (Exception e) {
+            Logger.getLogger(PickWaveController.class.getName()).log(
+                Level.SEVERE,
+                "Error cancelling wave",
+                e
+            );
+            request.getSession().setAttribute("error", "Error cancelling wave: " + e.getMessage());
+        }
+
+        response.sendRedirect(
+            request.getContextPath() + "/pick-wave?action=detail&id=" + waveId
+        );
     }
 
     private long parseLong(String raw, long def) {
