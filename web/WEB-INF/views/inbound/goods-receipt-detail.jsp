@@ -104,6 +104,7 @@
                                                             <th>Quantity</th>
                                                             <th>Good</th>
                                                             <th>Damaged</th>
+                                                            <th>Excess</th>
                                                             <th>Missing</th>
                                                             <th class="text-start">Note</th>
                                                         </tr>
@@ -132,6 +133,12 @@
                                                                 <td><span
                                                                         class="badge bg-danger-subtle text-danger px-3">
                                                                         <fmt:formatNumber value="${l.qtyDamaged}"
+                                                                            pattern="#,##0" />
+                                                                    </span>
+                                                                </td>
+                                                                <td><span
+                                                                        class="badge bg-info-subtle text-info px-3">
+                                                                        <fmt:formatNumber value="${l.qtyExtra}"
                                                                             pattern="#,##0" />
                                                                     </span>
                                                                 </td>
@@ -189,6 +196,10 @@
                                                                                 <span
                                                                                     class="badge bg-danger-subtle text-danger border border-danger-subtle px-2">DAMAGED</span>
                                                                             </c:when>
+                                                                            <c:when test="${p.type == 'EXCESS'}">
+                                                                                <span
+                                                                                    class="badge bg-info-subtle text-info border border-info-subtle px-2">EXCESS</span>
+                                                                            </c:when>
                                                                             <c:otherwise>
                                                                                 <span
                                                                                     class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2">${p.type}</span>
@@ -240,7 +251,7 @@
                                         <c:when test="${grn.status == 'PENDING' || grn.status == 'DRAFT'}">
 
                                             <c:if test="${isManager}">
-                                                <!-- Nút Approve -->
+                                                <!-- Approve Button -->
                                                 <c:if test="${isPutawayComplete}">
                                                     <form action="${pageContext.request.contextPath}/goods-receipt"
                                                         method="post"
@@ -263,7 +274,7 @@
                                                     </button>
                                                 </c:if>
 
-                                                <!-- Nút Reject -->
+                                                <!-- Reject Button -->
                                                 <form action="${pageContext.request.contextPath}/goods-receipt"
                                                     method="post"
                                                     onsubmit="return confirm('Are you sure you want to REJECT this receipt?')">
@@ -280,21 +291,21 @@
                                             </c:if>
 
                                             <c:if test="${canMutation}">
-                                                <!-- Nút Putaway -->
-                                                <a href="${pageContext.request.contextPath}/goods-receipt?action=putaway&id=${grn.grnId}"
+                                                <!-- Putaway Button -->
+                                                <button type="button" onclick="checkPutawayCapacity(${grn.grnId})"
                                                     class="btn btn-primary d-inline-flex align-items-center justify-content-center shadow-sm"
                                                     style="height: 38px; padding: 0 16px;">
                                                     <i class="fas fa-dolly-flatbed me-2"></i>Putaway
-                                                </a>
+                                                </button>
 
-                                                <!-- Nút Edit -->
+                                                <!-- Edit Button -->
                                                 <a href="${pageContext.request.contextPath}/goods-receipt?action=edit&id=${grn.grnId}"
                                                     class="btn btn-outline-primary shadow-sm d-flex align-items-center justify-content-center"
                                                     style="height: 38px; padding: 0 16px;">
                                                     <i class="fas fa-edit me-2"></i>Edit
                                                 </a>
 
-                                                <!-- Nút Delete -->
+                                                <!-- Delete Button -->
                                                 <form action="${pageContext.request.contextPath}/goods-receipt"
                                                     method="post"
                                                     onsubmit="return confirm('Delete this receipt? This action cannot be undone!')">
@@ -320,4 +331,47 @@
                             </div>
                         </div>
 
+                        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+                        <script>
+                            async function checkPutawayCapacity(grnId) {
+                                try {
+                                    const response = await fetch(`${pageContext.request.contextPath}/goods-receipt?action=checkCapacity&id=` + grnId);
+                                    const data = await response.json();
+
+                                    if (data.sufficient) {
+                                        window.location.href = `${pageContext.request.contextPath}/goods-receipt?action=putaway&id=` + grnId;
+                                    } else {
+                                        let html = '<div class="text-start small">';
+                                        if (data.details.good && !data.details.good.isSufficient) {
+                                            html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>GOOD ITEMS:</b> Need ' + data.details.good.required + ', available ' + data.details.good.available + '</p>';
+                                        }
+                                        if (data.details.damaged && !data.details.damaged.isSufficient) {
+                                            html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>DAMAGED ITEMS:</b> Need ' + data.details.damaged.required + ', available ' + data.details.damaged.available + '</p>';
+                                        }
+                                        if (data.details.excess && !data.details.excess.isSufficient) {
+                                            html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>EXCESS ITEMS:</b> Need ' + data.details.excess.required + ', available ' + data.details.excess.available + '</p>';
+                                        }
+                                        html += '</div><hr><p class="mb-0">Do you want to go to <b>Warehouse Layout</b> to create more storage slots?</p>';
+
+                                        Swal.fire({
+                                            title: 'Insufficient Capacity!',
+                                            html: html,
+                                            icon: 'warning',
+                                            showCancelButton: true,
+                                            confirmButtonText: 'Go to Warehouse Layout',
+                                            cancelButtonText: 'Close',
+                                            confirmButtonColor: '#0d6efd',
+                                            cancelButtonColor: '#6e7881'
+                                        }).then((result) => {
+                                            if (result.isConfirmed) {
+                                                window.location.href = `${pageContext.request.contextPath}/warehouse-layout`;
+                                            }
+                                        });
+                                    }
+                                } catch (error) {
+                                    console.error('Error checking capacity:', error);
+                                    window.location.href = `${pageContext.request.contextPath}/goods-receipt?action=putaway&id=` + grnId;
+                                }
+                            }
+                        </script>
                     </t:layout>

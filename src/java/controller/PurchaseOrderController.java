@@ -500,6 +500,11 @@ public class PurchaseOrderController extends HttpServlet {
                 }
 
                 PurchaseOrderLineDTO line = new PurchaseOrderLineDTO();
+                // Lấy ID của dòng hàng cũ (nếu có) để DAO thực hiện update thay vì delete-insert
+                String poLineIdStr = request.getParameter("lines[" + i + "].poLineId");
+                if (poLineIdStr != null && !poLineIdStr.isBlank()) {
+                    line.setPoLineId(Long.parseLong(poLineIdStr));
+                }
                 line.setVariantId(variantId);
                 line.setOrderedQty(qty);
                 line.setUnitPrice(unitPrice);
@@ -575,17 +580,15 @@ public class PurchaseOrderController extends HttpServlet {
             request.getSession().setAttribute("type", "success");
             response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
         } catch (IllegalArgumentException ex) {
-            // DAO throws when status != CREATED
+            // DAO throws when status is neither CREATED nor IMPORTED
             request.getSession().setAttribute("message",
-                    "Purchase Order cannot be updated because it already has GRN / status is not CREATED.");
-            request.getSession().setAttribute("type", "error");
-            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
-        } catch (SQLIntegrityConstraintViolationException ex) {
-            // FK violation: goods_receipt_line.po_line_id -> purchase_order_line.po_line_id
-            request.getSession().setAttribute("message",
-                    "Purchase Order cannot be updated because GRN has been created from this PO.");
-            request.getSession().setAttribute("type", "error");
-            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+                    "Purchase Order cannot be updated: " + ex.getMessage());
+            request.getSession().setAttribute("type", "danger");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=edit&id=" + poId);
+        } catch (Exception ex) {
+            request.getSession().setAttribute("message", "Error updating PO: " + ex.getMessage());
+            request.getSession().setAttribute("type", "danger");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=edit&id=" + poId);
         }
     }
 

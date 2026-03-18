@@ -20,12 +20,16 @@ public class UserDAO extends DBContext implements Dao<User> {
 
     public User login(String identity, String password) {
         String sql = """
-            SELECT user_id, username, full_name, email, phone,
-                   password_hash, status, warehouse_id, created_at
-            FROM `user`
-            WHERE (username = ? OR email = ?)
-              AND status = 'ACTIVE'
-              AND is_deleted = 0
+            SELECT u.user_id, u.username, u.full_name, u.email, u.phone,
+                   u.password_hash, u.status, u.warehouse_id, u.created_at,
+                   GROUP_CONCAT(r.name SEPARATOR ', ') as role_names
+            FROM `user` u
+            LEFT JOIN user_role ur ON u.user_id = ur.user_id
+            LEFT JOIN role r ON ur.role_id = r.role_id
+            WHERE (u.username = ? OR u.email = ?)
+              AND u.status = 'ACTIVE'
+              AND u.is_deleted = 0
+            GROUP BY u.user_id
             LIMIT 1
         """;
 
@@ -52,6 +56,7 @@ public class UserDAO extends DBContext implements Dao<User> {
                     u.setStatus(rs.getString("status"));
                     u.setWarehouseId(rs.getLong("warehouse_id"));
                     u.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    u.setRoleNames(rs.getString("role_names"));
 
                     return u;
                 }

@@ -86,6 +86,26 @@
                                         </div>
                                     </div>
                                 </c:if>
+
+                                <!-- Excess Items Summary -->
+                                <c:if test="${l.qtyExtra > 0}">
+                                    <div class="mb-1 mt-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="badge bg-info-subtle text-info small">EXCESS</span>
+                                            <span class="small fw-bold" id="summary_received_${l.grnLineId}_EXCESS"
+                                                data-total="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />">
+                                                <span id="summary_assigned_${l.grnLineId}_EXCESS">
+                                                    Remaining: ${l.qtyExtra}
+                                                </span> /
+                                                <fmt:formatNumber value="${l.qtyExtra}" pattern="#,##0" />
+                                            </span>
+                                        </div>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-info" role="progressbar"
+                                                id="progress_${l.grnLineId}_EXCESS" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </c:if>
                             </div>
                         </div>
                     </div>
@@ -226,6 +246,64 @@
                                             </td>
                                         </tr>
                                     </c:if>
+
+                                    <!-- Excess Assignment(s) -->
+                                    <c:if test="${l.qtyExtra > 0}">
+                                        <tr class="assignment-row excess-row" data-grn-line-id="${l.grnLineId}"
+                                            data-sku="${l.sku}"
+                                            data-max="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />"
+                                            data-type="EXCESS">
+                                            <td class="ps-4">
+                                                <div class="fw-bold text-primary">${l.sku}</div>
+                                                <div class="small text-muted text-truncate" style="max-width: 180px;">
+                                                    ${l.productName}</div>
+                                            </td>
+                                            <td><span
+                                                    class="badge bg-info-subtle text-info border border-info-subtle w-100">EXCESS
+                                                    (Z-EXC)</span></td>
+                                            <td>
+                                                <input type="number" class="form-control text-center qty-input"
+                                                    name="qty_${l.grnLineId}_EXCESS[]"
+                                                    value="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />"
+                                                    min="0"
+                                                    max="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />"
+                                                    step="1">
+                                            </td>
+                                            <td>
+                                                <select name="slotId_${l.grnLineId}_EXCESS[]"
+                                                    class="form-select slot-select">
+                                                    <option value="">-- Select Excess Slot --
+                                                    </option>
+                                                    <c:forEach var="slot" items="${excessSlots}">
+                                                        <c:set var="prodList">
+                                                            <c:forEach var="p" items="${slot.products}"
+                                                                varStatus="pst">${p.variantSku}: ${p.qtyOnHand}${not pst.last ? ' &#10; ' : ''}</c:forEach>
+                                                        </c:set>
+                                                        <option value="${slot.slotId}"
+                                                            data-capacity="<fmt:formatNumber value='${slot.availableCapacity != null ? slot.availableCapacity : 0}' pattern='0' />"
+                                                            data-max-capacity="<fmt:formatNumber value='${slot.maxCapacity != null ? slot.maxCapacity : 0}' pattern='0' />"
+                                                            data-used="<fmt:formatNumber value='${slot.usedCapacity != null ? slot.usedCapacity : 0}' pattern='0' />"
+                                                            title='<c:out value="${prodList}"/>'>
+                                                            ${slot.slotCode}
+                                                        </option>
+                                                    </c:forEach>
+                                                </select>
+                                                <div class="slot-info small mt-1 text-muted px-2">
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="slot-capacity-display small fw-bold text-muted">
+                                                    --</div>
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button"
+                                                    class="btn btn-sm btn-outline-primary add-assignment-btn"
+                                                    title="Split into another slot">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </c:if>
                                 </c:forEach>
                             </tbody>
                         </table>
@@ -289,7 +367,7 @@
                     var slotInfo = row_v.querySelector('.slot-info');
                     var capacityDisplay = row_v.querySelector('.slot-capacity-display');
 
-                    if (!totals[grnLineId]) totals[grnLineId] = { STORAGE: 0, DAMAGE: 0 };
+                    if (!totals[grnLineId]) totals[grnLineId] = { STORAGE: 0, DAMAGE: 0, EXCESS: 0 };
                     totals[grnLineId][type] += qty_v;
 
                     if (selectedSlot && selectedSlot.value) {
@@ -374,9 +452,10 @@
             }
 
             function rebalanceSlots(currentUsage) {
-                var selects = document.querySelectorAll('.slot-select');
-                for (var i = 0; i < selects.length; i++) {
-                    var select = selects[i];
+                var allSelects = document.querySelectorAll('.slot-select');
+
+                for (var i = 0; i < allSelects.length; i++) {
+                    var select = allSelects[i];
                     var currentValue = select.value;
                     var qtyInput = select.closest('tr').querySelector('.qty-input');
                     var currentQtyThisRow = parseFloat(qtyInput.value) || 0;
@@ -389,14 +468,16 @@
                         var usageByOthers = (currentUsage[option.value] || 0) - (option.value === currentValue ? currentQtyThisRow : 0);
                         var effectiveAvail = origAvail - usageByOthers;
 
+                        // UNIQUE CONSTRAINT REMOVED: No longer disabling if selected in another row.
+                        // Only disable if the slot is full (capacity <= 0).
                         option.disabled = (effectiveAvail <= 0 && option.value !== currentValue);
 
                         var baseText = option.text.split(' (')[0];
-                        if (effectiveAvail <= 0) {
+                        if (effectiveAvail <= 0 && option.value !== currentValue) {
                             option.text = baseText + " (FULL)";
                             option.style.color = "#dc3545";
                         } else {
-                            option.text = baseText + " (" + effectiveAvail + " left)";
+                            option.text = baseText + " (" + (effectiveAvail < 0 ? 0 : effectiveAvail) + " left)";
                             option.style.color = "";
                         }
                     }
