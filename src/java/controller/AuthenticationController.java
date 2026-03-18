@@ -15,7 +15,7 @@ import util.ViewPath;
 public class AuthenticationController extends HttpServlet {
 
     private static final String SESSION_USER_KEY = "USER";
-    private static final boolean IS_OTP_ENABLED = true; // Set to false to bypass OTP for testing
+    private static final boolean IS_OTP_ENABLED = false; // Set to false to bypass OTP for testing
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)

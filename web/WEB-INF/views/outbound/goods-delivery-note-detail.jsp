@@ -28,15 +28,16 @@
                     gdn.status == 'CREATED' ? 'bg-secondary' :
                     (gdn.status == 'PICKING' ? 'bg-warning text-dark' :
                     (gdn.status == 'PACKING' ? 'bg-info text-dark' :
-                    (gdn.status == 'CONFIRMED' ? 'bg-success' :
+                    (gdn.status == 'CONFIRMED' ? 'bg-primary' :
                     (gdn.status == 'DONE' ? 'bg-success' :
                     (gdn.status == 'CANCELLED' ? 'bg-danger' : 'bg-secondary')))))} px-3 py-2 rounded-pill shadow-sm">
                 <i class="fas ${
                         gdn.status == 'CREATED' ? 'fa-file' :
                         (gdn.status == 'PICKING' ? 'fa-dolly' :
                         (gdn.status == 'PACKING' ? 'fa-box' :
-                        (gdn.status == 'CONFIRMED' || gdn.status == 'DONE' ? 'fa-check-circle' :
-                        (gdn.status == 'CANCELLED' ? 'fa-times-circle' : 'fa-file'))))} me-1"></i>
+                        (gdn.status == 'CONFIRMED' ? 'fa-check' :
+                        (gdn.status == 'DONE' ? 'fa-check-circle' :
+                        (gdn.status == 'CANCELLED' ? 'fa-times-circle' : 'fa-file')))))} me-1"></i>
                 ${gdn.status}
             </span>
         </div>
@@ -73,8 +74,9 @@
                                             gdn.status == 'CREATED' ? 'bg-secondary' :
                                             (gdn.status == 'PICKING' ? 'bg-warning' :
                                             (gdn.status == 'PACKING' ? 'bg-info' :
-                                            (gdn.status == 'CONFIRMED' || gdn.status == 'DONE' ? 'bg-success' :
-                                            (gdn.status == 'CANCELLED' ? 'bg-danger' : 'bg-secondary'))))} fw-semibold">
+                                            (gdn.status == 'CONFIRMED' ? 'bg-primary' :
+                                            (gdn.status == 'DONE' ? 'bg-success' :
+                                            (gdn.status == 'CANCELLED' ? 'bg-danger' : 'bg-secondary')))))} fw-semibold">
                                         ${gdn.status}
                                     </span>
                                 </p>
@@ -302,7 +304,7 @@
                 </div>
             </c:if>
 
-            <c:if test="${gdn.status == 'CONFIRMED'}">
+            <c:if test="${gdn.status == 'CONFIRMED' && empty shipments}">
                 <div class="d-flex gap-2">
                     <a href="${pageContext.request.contextPath}/shipment?action=create&gdnId=${gdn.gdnId}&soNumber=${gdn.soNumber}"
                         class="btn btn-success shadow-sm">
