@@ -16,6 +16,7 @@ import jakarta.servlet.http.*;
 import util.ViewPath;
 import util.RequestUtil;
 import util.ToastUtil;
+import service.GoodsReceiptService;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
@@ -38,6 +39,7 @@ public class PurchaseOrderController extends HttpServlet {
     private final ProductService pService = new ProductService();
     private final PurchaseOrderService poService = new PurchaseOrderService();
     private final PurchaseOrderImportService poImportService = new PurchaseOrderImportService();
+    private final GoodsReceiptService grnService = new GoodsReceiptService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -385,6 +387,15 @@ public class PurchaseOrderController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/purchase-orders");
             return;
         }
+
+        // Block editing PO if there is an incomplete putaway GRN for this PO
+        if (grnService.hasIncompletePutawayForPo(poId)) {
+            ToastUtil.setToast(request, "error",
+                    "Không thể sửa Purchase Order vì phiếu nhập kho liên quan chưa Putaway xong. Vui lòng Putaway hoàn tất trước khi sửa PO.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+            return;
+        }
+
         PurchaseOrderHeaderDTO po = poService.getPurchaseOrderHeader(poId);
         if (po == null) {
             ToastUtil.setToast(request, "error", "Purchase Order not found.");
@@ -413,6 +424,14 @@ public class PurchaseOrderController extends HttpServlet {
         long poId = RequestUtil.parseLong(request.getParameter("poId"), -1L);
         if (poId <= 0) {
             response.sendRedirect(request.getContextPath() + "/purchase-orders");
+            return;
+        }
+
+        // Server-side enforcement too (in case user bypasses UI)
+        if (grnService.hasIncompletePutawayForPo(poId)) {
+            ToastUtil.setToast(request, "error",
+                    "Không thể cập nhật Purchase Order vì phiếu nhập kho liên quan chưa Putaway xong. Vui lòng Putaway hoàn tất trước khi sửa PO.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
             return;
         }
 
