@@ -208,7 +208,7 @@
                     </div>
                 </div>
 
-                <c:if test="${packing.status == 'DONE' || packing.status == 'CONFIRMED'}">
+                <c:if test="${not empty packing && (packing.status == 'DONE' || packing.status == 'CONFIRMED')}">
                     <div class="alert alert-success">
                         <i class="fas fa-check-circle me-2"></i>
                         Packing completed for ${gdn.gdnNumber}. 
@@ -217,12 +217,19 @@
                         </a>
                     </div>
                 </c:if>
+                
+                <c:if test="${empty packing}">
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No packing record. <a href="${pageContext.request.contextPath}/packing?action=start&gdnId=${gdn.gdnId}">Start Packing</a>
+                    </div>
+                </c:if>
             </div>
 
             <div class="package-panel">
                 <h5 class="mb-3"><i class="fas fa-box me-2"></i>Package Info</h5>
                 
-                <c:if test="${packing.status != 'DONE' && packing.status != 'CONFIRMED'}">
+                <c:if test="${not empty packing && packing.status != 'DONE' && packing.status != 'CONFIRMED'}">
                     <form action="${pageContext.request.contextPath}/packing" method="post">
                         <input type="hidden" name="action" value="saveStation"/>
                         <input type="hidden" name="packId" value="${packing.packId}"/>
