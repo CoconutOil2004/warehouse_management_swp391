@@ -257,7 +257,8 @@ public class PickTaskDAO extends DBContext {
           gdn.getStatus(),
           gdn.getCreatorName(),
           gdn.getCreatedAt(),
-          gdn.getConfirmedAt()
+          gdn.getConfirmedAt(),
+          null
         )
       );
     }

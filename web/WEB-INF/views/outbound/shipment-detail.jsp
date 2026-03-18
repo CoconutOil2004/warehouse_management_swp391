@@ -330,11 +330,17 @@
                                                 <i class="fas fa-edit mr-2"></i> <strong>Update Status</strong>
                                             </a>
                                         </c:if>
-
-                                        <button onclick="window.print()"
-                                            class="btn btn-light btn-block btn-lg border shadow-sm mb-3 py-3">
-                                            <i class="fas fa-print mr-2 text-info"></i> Print Waybill
-                                        </button>
+                                        <c:if test="${shipment.status == 'CREATED'}">
+                                            <form action="${pageContext.request.contextPath}/shipment" method="post"
+                                                onsubmit="return confirm('Are you sure you want to DELETE this shipment? This action cannot be undone.')">
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="id" value="${shipment.shipmentId}">
+                                                <button type="submit"
+                                                    class="btn btn-outline-danger btn-block btn-lg shadow-sm mb-3 py-3">
+                                                    <i class="fas fa-trash-alt mr-2"></i> <strong>Delete Shipment</strong>
+                                                </button>
+                                            </form>
+                                        </c:if>
 
                                         <hr class="my-4">
 

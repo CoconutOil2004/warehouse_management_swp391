@@ -31,22 +31,22 @@ public class GoodsDeliveryNoteDAO extends DBContext {
      */
     public List<GDNListDTO> getGDNList(String gdnNumber, String soNumber, String status,
             int limit, int offset) throws Exception {
-        StringBuilder sql = new StringBuilder("""
-                SELECT 
-                    gdn.gdn_id,
-                    gdn.gdn_number,
-                    so.so_number,
-                    c.name AS customer_name,
-                    gdn.status,
-                    u.full_name AS creator_name,
-                    gdn.created_at,
-                    gdn.confirmed_at
-                FROM goods_delivery_note gdn
-                LEFT JOIN sales_order so ON gdn.so_id = so.so_id
-                LEFT JOIN customer c ON so.customer_id = c.customer_id
-                LEFT JOIN user u ON gdn.created_by = u.user_id
-                WHERE 1=1
-            """);
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT ");
+        sql.append("    gdn.gdn_id, ");
+        sql.append("    gdn.gdn_number, ");
+        sql.append("    so.so_number, ");
+        sql.append("    c.name AS customer_name, ");
+        sql.append("    gdn.status, ");
+        sql.append("    u.full_name AS creator_name, ");
+        sql.append("    gdn.created_at, ");
+        sql.append("    gdn.confirmed_at, ");
+        sql.append("    (SELECT s.status FROM shipment s WHERE s.gdn_id = gdn.gdn_id ORDER BY s.shipment_id DESC LIMIT 1) as last_shipment_status ");
+        sql.append("FROM goods_delivery_note gdn ");
+        sql.append("LEFT JOIN sales_order so ON gdn.so_id = so.so_id ");
+        sql.append("LEFT JOIN customer c ON so.customer_id = c.customer_id ");
+        sql.append("LEFT JOIN user u ON gdn.created_by = u.user_id ");
+        sql.append("WHERE 1=1 ");
 
         if (gdnNumber != null && !gdnNumber.isBlank()) {
             sql.append(" AND gdn.gdn_number LIKE ?");
@@ -93,6 +93,7 @@ public class GoodsDeliveryNoteDAO extends DBContext {
                     if (confirmedAt != null) {
                         dto.setConfirmedAt(confirmedAt.toLocalDateTime());
                     }
+                    dto.setLastShipmentStatus(rs.getString("last_shipment_status"));
                     list.add(dto);
                 }
             }
@@ -104,12 +105,11 @@ public class GoodsDeliveryNoteDAO extends DBContext {
      * Count GDN with filters
      */
     public int countGDN(String gdnNumber, String soNumber, String status) throws Exception {
-        StringBuilder sql = new StringBuilder("""
-                SELECT COUNT(*)
-                FROM goods_delivery_note gdn
-                LEFT JOIN sales_order so ON gdn.so_id = so.so_id
-                WHERE 1=1
-            """);
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT COUNT(*) ");
+        sql.append("FROM goods_delivery_note gdn ");
+        sql.append("LEFT JOIN sales_order so ON gdn.so_id = so.so_id ");
+        sql.append("WHERE 1=1 ");
 
         if (gdnNumber != null && !gdnNumber.isBlank()) {
             sql.append(" AND gdn.gdn_number LIKE ?");
@@ -147,31 +147,31 @@ public class GoodsDeliveryNoteDAO extends DBContext {
      * Get GDN detail by ID
      */
     public GDNDetailDTO getGDNDetailById(Long gdnId) throws Exception {
-        String sql = """
-                SELECT 
-                    gdn.gdn_id,
-                    gdn.gdn_number,
-                    gdn.warehouse_id,
-                    gdn.so_id,
-                    so.so_number,
-                    so.customer_id,
-                    c.name AS customer_name,
-                    so.ship_to_address AS customer_address,
-                    gdn.gdn_type,
-                    gdn.status,
-                    gdn.created_by,
-                    u.full_name AS creator_name,
-                    gdn.created_at,
-                    gdn.confirmed_at
-                FROM goods_delivery_note gdn
-                LEFT JOIN sales_order so ON gdn.so_id = so.so_id
-                LEFT JOIN customer c ON so.customer_id = c.customer_id
-                LEFT JOIN user u ON gdn.created_by = u.user_id
-                WHERE gdn.gdn_id = ?
-            """;
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT ");
+        sql.append("    gdn.gdn_id, ");
+        sql.append("    gdn.gdn_number, ");
+        sql.append("    gdn.warehouse_id, ");
+        sql.append("    gdn.so_id, ");
+        sql.append("    so.so_number, ");
+        sql.append("    so.customer_id, ");
+        sql.append("    c.name AS customer_name, ");
+        sql.append("    so.ship_to_address AS customer_address, ");
+        sql.append("    gdn.gdn_type, ");
+        sql.append("    gdn.status, ");
+        sql.append("    gdn.created_by, ");
+        sql.append("    u.full_name AS creator_name, ");
+        sql.append("    gdn.created_at, ");
+        sql.append("    gdn.confirmed_at, ");
+        sql.append("    (SELECT s.status FROM shipment s WHERE s.gdn_id = gdn.gdn_id ORDER BY s.shipment_id DESC LIMIT 1) as last_shipment_status ");
+        sql.append("FROM goods_delivery_note gdn ");
+        sql.append("LEFT JOIN sales_order so ON gdn.so_id = so.so_id ");
+        sql.append("LEFT JOIN customer c ON so.customer_id = c.customer_id ");
+        sql.append("LEFT JOIN user u ON gdn.created_by = u.user_id ");
+        sql.append("WHERE gdn.gdn_id = ? ");
 
         try (Connection conn = getConnection();
-                PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             ps.setLong(1, gdnId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -196,6 +196,7 @@ public class GoodsDeliveryNoteDAO extends DBContext {
                     if (confirmedAt != null) {
                         dto.setConfirmedAt(confirmedAt.toLocalDateTime());
                     }
+                    dto.setLastShipmentStatus(rs.getString("last_shipment_status"));
 
                     // Get GDN lines
                     List<GDNLineDTO> lines = getGDNLines(gdnId);

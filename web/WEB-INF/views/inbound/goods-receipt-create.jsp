@@ -17,6 +17,7 @@
                         <form action="${pageContext.request.contextPath}/goods-receipt" method="post" id="grnForm">
                             <input type="hidden" name="action" value="save" />
                             <input type="hidden" name="grnId" value="${grnId}" />
+                            <input type="hidden" name="warehouseId" id="warehouseIdHidden" value="${sessionScope.USER.warehouseId}" />
                             <input type="hidden" name="grnNumber" id="grnNumberHidden"
                                 value="${oldGrnNumber != null ? oldGrnNumber : ''}" />
 
@@ -128,12 +129,13 @@
                                                     <thead
                                                         class="table-light text-center text-secondary text-uppercase small">
                                                         <tr>
-                                                            <th style="min-width: 250px;">Product</th>
-                                                            <th style="width: 120px;">Price</th>
-                                                            <th style="width: 120px;">Quantity</th>
-                                                            <th style="width: 100px;">Good</th>
-                                                            <th style="width: 100px;">Damaged</th>
-                                                            <th style="width: 100px;">Missing</th>
+                                                            <th style="min-width: 200px;">Product</th>
+                                                            <th style="width: 100px;">Price</th>
+                                                            <th style="width: 100px;">Ordered</th>
+                                                            <th style="width: 130px; border-left: 2px solid #dee2e6;">Good (Actual)</th>
+                                                            <th style="width: 130px;">Damaged (Actual)</th>
+                                                            <th style="width: 90px; border-left: 2px solid #dee2e6;">Excess</th>
+                                                            <th style="width: 90px;">Missing</th>
                                                             <th>Note</th>
                                                         </tr>
                                                     </thead>
@@ -219,6 +221,12 @@
                         /* Light yellow */
                         border-color: #fff9c4 !important;
                     }
+                    
+                    .bg-excess {
+                        background-color: #e3f2fd !important;
+                        /* Light blue */
+                        border-color: #bbdefb !important;
+                    }
 
                     .bg-good:focus {
                         background-color: #f1f8f1 !important;
@@ -234,6 +242,11 @@
                         background-color: #fffeee !important;
                         box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.1) !important;
                     }
+
+                    .bg-excess:focus {
+                        background-color: #f5faff !important;
+                        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1) !important;
+                    }
                 </style>
 
                 <%-- Variants data: dùng data-attributes thay vì JSON để tránh quote-escaping --%>
@@ -245,12 +258,11 @@
                     </div>
 
                     <script id="oldLinesData" type="application/json">
-                ${not empty oldLinesJson ? oldLinesJson : '[]'}
-            </script>
+                        ${not empty oldLinesJson ? oldLinesJson : '[]'}
+                    </script>
 
                     <script>
                         let idx = 0;
-                        // Đọc variants từ data attributes (an toàn với mọi ký tự đặc biệt)
                         const variants = Array.from(
                             document.querySelectorAll('#variantsData span')
                         ).map(el => ({
@@ -258,6 +270,46 @@
                             sku: el.dataset.sku,
                             name: el.dataset.name
                         }));
+
+                        function updateBalance(row) {
+                            const qExpInput = row.querySelector('.qty-expected');
+                            if (!qExpInput) return;
+                            const qExp = parseFloat(qExpInput.value) || 0;
+                            const qGoodPhys = parseFloat(row.querySelector('.phys-good').value) || 0;
+                            const qDamagedPhys = parseFloat(row.querySelector('.phys-damaged').value) || 0;
+                            
+                            const totalPhys = qGoodPhys + qDamagedPhys;
+                            let finalGood, finalDamaged, finalMissing, finalExcess;
+                            
+                            if (totalPhys < qExp) {
+                                finalGood = qGoodPhys;
+                                finalDamaged = qDamagedPhys;
+                                finalMissing = qExp - totalPhys;
+                                finalExcess = 0;
+                            } else {
+                                finalMissing = 0;
+                                finalExcess = totalPhys - qExp;
+                                finalGood = Math.min(qGoodPhys, qExp);
+                                finalDamaged = qExp - finalGood;
+                            }
+                            
+                            row.querySelector('.server-good').value = finalGood;
+                            row.querySelector('.server-damaged').value = finalDamaged;
+                            row.querySelector('.server-extra').value = finalExcess;
+                            row.querySelector('.server-missing').value = finalMissing;
+                            
+                            row.querySelector('.display-extra').value = finalExcess;
+                            row.querySelector('.display-missing').value = finalMissing;
+                            
+                            if (totalPhys > 0 || finalMissing > 0) {
+                                let errorRow = row.nextElementSibling;
+                                if (errorRow && errorRow.querySelector('.error-message')) {
+                                    const errorDiv = errorRow.querySelector('.error-message');
+                                    errorDiv.style.display = 'none';
+                                    errorDiv.textContent = '';
+                                }
+                            }
+                        }
 
                         function addLine(data = null) {
                             const tbody = document.querySelector("#linesTable tbody");
@@ -271,34 +323,40 @@
                             }
 
                             tr.innerHTML = `
-<td style="min-width: 250px;">
+<td style="min-width: 200px;">
     <input type="hidden" name="lines[\${idx}].poLineId" value="\${data ? data.poLineId : ''}">
     <input type="hidden" name="lines[\${idx}].variantId" value="\${data ? data.variantId : ''}">
     <span class="small fw-semibold">\${productName}</span>
 </td>
-<td style="width: 120px;">
-    <input type="number" class="form-control form-control-sm text-center bg-light" value="\${data ? Number(data.unitPrice).toFixed(2) : '0.00'}" readonly>
-</td>
-<td style="width: 120px;">
-    <input type="number" class="form-control form-control-sm text-center bg-light qty-expected" name="lines[\${idx}].qtyExpected" value="\${data ? Math.floor(data.qtyExpected) : 0}" readonly>
+<td style="width: 100px;">
+    <input type="number" class="form-control form-control-sm text-center bg-light" value="\${data ? Number(data.unitPrice).toFixed(2) : '0.00'}" readonly title="Unit Price">
 </td>
 <td style="width: 100px;">
-    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-good qty-good" 
-           name="lines[\${idx}].qtyGood" value="\${data && data.fromOld ? Math.floor(data.qtyGood) : 0}" 
-           oninput="this.value = Math.abs(Math.floor(this.value))"
-           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';">
+    <input type="number" class="form-control form-control-sm text-center bg-light qty-expected" name="lines[\${idx}].qtyExpected" value="\${data ? Math.floor(data.qtyExpected) : 0}" readonly title="Ordered Qty">
 </td>
-<td style="width: 100px;">
-    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-damaged qty-damaged" 
-           name="lines[\${idx}].qtyDamaged" value="\${data && data.fromOld ? Math.floor(data.qtyDamaged) : 0}" 
-           oninput="this.value = Math.abs(Math.floor(this.value))"
-           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';">
+<td style="width: 130px; border-left: 2px solid #dee2e6;">
+    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-good phys-good" 
+           value="\${data && data.fromOld ? (data.qtyGood + Math.max(0, (data.qtyGood + data.qtyDamaged + data.qtyExtra) - data.qtyExpected)) : 0}" 
+           oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
+           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Actual Good received">
+    <input type="hidden" class="server-good" name="lines[\${idx}].qtyGood" value="\${data ? Math.floor(data.qtyGood) : 0}">
 </td>
-<td style="width: 100px;">
-    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-missing qty-missing" 
-           name="lines[\${idx}].qtyMissing" value="\${data && data.fromOld ? Math.floor(data.qtyMissing) : 0}" 
-           oninput="this.value = Math.abs(Math.floor(this.value))"
-           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';">
+<td style="width: 130px;">
+    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-damaged phys-damaged" 
+           value="\${data && data.fromOld ? Math.floor(data.qtyDamaged) : 0}" 
+           oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
+           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Actual Damaged received">
+    <input type="hidden" class="server-damaged" name="lines[\${idx}].qtyDamaged" value="\${data ? Math.floor(data.qtyDamaged) : 0}">
+</td>
+<td style="width: 90px; border-left: 2px solid #dee2e6;">
+    <input type="number" class="form-control form-control-sm text-center bg-excess display-extra" 
+           value="\${data ? Math.floor(data.qtyExtra) : 0}" readonly title="Excess items (above PO)">
+    <input type="hidden" class="server-extra" name="lines[\${idx}].qtyExtra" value="\${data ? Math.floor(data.qtyExtra) : 0}">
+</td>
+<td style="width: 90px;">
+    <input type="number" class="form-control form-control-sm text-center bg-missing display-missing" 
+           value="\${data ? Math.floor(data.qtyMissing) : 0}" readonly title="Missing items (below PO)">
+    <input type="hidden" class="server-missing" name="lines[\${idx}].qtyMissing" value="\${data ? Math.floor(data.qtyMissing) : 0}">
 </td>
 <td>
     <input type="text" class="form-control form-control-sm" name="lines[\${idx}].note" placeholder="Remark" value="\${data ? data.note : ''}">
@@ -313,13 +371,17 @@
 </td>
 `;
                             tbody.appendChild(trError);
+                            
+                            if (data && data.fromOld) {
+                                updateBalance(tr);
+                            }
+                            
                             idx++;
                         }
 
-                        // Initialize with lines
                         document.addEventListener("DOMContentLoaded", function () {
-                            const oldLinesData = document.getElementById('oldLinesData').textContent;
-                            const oldLines = JSON.parse(oldLinesData);
+                            const oldLinesDataTag = document.getElementById('oldLinesData');
+                            const oldLines = oldLinesDataTag ? JSON.parse(oldLinesDataTag.textContent) : [];
 
                             if (oldLines && oldLines.length > 0) {
                                 oldLines.forEach(line => {
@@ -328,7 +390,6 @@
                                 });
                             }
 
-                            // --- Integrated PO Combobox Logic ---
                             const poCombobox = document.getElementById('poCombobox');
                             const poSearchInput = document.getElementById('poSearchInput');
                             const poToggleBtn = document.getElementById('poToggleBtn');
@@ -337,15 +398,11 @@
                             const noPoMessage = document.getElementById('noPoMessage');
                             const dropdownItems = poDropdownList.querySelectorAll('.dropdown-item:not(#noPoMessage)');
 
-                            function showDropdown() {
-                                poDropdownList.style.display = 'block';
-                            }
-
-                            function hideDropdown() {
-                                poDropdownList.style.display = 'none';
-                            }
+                            function showDropdown() { poDropdownList.style.display = 'block'; }
+                            function hideDropdown() { poDropdownList.style.display = 'none'; }
 
                             function filterPO() {
+                                if(!poSearchInput) return;
                                 const term = poSearchInput.value.toLowerCase().trim();
                                 let count = 0;
                                 dropdownItems.forEach(item => {
@@ -357,172 +414,159 @@
                                         item.style.display = 'none';
                                     }
                                 });
-                                noPoMessage.style.display = count === 0 ? 'block' : 'none';
+                                if(noPoMessage) noPoMessage.style.display = count === 0 ? 'block' : 'none';
                             }
 
-                            poSearchInput.addEventListener('focus', showDropdown);
-                            poSearchInput.addEventListener('click', showDropdown);
-                            poSearchInput.addEventListener('input', () => {
-                                showDropdown();
-                                filterPO();
-                                if (poSearchInput.value.trim() === "") {
-                                    poIdHidden.value = "";
-                                    fetchPoDetails("");
-                                }
-                            });
-
-                            poToggleBtn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                if (poDropdownList.style.display === 'none') {
+                            if(poSearchInput) {
+                                poSearchInput.addEventListener('focus', showDropdown);
+                                poSearchInput.addEventListener('click', showDropdown);
+                                poSearchInput.addEventListener('input', () => {
                                     showDropdown();
-                                    poSearchInput.focus();
-                                } else {
-                                    hideDropdown();
-                                }
-                            });
+                                    filterPO();
+                                    if (poSearchInput.value.trim() === "") {
+                                        poIdHidden.value = "";
+                                        fetchPoDetails("");
+                                    }
+                                });
+                            }
 
-                            // Handle selection
+                            if(poToggleBtn) {
+                                poToggleBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    if (poDropdownList.style.display === 'none') {
+                                        showDropdown();
+                                        poSearchInput.focus();
+                                    } else {
+                                        hideDropdown();
+                                    }
+                                });
+                            }
+
                             dropdownItems.forEach(item => {
                                 item.addEventListener('click', function () {
                                     const poId = this.getAttribute('data-id');
                                     const poNumber = this.getAttribute('data-number');
-
                                     poSearchInput.value = poNumber;
                                     poIdHidden.value = poId;
                                     hideDropdown();
-
-                                    // Trigger data fetch
                                     fetchPoDetails(poId);
                                 });
                             });
 
-                            // Close on click outside
                             document.addEventListener('click', (e) => {
-                                if (!poCombobox.contains(e.target)) {
-                                    hideDropdown();
-                                }
+                                if (poCombobox && !poCombobox.contains(e.target)) hideDropdown();
                             });
 
                             async function fetchPoDetails(poId) {
                                 if (!poId) {
-                                    document.querySelector("#linesTable tbody").innerHTML = '';
-                                    document.getElementById('supplierSelect').value = '';
-                                    document.getElementById('grnNumberHidden').value = '';
-                                    document.getElementById('grnNumberDisplay').value = '';
+                                    const tb = document.querySelector("#linesTable tbody");
+                                    if(tb) tb.innerHTML = '';
+                                    const sup = document.getElementById('supplierSelect');
+                                    if(sup) sup.value = '';
                                     return;
                                 }
-
                                 try {
                                     const resp = await fetch(`${pageContext.request.contextPath}/goods-receipt?action=getPoDetails&poId=\${poId}`);
                                     if (!resp.ok) throw new Error("Failed to fetch PO details");
                                     const data = await resp.json();
-
-                                    // Update Supplier
-                                    if (data.supplierId) {
-                                        document.getElementById('supplierSelect').disabled = false;
-                                        document.getElementById('supplierSelect').value = data.supplierId;
-                                        document.getElementById('supplierSelect').disabled = true;
+                                    const sup = document.getElementById('supplierSelect');
+                                    if (data.supplierId && sup) {
+                                        sup.disabled = false;
+                                        sup.value = data.supplierId;
+                                        sup.disabled = true;
                                     }
-
-                                    if (data.grnNumber) {
-                                        document.getElementById('grnNumberHidden').value = data.grnNumber;
-                                        document.getElementById('grnNumberDisplay').value = data.grnNumber;
-                                    }
-
-                                    // Clear and Populate Lines
                                     const tbody = document.querySelector("#linesTable tbody");
-                                    tbody.innerHTML = '';
-                                    idx = 0;
-
-                                    data.lines.forEach(l => {
-                                        addLine({
-                                            poLineId: l.poLineId,
-                                            variantId: l.variantId,
-                                            unitPrice: l.unitPrice,
-                                            qtyExpected: l.orderedQty,
-                                            qtyGood: 0,
-                                            qtyDamaged: 0,
-                                            qtyMissing: 0,
-                                            note: '',
-                                            fromOld: false
+                                    if(tbody) {
+                                        tbody.innerHTML = '';
+                                        idx = 0;
+                                        data.lines.forEach(l => {
+                                            addLine({
+                                                poLineId: l.poLineId,
+                                                variantId: l.variantId,
+                                                unitPrice: l.unitPrice,
+                                                qtyExpected: l.orderedQty,
+                                                qtyGood: 0, qtyDamaged: 0, qtyExtra: 0, qtyMissing: l.orderedQty,
+                                                note: '', fromOld: false
+                                            });
                                         });
-                                    });
+                                    }
                                 } catch (err) {
                                     console.error(err);
-                                    alert("Có lỗi khi tải thông tin PO: " + err.message);
+                                    alert("Error fetching PO information: " + err.message);
                                 }
                             }
 
-                            // Form validation
-                            document.getElementById('grnForm').addEventListener('submit', function (e) {
-                                e.preventDefault();
-                                const form = this;
-                                const rows = document.querySelectorAll('.line-row');
-
-                                let hasError = false;
-
-                                if (rows.length === 0) {
-                                    Swal.fire({
-                                        icon: 'warning',
-                                        title: 'No Items',
-                                        text: 'Please select a Purchase Order to display items.'
-                                    });
-                                    return;
-                                }
-
-                                rows.forEach((row, index) => {
-                                    const qExp = parseFloat(row.querySelector(`.qty-expected`).value) || 0;
-                                    const qGoodField = row.querySelector(`.qty-good`);
-                                    const qDamagedField = row.querySelector(`.qty-damaged`);
-                                    const qMissingField = row.querySelector(`.qty-missing`);
-                                    const errorDiv = document.getElementById(`error_\${index}`);
-
-                                    // Clear previous errors
-                                    errorDiv.style.display = 'none';
-                                    errorDiv.textContent = '';
-                                    [qGoodField, qDamagedField, qMissingField].forEach(f => f.classList.remove('is-invalid-field'));
-
-                                    const qGood = parseFloat(qGoodField.value) || 0;
-                                    const qDamaged = parseFloat(qDamagedField.value) || 0;
-                                    const qMissing = parseFloat(qMissingField.value) || 0;
-
-                                    const totalReceived = qGood + qDamaged + qMissing;
-
-                                    if (qGood === 0 && qDamaged === 0 && qMissing === 0) {
-                                        errorDiv.textContent = 'At least one quantity must be greater than 0';
-                                        errorDiv.style.display = 'block';
-                                        [qGoodField, qDamagedField, qMissingField].forEach(f => f.classList.add('is-invalid-field'));
-                                        hasError = true;
-                                    } else if (qGood + qDamaged > qExp) {
-                                        errorDiv.textContent = `Good and Damaged quantities exceeds ordered quantity (\${qExp})`;
-                                        errorDiv.style.display = 'block';
-                                        [qGoodField, qDamagedField].forEach(f => f.classList.add('is-invalid-field'));
-                                        hasError = true;
-                                    } else if (qMissing > qExp) {
-                                        errorDiv.textContent = `Missing quantity cannot exceed ordered quantity (\${qExp})`;
-                                        errorDiv.style.display = 'block';
-                                        qMissingField.classList.add('is-invalid-field');
-                                        hasError = true;
-                                    } else if (totalReceived > qExp) {
-                                        errorDiv.textContent = `Total quantity (including Missing) exceeds ordered quantity (\${qExp})`;
-                                        errorDiv.style.display = 'block';
-                                        [qGoodField, qDamagedField, qMissingField].forEach(f => f.classList.add('is-invalid-field'));
-                                        hasError = true;
-                                    } else if (totalReceived < qExp) {
-                                        errorDiv.textContent = `Quantity incomplete. Please record missing amount to match (\${qExp})`;
-                                        errorDiv.style.display = 'block';
-                                        [qGoodField, qDamagedField, qMissingField].forEach(f => f.classList.add('is-invalid-field'));
-                                        hasError = true;
+                            if(grnForm) {
+                                grnForm.addEventListener('submit', async function (e) {
+                                    e.preventDefault();
+                                    const rows = document.querySelectorAll('.line-row');
+                                    if (rows.length === 0) {
+                                        Swal.fire({ icon: 'warning', title: 'No Items', text: 'Please select a Purchase Order.' });
+                                        return;
                                     }
+                                    
+                                    // Capacity Check
+                                    let totalGood = 0;
+                                    let totalDamaged = 0;
+                                    let totalExtra = 0;
+                                    rows.forEach(row => {
+                                        totalGood += parseFloat(row.querySelector('.server-good').value) || 0;
+                                        totalDamaged += parseFloat(row.querySelector('.server-damaged').value) || 0;
+                                        totalExtra += parseFloat(row.querySelector('.server-extra').value) || 0;
+                                    });
+                                    
+                                    const warehouseId = document.getElementById('warehouseIdHidden').value;
+                                    if (warehouseId) {
+                                        try {
+                                            const params = new URLSearchParams({
+                                                action: 'checkCapacity',
+                                                warehouseId: warehouseId,
+                                                totalGood: totalGood,
+                                                totalDamaged: totalDamaged,
+                                                totalExtra: totalExtra
+                                            });
+                                            const resp = await fetch(`${pageContext.request.contextPath}/goods-receipt?` + params.toString());
+                                            const data = await resp.json();
+                                            
+                                            if (!data.sufficient) {
+                                                let html = '<div class="text-start small">';
+                                                if (data.details.good && !data.details.good.isSufficient) {
+                                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>GOOD ITEMS:</b> Need ' + data.details.good.required + ', available ' + data.details.good.available + '</p>';
+                                                }
+                                                if (data.details.damaged && !data.details.damaged.isSufficient) {
+                                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>DAMAGED ITEMS:</b> Need ' + data.details.damaged.required + ', available ' + data.details.damaged.available + '</p>';
+                                                }
+                                                if (data.details.excess && !data.details.excess.isSufficient) {
+                                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>EXCESS ITEMS:</b> Need ' + data.details.excess.required + ', available ' + data.details.excess.available + '</p>';
+                                                }
+                                                html += '</div><hr><p class="mb-0">Do you want to go to <b>Warehouse Layout</b> to create more storage slots?</p>';
+
+                                                Swal.fire({
+                                                    title: 'Insufficient Capacity!',
+                                                    html: html,
+                                                    icon: 'warning',
+                                                    showCancelButton: true,
+                                                    confirmButtonText: 'Go to Warehouse Layout',
+                                                    cancelButtonText: 'Close',
+                                                    confirmButtonColor: '#0d6efd',
+                                                    cancelButtonColor: '#6e7881'
+                                                }).then((result) => {
+                                                    if (result.isConfirmed) {
+                                                        window.location.href = `${pageContext.request.contextPath}/warehouse-layout`;
+                                                    }
+                                                });
+                                                return; // Block submission
+                                            }
+                                        } catch (err) {
+                                            console.error("Capacity check error:", err);
+                                            // Fallback: continue if check fails
+                                        }
+                                    }
+
+                                    const sup = document.getElementById('supplierSelect');
+                                    if(sup) sup.disabled = false;
+                                    this.submit();
                                 });
-
-                                if (hasError) {
-                                    return;
-                                }
-
-                                // Perfect match
-                                document.getElementById('supplierSelect').disabled = false;
-                                form.submit();
-                            });
+                            }
                         });
                     </script>

@@ -410,4 +410,29 @@ public class SlotDAO extends DBContext {
             return rowsAffected > 0;
         }
     }
+
+    public BigDecimal getTotalAvailableCapacityByZoneId(Long zoneId) throws Exception {
+        String sql = """
+            SELECT SUM(COALESCE(s.max_capacity, 0) - COALESCE(ib.used, 0)) as total_available
+            FROM slot s
+            LEFT JOIN (
+                SELECT slot_id, SUM(qty_on_hand) as used
+                FROM inventory_balance
+                GROUP BY slot_id
+            ) ib ON s.slot_id = ib.slot_id
+            WHERE s.zone_id = ? AND s.status = 'ACTIVE'
+        """;
+
+        try (Connection con = DBContext.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, zoneId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal total = rs.getBigDecimal("total_available");
+                    return total != null ? total : java.math.BigDecimal.ZERO;
+                }
+            }
+        }
+        return java.math.BigDecimal.ZERO;
+    }
 }

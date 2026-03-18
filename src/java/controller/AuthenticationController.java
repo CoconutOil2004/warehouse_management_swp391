@@ -15,6 +15,7 @@ import util.ViewPath;
 public class AuthenticationController extends HttpServlet {
 
     private static final String SESSION_USER_KEY = "USER";
+    private static final boolean IS_OTP_ENABLED = false; // Set to false to bypass OTP for testing
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -105,6 +106,14 @@ public class AuthenticationController extends HttpServlet {
 
         // success
         try {
+            // Nếu tắt OTP (để test nhanh)
+            if (!IS_OTP_ENABLED) {
+                user.setPasswordHash(null);
+                request.getSession().setAttribute(SESSION_USER_KEY, user);
+                response.sendRedirect(request.getContextPath() + "/admin/dashboard");
+                return;
+            }
+
             // Tạo OTP lưu vào DB (thay vì session)
             String otp = userDAO.createOtpForUser(user.getUserId());
 
