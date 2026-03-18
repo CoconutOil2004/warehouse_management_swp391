@@ -359,9 +359,13 @@
             <c:if test="${gdn.status == 'PACKING'}">
                 <div class="d-flex gap-2 flex-wrap align-items-center">
                     <a href="${pageContext.request.contextPath}/packing?action=form&gdnId=${gdn.gdnId}"
-                       class="btn btn-warning shadow-sm text-dark d-flex align-items-center justify-content-center"
-                       style="min-width: 150px; height: 38px;">
-                        <i class="fas fa-box me-2"></i>Assign Packing
+                       class="btn btn-warning shadow-sm d-flex align-items-center justify-content-center"
+                       style="min-width: 180px; height: 38px; padding: 0 1rem;">
+                        <i class="fas fa-box me-2"></i>Go to Packing
+                    </a>
+                    <a href="${pageContext.request.contextPath}/packing?action=station&gdnId=${gdn.gdnId}"
+                       class="btn btn-outline-primary shadow-sm">
+                        <i class="fas fa-boxes me-1"></i> Packing Station
                     </a>
                 </div>
             </c:if>

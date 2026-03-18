@@ -682,6 +682,14 @@ public class PickTaskController extends HttpServlet {
             if (pickTaskDao.isWaveComplete(task.getWaveId())) {
                 PickWaveDAO waveDao = new PickWaveDAO();
                 waveDao.updateWaveStatus(task.getWaveId(), "DONE");
+                
+                GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
+                gdnDao.updateGDNStatus(task.getGdnId(), "PACKING");
+            }
+        } else {
+            GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
+            if (pickTaskDao.isAllTasksCompleteForGDN(task.getGdnId())) {
+                gdnDao.updateGDNStatus(task.getGdnId(), "PACKING");
             }
         }
 
@@ -689,7 +697,7 @@ public class PickTaskController extends HttpServlet {
         .getSession()
         .setAttribute(
         "message",
-        "Hoàn thành task #" + pickTaskId + " thành công!"
+        "Hoàn thành task #" + pickTaskId + " thành công! GDN đã chuyển sang trạng thái PACKING."
         );
         response.sendRedirect(
         request.getContextPath() + "/pick-task?action=myTasks"
