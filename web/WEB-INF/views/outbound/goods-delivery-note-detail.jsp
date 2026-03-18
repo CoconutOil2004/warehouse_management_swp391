@@ -304,6 +304,20 @@
                 </div>
             </c:if>
 
+            <c:if test="${gdn.status == 'PACKING'}">
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <a href="${pageContext.request.contextPath}/packing?action=station&gdnId=${gdn.gdnId}"
+                       class="btn btn-warning shadow-sm d-flex align-items-center justify-content-center"
+                       style="min-width: 180px; height: 38px; padding: 0 1rem;">
+                        <i class="fas fa-boxes me-2"></i>Packing Station
+                    </a>
+                    <a href="${pageContext.request.contextPath}/packing?action=form&gdnId=${gdn.gdnId}"
+                       class="btn btn-outline-primary shadow-sm">
+                        <i class="fas fa-edit me-1"></i> Edit Packing
+                    </a>
+                </div>
+            </c:if>
+
             <c:if test="${gdn.status == 'CONFIRMED' && empty shipments}">
                 <div class="d-flex gap-2">
                     <a href="${pageContext.request.contextPath}/shipment?action=create&gdnId=${gdn.gdnId}&soNumber=${gdn.soNumber}"
