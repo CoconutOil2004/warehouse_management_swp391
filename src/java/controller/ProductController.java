@@ -22,6 +22,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.Category;
 import model.Product;
+import model.User;
 import util.RequestUtil;
 
 /**
@@ -192,8 +193,11 @@ public class ProductController extends HttpServlet {
             return;
         }
         Category cat = product.getCategoryId() != null ? new CategoryDAO().getById(product.getCategoryId()) : null;
+        boolean tshOrHd = cat != null && ("TSH".equalsIgnoreCase(cat.getCode()) || "HD".equalsIgnoreCase(cat.getCode())
+                || (cat.getName() != null && (cat.getName().toLowerCase().contains("t-shirt") || cat.getName().toLowerCase().contains("hoodie"))));
         request.setAttribute("variantMatrixProduct", product);
         request.setAttribute("variantMatrixCategory", cat);
+        request.setAttribute("variantMatrixTshOrHd", tshOrHd);
         request.setAttribute("openVariantModal", true);
         handleList(request, response);
     }
@@ -366,7 +370,18 @@ public class ProductController extends HttpServlet {
             response.getWriter().write("{\"error\":\"Invalid product ID\"}");
             return;
         }
-        ProductDetailDTO product = new ProductDAO().getProductById(productId);
+        Long warehouseId = null;
+        try {
+            Object u = request.getSession(false) != null ? request.getSession(false).getAttribute("USER") : null;
+            if (u instanceof User) {
+                warehouseId = ((User) u).getWarehouseId();
+            }
+        } catch (Exception ignored) {}
+
+        ProductDAO productDAO = new ProductDAO();
+        ProductDetailDTO product = (warehouseId != null)
+                ? productDAO.getProductById(productId, warehouseId)
+                : productDAO.getProductById(productId);
         if (product == null) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             response.getWriter().write("{\"error\":\"Product not found\"}");
