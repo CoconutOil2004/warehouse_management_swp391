@@ -1499,4 +1499,21 @@ public class PickTaskDAO extends DBContext {
       }
     }
   }
+
+  public boolean isAllTasksCompleteForGDN(Long gdnId) throws Exception {
+    String sql = """
+        SELECT COUNT(*) FROM pick_task 
+        WHERE gdn_id = ? AND status NOT IN ('COMPLETED', 'CANCELLED')
+        """;
+    try (Connection conn = getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+      ps.setLong(1, gdnId);
+      try (ResultSet rs = ps.executeQuery()) {
+        if (rs.next()) {
+          return rs.getInt(1) == 0;
+        }
+      }
+    }
+    return false;
+  }
 }
