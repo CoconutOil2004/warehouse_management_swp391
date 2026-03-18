@@ -154,7 +154,7 @@
                                 <h5 class="modal-title" id="slotModalLabel${zone.zoneId}">
                                     <c:out value="${hasSlots ? 'Edit Layout' : 'Create Slots'}" /> for Zone: <c:out value="${zone.code}" /> - <c:out value="${zone.name}" />
                                 </h5>
-                                <button type="button" class="btn-close-modal" onclick="closeSlotModal('slotModal${zone.zoneId}')" aria-label="Close" style="background: none; border: none; font-size: 24px; color: #dc3545; cursor: pointer; padding: 0; width: 30px; height: 30px; line-height: 30px; text-align: center;">×</button>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
                                 <form method="post" action="${pageContext.request.contextPath}/warehouse-layout" id="slotForm${zone.zoneId}">
@@ -178,7 +178,9 @@
                                         </div>
                                         <div class="col-md-4">
                                             <label for="codePrefix${zone.zoneId}" class="form-label">Slot Code Prefix</label>
-                                            <input type="text" class="form-control" id="codePrefix${zone.zoneId}" name="codePrefix" value="<c:out value="${zone.code}" />" required>
+                                            <input type="text" class="form-control" id="codePrefix${zone.zoneId}" name="codePrefix"
+                                                   value="<c:out value="${zone.code}" />" readonly>
+                                            <div class="form-text">Prefix is fixed to the zone code to avoid incorrect slot codes.</div>
                                         </div>
                                     </div>
                                     
@@ -193,7 +195,7 @@
                                 </form>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" onclick="closeSlotModal('slotModal${zone.zoneId}')">Cancel</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-primary" form="slotForm${zone.zoneId}">
                                     <c:out value="${hasSlots ? 'Add Slots' : 'Create Slots'}" />
                                 </button>
@@ -214,67 +216,7 @@
     </c:if>
 
     <script>
-    // Store modal instances
-    var slotModals = {};
-    
-    // Ensure Bootstrap modals work correctly
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize all slot modals
-        var modals = document.querySelectorAll('.modal');
-        modals.forEach(function(modal) {
-            var modalId = modal.getAttribute('id');
-            if (modalId && modalId.startsWith('slotModal')) {
-                slotModals[modalId] = new bootstrap.Modal(modal, {
-                    backdrop: true,
-                    keyboard: true
-                });
-            }
-        });
-        
-        // Ensure modal trigger buttons are clickable
-        var modalButtons = document.querySelectorAll('[data-bs-toggle="modal"]');
-        modalButtons.forEach(function(button) {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var targetId = this.getAttribute('data-bs-target');
-                if (targetId) {
-                    // Remove # if present
-                    var modalId = targetId.replace('#', '');
-                    if (slotModals[modalId]) {
-                        slotModals[modalId].show();
-                    } else {
-                        var modalElement = document.querySelector(targetId);
-                        if (modalElement) {
-                            slotModals[modalId] = new bootstrap.Modal(modalElement);
-                            slotModals[modalId].show();
-                        }
-                    }
-                }
-            });
-        });
-    });
-    
-    function closeSlotModal(modalId) {
-        if (slotModals[modalId]) {
-            slotModals[modalId].hide();
-        } else {
-            var modalElement = document.getElementById(modalId);
-            if (modalElement) {
-                var modal = bootstrap.Modal.getInstance(modalElement);
-                if (modal) {
-                    modal.hide();
-                } else {
-                    var newModal = new bootstrap.Modal(modalElement);
-                    newModal.hide();
-                }
-            }
-        }
-    }
-    
-    function loadSlotsForZone(zoneId) {
-        // Can be used to load existing slots for this zone if needed
-        console.log('Loading slots for zone: ' + zoneId);
-    }
+        // Use Bootstrap's built-in data API for opening/closing modals.
+        // No custom modal instance management here to avoid stuck backdrops.
     </script>
 </t:layout>

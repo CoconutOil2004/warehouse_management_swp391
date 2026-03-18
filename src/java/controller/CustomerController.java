@@ -6,6 +6,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.SQLException;
 import model.Customer;
@@ -16,6 +17,7 @@ public class CustomerController extends HttpServlet {
 
     private static final Long DEFAULT_PAGE = 1L;
     private static final Long DEFAULT_SIZE = 10L;
+    private static final int MAX_ADDRESS_LENGTH = 255;
 
     private final CustomerDAO customerDao = new CustomerDAO();
 
@@ -164,7 +166,16 @@ public class CustomerController extends HttpServlet {
         try {
             // Validate required fields
             if (name.isEmpty()) {
-                request.setAttribute("error", "Name is required");
+                setToast(request.getSession(true), "Name is required", "error");
+                request.setAttribute("customer", c);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                return;
+            }
+
+            if (address.length() > MAX_ADDRESS_LENGTH) {
+                setToast(request.getSession(true),
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
                 request.setAttribute("customer", c);
                 request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
                 return;
@@ -178,7 +189,15 @@ public class CustomerController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/admin/customer");
         } catch (SQLException e) {
             e.printStackTrace();
-            request.setAttribute("error", "Database error: " + e.getMessage());
+            // Friendly toast for common truncation case
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("data too long")
+                    && e.getMessage().toLowerCase().contains("address")) {
+                setToast(request.getSession(true),
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
+            } else {
+                setToast(request.getSession(true), "Database error. Please try again.", "error");
+            }
             request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
         }
     }
@@ -203,7 +222,7 @@ public class CustomerController extends HttpServlet {
             // Validate required fields
             if (code.isEmpty() || name.isEmpty()) {
                 Customer old = customerDao.getDetail(id);
-                request.setAttribute("error", "Code and Name are required");
+                setToast(request.getSession(true), "Code and Name are required", "error");
                 request.setAttribute("customer", old);
                 request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
                 return;
@@ -218,9 +237,18 @@ public class CustomerController extends HttpServlet {
             c.setAddress(address);
             c.setStatus(status);
 
+            if (address.length() > MAX_ADDRESS_LENGTH) {
+                setToast(request.getSession(true),
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
+                request.setAttribute("customer", c);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
+                return;
+            }
+
             // Check if code already exists for another customer
             if (customerDao.codeExists(code, id)) {
-                request.setAttribute("error", "Customer Code already exists");
+                setToast(request.getSession(true), "Customer Code already exists", "error");
                 request.setAttribute("customer", c);
                 request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
                 return;
@@ -228,8 +256,20 @@ public class CustomerController extends HttpServlet {
 
             customerDao.update(c);
             response.sendRedirect(request.getContextPath() + "/admin/customer");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            if (e.getMessage() != null && e.getMessage().toLowerCase().contains("data too long")
+                    && e.getMessage().toLowerCase().contains("address")) {
+                setToast(request.getSession(true),
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
+            } else {
+                setToast(request.getSession(true), "Database error. Please try again.", "error");
+            }
+            response.sendRedirect(request.getContextPath() + "/admin/customer");
         } catch (Exception e) {
             e.printStackTrace();
+            setToast(request.getSession(true), "An error occurred. Please try again.", "error");
             response.sendRedirect(request.getContextPath() + "/admin/customer");
         }
     }
@@ -250,6 +290,11 @@ public class CustomerController extends HttpServlet {
             e.printStackTrace();
             response.sendRedirect(request.getContextPath() + "/admin/customer");
         }
+    }
+
+    private void setToast(HttpSession session, String message, String type) {
+        session.setAttribute("message", message);
+        session.setAttribute("type", type);
     }
     
 }

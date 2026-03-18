@@ -1,4 +1,4 @@
-package dao;
+    package dao;
 
 import context.DBContext;
 import java.nio.charset.StandardCharsets;
@@ -478,17 +478,17 @@ public class UserDAO extends DBContext implements Dao<User> {
 
         String otp = generateOtp6Digits();
         String tokenHash = sha256Hex(otp);
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + RESET_TOKEN_TTL.toMillis());
+        long ttlSeconds = RESET_TOKEN_TTL.getSeconds();
 
         String sql = """
             INSERT INTO password_reset_token (user_id, token_hash, expires_at)
-            VALUES (?, ?, ?)
+            VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND))
         """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, u.getUserId());
             ps.setString(2, tokenHash);
-            ps.setTimestamp(3, expiresAt);
+            ps.setLong(3, ttlSeconds);
             ps.executeUpdate();
         }
 
@@ -599,13 +599,13 @@ public class UserDAO extends DBContext implements Dao<User> {
        public String createOtpForUser(Long userId) throws SQLException {
         String otp = generateOtp6Digits();
         String tokenHash = sha256Hex(otp);
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + RESET_TOKEN_TTL.toMillis());
+        long ttlSeconds = RESET_TOKEN_TTL.getSeconds();
 
-        String sql = "INSERT INTO password_reset_token (user_id, token_hash, expires_at) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO password_reset_token (user_id, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND))";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, userId);
             ps.setString(2, tokenHash);
-            ps.setTimestamp(3, expiresAt);
+            ps.setLong(3, ttlSeconds);
             ps.executeUpdate();
         }
         return otp;

@@ -15,6 +15,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import util.ViewPath;
 import util.RequestUtil;
+import util.ToastUtil;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
@@ -68,9 +69,7 @@ public class PurchaseOrderController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         request.setCharacterEncoding("UTF-8");
-
         String action = request.getParameter("action");
         if (action == null || action.isBlank()) {
             action = "list";
@@ -184,11 +183,16 @@ public class PurchaseOrderController extends HttpServlet {
         String idStr = request.getParameter("id");
         long poId = (idStr == null || idStr.isBlank()) ? -1L : Long.parseLong(idStr);
         if (poId <= 0) {
-            // nếu không có id hợp lệ thì quay về list
-            forwardList(request, response);
+            ToastUtil.setToast(request, "error", "Invalid Purchase Order id.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders");
             return;
         }
         PurchaseOrderHeaderDTO POheader = poService.getPurchaseOrderHeader(poId);
+        if (POheader == null) {
+            ToastUtil.setToast(request, "error", "Purchase Order not found.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders");
+            return;
+        }
         List<PurchaseOrderLineDTO> lines = poService.getPurchaseOrderDetailLines(poId);
         request.setAttribute("poId", poId);
         request.setAttribute("POheader", POheader);
@@ -204,8 +208,8 @@ public class PurchaseOrderController extends HttpServlet {
         try {
             Part filePart = request.getPart("file");
             if (filePart == null || filePart.getSize() == 0) {
-                request.setAttribute("errorMsg", "Please select a file to upload.");
-                forwardImportForm(request, response);
+                ToastUtil.setToast(request, "error", "Please select a file to upload.");
+                response.sendRedirect(request.getContextPath() + "/purchase-orders?action=import");
                 return;
             }
             Long userId = (Long) request.getSession().getAttribute("userId");
@@ -221,16 +225,15 @@ public class PurchaseOrderController extends HttpServlet {
                     errMsg.append("<li>").append(err).append("</li>");
                 }
                 errMsg.append("</ul>");
-                request.setAttribute("errorMsg", errMsg.toString());
+                ToastUtil.setToast(request, "error", errMsg.toString());
             } else {
-                request.setAttribute("successMsg",
-                        "Successfully imported Purchase Order: " + result.getPoNumber());
+                ToastUtil.setToast(request, "success", "Successfully imported Purchase Order: " + result.getPoNumber());
             }
-            forwardImportForm(request, response);
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=import");
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("errorMsg", "Error processing Excel file: " + e.getMessage());
-            forwardImportForm(request, response);
+            ToastUtil.setToast(request, "error", "Error processing Excel file: " + e.getMessage());
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=import");
         }
     }
 
@@ -369,9 +372,7 @@ public class PurchaseOrderController extends HttpServlet {
         }
 
         poService.createManualPO(poNumber, supplierId, expectedDate, note, userId, lines);
-        // toast.jspf listens on sessionScope.message and auto-clears it after rendering
-        request.getSession().setAttribute("message", "Create Purchase Order successfully: " + poNumber);
-        request.getSession().setAttribute("type", "success");
+        ToastUtil.setToast(request, "success", "Create Purchase Order successfully: " + poNumber);
         response.sendRedirect(request.getContextPath() + "/purchase-orders");
 
     }
@@ -380,12 +381,14 @@ public class PurchaseOrderController extends HttpServlet {
             throws Exception {
         long poId = RequestUtil.parseLong(request.getParameter("id"), -1L);
         if (poId <= 0) {
+            ToastUtil.setToast(request, "error", "Invalid Purchase Order id.");
             response.sendRedirect(request.getContextPath() + "/purchase-orders");
             return;
         }
         PurchaseOrderHeaderDTO po = poService.getPurchaseOrderHeader(poId);
         if (po == null) {
-            response.sendRedirect(request.getContextPath() + "/purchase-orders?msg=notfound");
+            ToastUtil.setToast(request, "error", "Purchase Order not found.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders");
             return;
         }
 
@@ -415,7 +418,8 @@ public class PurchaseOrderController extends HttpServlet {
 
         PurchaseOrderHeaderDTO current = poService.getPurchaseOrderHeader(poId);
         if (current == null) {
-            response.sendRedirect(request.getContextPath() + "/purchase-orders?msg=notfound");
+            ToastUtil.setToast(request, "error", "Purchase Order not found.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders");
             return;
         }
 
@@ -576,18 +580,14 @@ public class PurchaseOrderController extends HttpServlet {
 
         try {
             poService.updatePurchaseOrder(header, lines);
-            request.getSession().setAttribute("message", "Update Purchase Order successfully: " + poNumber);
-            request.getSession().setAttribute("type", "success");
+            ToastUtil.setToast(request, "success", "Update Purchase Order successfully: " + poNumber);
             response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
         } catch (IllegalArgumentException ex) {
             // DAO throws when status is neither CREATED nor IMPORTED
-            request.getSession().setAttribute("message",
-                    "Purchase Order cannot be updated: " + ex.getMessage());
-            request.getSession().setAttribute("type", "danger");
+            ToastUtil.setToast(request, "error", "Purchase Order cannot be updated: " + ex.getMessage());
             response.sendRedirect(request.getContextPath() + "/purchase-orders?action=edit&id=" + poId);
         } catch (Exception ex) {
-            request.getSession().setAttribute("message", "Error updating PO: " + ex.getMessage());
-            request.getSession().setAttribute("type", "danger");
+            ToastUtil.setToast(request, "error", "Error updating PO: " + ex.getMessage());
             response.sendRedirect(request.getContextPath() + "/purchase-orders?action=edit&id=" + poId);
         }
     }
@@ -595,25 +595,36 @@ public class PurchaseOrderController extends HttpServlet {
     private void handleDelete(HttpServletRequest request, HttpServletResponse response)
             throws Exception {
 
-        long poId = Long.parseLong(request.getParameter("id"));
+        String page = request.getParameter("page");
+        String redirectUrl = request.getContextPath() + "/purchase-orders";
+        if (page != null && !page.isBlank()) {
+            redirectUrl += "?page=" + page;
+        }
+
+        long poId;
+        try {
+            poId = Long.parseLong(request.getParameter("id"));
+        } catch (Exception ex) {
+            ToastUtil.setToast(request, "error", "Invalid Purchase Order id.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
+
         PurchaseOrderHeaderDTO po = poService.getPurchaseOrderHeader(poId);
         if (po != null && "CLOSED".equalsIgnoreCase(po.getStatus())) {
-            String page = request.getParameter("page");
-            String redirectUrl = request.getContextPath() + "/purchase-orders";
-            redirectUrl += (page != null && !page.isBlank()) ? "?page=" + page + "&msg=cannotdelete" : "?msg=cannotdelete";
+            ToastUtil.setToast(request, "error", "Cannot delete Purchase Order with status CLOSED.");
             response.sendRedirect(redirectUrl);
             return;
         }
 
         boolean ok = poService.deletePurchaseOrder(poId);
-        String msg = ok ? "deleted" : "notfound";
-        String page = request.getParameter("page");
-        String redirectUrl = request.getContextPath() + "/purchase-orders";
-        if (page != null && !page.isBlank()) {
-            redirectUrl += "?page=" + page + "&msg=" + msg;
+        if (ok) {
+            String poNumber = (po != null && po.getPoNumber() != null) ? po.getPoNumber() : ("#" + poId);
+            ToastUtil.setToast(request, "success", "Delete Purchase Order successfully: " + poNumber);
         } else {
-            redirectUrl += "?msg=" + msg;
+            ToastUtil.setToast(request, "error", "Purchase Order not found.");
         }
+
         response.sendRedirect(redirectUrl);
     }
 

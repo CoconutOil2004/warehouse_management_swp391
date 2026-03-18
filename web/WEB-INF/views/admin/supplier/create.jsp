@@ -16,10 +16,6 @@
                             <form method="POST" action="${pageContext.request.contextPath}/admin/supplier/create"
                                 class="m-0">
 
-                                <c:if test="${not empty error}">
-                                    <div class="alert alert-danger">${error}</div>
-                                </c:if>
-
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="name" class="form-label">
@@ -48,7 +44,7 @@
                                 <div class="mb-4">
                                     <label for="address" class="form-label">Address</label>
                                     <textarea class="form-control" id="address" name="address" rows="2"
-                                        placeholder="Supplier Address">${supplier.address}</textarea>
+                                        placeholder="Supplier Address" maxlength="255">${supplier.address}</textarea>
                                 </div>
 
                                 <div class="d-flex justify-content-end gap-2">

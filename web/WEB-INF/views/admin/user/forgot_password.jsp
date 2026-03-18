@@ -251,8 +251,8 @@
                         <div class="header">
                             <div class="logo-area"><i class="fas fa-lock-open" style="color:white; font-size:24px;"></i>
                             </div>
-                            <h1>Quên mật khẩu?</h1>
-                            <p>Nhập email để khôi phục quyền truy cập</p>
+                            <h1>Forgot Password?</h1>
+                            
                         </div>
 
                         <c:if test="${not empty error}">
@@ -267,16 +267,16 @@
                             <div class="form-group">
                                 <div class="input-field">
                                     <i class="fas fa-envelope"></i>
-                                    <input type="email" name="email" id="email" placeholder="Nhập địa chỉ email đăng ký"
+                                    <input type="email" name="email" id="email" placeholder="Enter your registered email address"
                                         required>
                                 </div>
                             </div>
-                            <button type="submit" class="btn-action">Nhận mã OTP</button>
+                            <button type="submit" class="btn-action">Send OTP</button>
                         </form>
 
                         <div class="footer-links">
                             <a href="<%=request.getContextPath()%>/authen"><i class="fas fa-chevron-left"
-                                    style="font-size:12px; margin-right:5px;"></i> Quay về Đăng nhập</a>
+                                    style="font-size:12px; margin-right:5px;"></i> Back to login </a>
                         </div>
                     </div>
                 </div>

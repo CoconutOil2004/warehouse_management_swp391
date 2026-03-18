@@ -23,12 +23,6 @@
     </jsp:attribute>
 
     <jsp:body>
-        <c:if test="${param.msg == 'cannotdelete'}">
-            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                Cannot delete Sale Order with status CLOSED.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        </c:if>
         <c:set var="columns" value='${["STT", "SO Number", "Customer", "Request Ship Date", "Ship To Address", "Imported By", "Status", "Action"]}' />
         <t:table id="soTable" columns="${columns}">
             <jsp:attribute name="head">

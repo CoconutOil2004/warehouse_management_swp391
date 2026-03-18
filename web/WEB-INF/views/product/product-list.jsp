@@ -347,8 +347,18 @@
                                     <div class="card-body py-3">
                                         <label class="form-label fw-semibold mb-2"><i class="fas fa-ruler me-1 text-info"></i> Size</label>
                                         <c:choose>
+                                            <c:when test="${variantMatrixTshOrHd == true}">
+                                                <p class="small text-muted mb-2">T-Shirt (TSH) &amp; Hoodie (HD): S, M, L, XL, XXL, XXS.</p>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <c:forEach var="s" items="${['XXS','S','M','L','XL','XXL']}">
+                                                        <label class="variant-size-chip">
+                                                            <input type="checkbox" name="sizes" value="${s}"> ${s}
+                                                        </label>
+                                                    </c:forEach>
+                                                </div>
+                                            </c:when>
                                             <c:when test="${variantMatrixCategory != null && variantMatrixCategory.sizeType == 'LETTER'}">
-                                                <p class="small text-muted mb-2">For top categories (TSH, HD): choose letter sizes.</p>
+                                                <p class="small text-muted mb-2">Other letter-size categories: choose sizes.</p>
                                                 <div class="d-flex flex-wrap gap-2">
                                                     <c:forEach var="s" items="${['XS','S','M','L','XL']}">
                                                         <label class="variant-size-chip">

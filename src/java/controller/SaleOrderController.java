@@ -12,6 +12,7 @@ import dto.SaleOrderListDTO;
 import service.SaleOrderImportService;
 import service.SaleOrderService;
 import util.RequestUtil;
+import util.ToastUtil;
 import util.ViewPath;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -140,12 +141,14 @@ public class SaleOrderController extends HttpServlet {
     private void forwardDetail(HttpServletRequest request, HttpServletResponse response) throws Exception {
         long soId = RequestUtil.parseLong(request.getParameter("id"), -1L);
         if (soId <= 0) {
+            ToastUtil.setToast(request, "error", "Invalid Sales Order id.");
             response.sendRedirect(request.getContextPath() + "/sales-orders?action=list");
             return;
         }
 
         SaleOrderHeaderDTO header = soService.getSaleOrderHeader(soId);
         if (header == null) {
+            ToastUtil.setToast(request, "error", "Sales Order not found.");
             response.sendRedirect(request.getContextPath() + "/sales-orders?action=list");
             return;
         }
@@ -173,7 +176,7 @@ public class SaleOrderController extends HttpServlet {
         try {
             Part filePart = request.getPart("file");
             if (filePart == null || filePart.getSize() == 0) {
-                request.setAttribute("errorMsg", "Please select a file to upload.");
+                ToastUtil.setToast(request, "error", "Please select a file to upload.");
                 forwardImportForm(request, response);
                 return;
             }
@@ -195,15 +198,14 @@ public class SaleOrderController extends HttpServlet {
                     errMsg.append("<li>").append(err).append("</li>");
                 }
                 errMsg.append("</ul>");
-                request.setAttribute("errorMsg", errMsg.toString());
+                ToastUtil.setToast(request, "error", errMsg.toString());
             } else {
-                request.setAttribute("successMsg",
-                        "Successfully imported Sale Order: " + result.getSoNumber());
+                ToastUtil.setToast(request, "success", "Successfully imported Sale Order: " + result.getSoNumber());
             }
             forwardImportForm(request, response);
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("errorMsg", "Error processing Excel file: " + e.getMessage());
+            ToastUtil.setToast(request, "error", "Error processing Excel file: " + e.getMessage());
             forwardImportForm(request, response);
         }
     }
@@ -347,6 +349,7 @@ public class SaleOrderController extends HttpServlet {
         // Tạo SO + giữ chỗ tồn kho (DAO sẽ check inventory & reservation)
         try {
             soService.createManualSO(soNumber, customerId, requestedShipDate, shipToAddress, userId, lines);
+            ToastUtil.setToast(request, "success", "Create Sales Order successfully: " + soNumber);
             response.sendRedirect(request.getContextPath() + "/sales-orders");
         } catch (IllegalArgumentException ex) {
             // Các lỗi business như thiếu tồn kho, không có inventory_summary,...
@@ -369,12 +372,14 @@ public class SaleOrderController extends HttpServlet {
             throws Exception {
         long soId = RequestUtil.parseLong(request.getParameter("id"), -1L);
         if (soId <= 0) {
+            ToastUtil.setToast(request, "error", "Invalid Sales Order id.");
             response.sendRedirect(request.getContextPath() + "/sales-orders");
             return;
         }
         SaleOrderHeaderDTO so = soService.getSaleOrderHeader(soId);
         if (so == null) {
-            response.sendRedirect(request.getContextPath() + "/sales-orders?msg=notfound");
+            ToastUtil.setToast(request, "error", "Sales Order not found.");
+            response.sendRedirect(request.getContextPath() + "/sales-orders");
             return;
         }
 
@@ -410,7 +415,8 @@ public class SaleOrderController extends HttpServlet {
 
         SaleOrderHeaderDTO current = soService.getSaleOrderHeader(soId);
         if (current == null) {
-            response.sendRedirect(request.getContextPath() + "/sales-orders?msg=notfound");
+            ToastUtil.setToast(request, "error", "Sales Order not found.");
+            response.sendRedirect(request.getContextPath() + "/sales-orders");
             return;
         }
 
@@ -567,6 +573,7 @@ public class SaleOrderController extends HttpServlet {
         try {
             // Cập nhật SO + điều chỉnh reservation tồn kho
             soService.updateSalesOrder(header, lines, userId);
+            ToastUtil.setToast(request, "success", "Update Sales Order successfully: " + header.getSoNumber());
             response.sendRedirect(request.getContextPath() + "/sales-orders?action=detail&id=" + soId);
         } catch (IllegalArgumentException ex) {
             // Lỗi business: tồn kho không đủ, thiếu inventory_summary,...
@@ -588,24 +595,30 @@ public class SaleOrderController extends HttpServlet {
 
         long soId = RequestUtil.parseLong(request.getParameter("id"), -1L);
         if (soId <= 0) {
+            ToastUtil.setToast(request, "error", "Invalid Sales Order id.");
             response.sendRedirect(request.getContextPath() + "/sales-orders");
             return;
         }
 
         SaleOrderHeaderDTO so = soService.getSaleOrderHeader(soId);
         if (so != null && "CLOSED".equalsIgnoreCase(so.getStatus())) {
+            ToastUtil.setToast(request, "error", "Cannot delete Sales Order with status CLOSED.");
             String page = request.getParameter("page");
             String redirectUrl = request.getContextPath() + "/sales-orders";
-            redirectUrl += (page != null && !page.isBlank()) ? "?page=" + page + "&msg=cannotdelete" : "?msg=cannotdelete";
+            redirectUrl += (page != null && !page.isBlank()) ? "?page=" + page : "";
             response.sendRedirect(redirectUrl);
             return;
         }
 
         boolean ok = soService.deleteSalesOrder(soId);
-        String msg = ok ? "deleted" : "notfound";
+        if (ok) {
+            ToastUtil.setToast(request, "success", "Delete Sales Order successfully.");
+        } else {
+            ToastUtil.setToast(request, "error", "Sales Order not found.");
+        }
         String page = request.getParameter("page");
         String redirectUrl = request.getContextPath() + "/sales-orders";
-        redirectUrl += (page != null && !page.isBlank()) ? "?page=" + page + "&msg=" + msg : "?msg=" + msg;
+        redirectUrl += (page != null && !page.isBlank()) ? "?page=" + page : "";
         response.sendRedirect(redirectUrl);
     }
 
