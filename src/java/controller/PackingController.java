@@ -52,13 +52,15 @@ public class PackingController extends HttpServlet {
         List<PackingDTO> list = packingDao.listByStatus(status);
         request.setAttribute("packings", list);
         request.setAttribute("status", status);
+        request.setAttribute("isReadyView", false);
         request.getRequestDispatcher("/WEB-INF/views/outbound/packing-list.jsp").forward(request, response);
     }
 
     private void handleReadyList(HttpServletRequest request, HttpServletResponse response) throws Exception {
         PackingDAO packingDao = new PackingDAO();
-        List<PackingDTO> list = packingDao.listReadyForPacking();
+        List<PackingDTO> list = packingDao.listGDNsReadyForPacking();
         request.setAttribute("packings", list);
+        request.setAttribute("isReadyView", true);
         request.getRequestDispatcher("/WEB-INF/views/outbound/packing-list.jsp").forward(request, response);
     }
 
