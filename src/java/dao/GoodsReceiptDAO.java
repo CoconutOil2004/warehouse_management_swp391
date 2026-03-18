@@ -511,6 +511,7 @@ public class GoodsReceiptDAO extends DBContext {
                         s.code AS slot_code,
                         z.name AS zone_name,
                         z.code AS zone_code,
+                        z.zone_type AS zone_type,
                         pl.qty_putaway
                     FROM putaway_line pl
                     JOIN putaway_order po ON pl.putaway_id = po.putaway_id
@@ -537,12 +538,14 @@ public class GoodsReceiptDAO extends DBContext {
                     d.setZoneCode(zCode);
                     d.setQtyPutaway(rs.getBigDecimal("qty_putaway"));
 
-                    // Determine type based on zone code
-                    if ("Z-DAM".equals(zCode)) {
+                    String zType = rs.getString("zone_type");
+
+                    // Determine type based on zone type
+                    if ("DAMAGE".equals(zType)) {
                         d.setType("DAMAGED");
-                    } else if ("Z-STO".equals(zCode)) {
+                    } else if ("STORAGE".equals(zType)) {
                         d.setType("GOOD");
-                    } else if ("Z-EXC".equals(zCode)) {
+                    } else if ("EXCESS".equals(zType)) {
                         d.setType("EXCESS");
                     } else {
                         d.setType("STORAGE");

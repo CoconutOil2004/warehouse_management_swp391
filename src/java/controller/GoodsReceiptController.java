@@ -292,13 +292,23 @@ public class GoodsReceiptController extends HttpServlet {
         }
 
         List<Zone> zones = zoneDao.getZonesByWarehouseId(warehouseId);
-        Zone stoZone = zones.stream().filter(z -> "Z-STO".equals(z.getCode())).findFirst().orElse(null);
-        Zone damZone = zones.stream().filter(z -> "Z-DAM".equals(z.getCode())).findFirst().orElse(null);
-        Zone excZone = zones.stream().filter(z -> "Z-EXC".equals(z.getCode())).findFirst().orElse(null);
+        
+        BigDecimal stoAvail = BigDecimal.ZERO;
+        BigDecimal damAvail = BigDecimal.ZERO;
+        BigDecimal excAvail = BigDecimal.ZERO;
 
-        BigDecimal stoAvail = stoZone != null ? slotDao.getTotalAvailableCapacityByZoneId(stoZone.getZoneId()) : BigDecimal.ZERO;
-        BigDecimal damAvail = damZone != null ? slotDao.getTotalAvailableCapacityByZoneId(damZone.getZoneId()) : BigDecimal.ZERO;
-        BigDecimal excAvail = excZone != null ? slotDao.getTotalAvailableCapacityByZoneId(excZone.getZoneId()) : BigDecimal.ZERO;
+        for (Zone z : zones) {
+            if ("STORAGE".equals(z.getZoneType())) {
+                BigDecimal cap = slotDao.getTotalAvailableCapacityByZoneId(z.getZoneId());
+                if (cap != null) stoAvail = stoAvail.add(cap);
+            } else if ("DAMAGE".equals(z.getZoneType())) {
+                BigDecimal cap = slotDao.getTotalAvailableCapacityByZoneId(z.getZoneId());
+                if (cap != null) damAvail = damAvail.add(cap);
+            } else if ("EXCESS".equals(z.getZoneType())) {
+                BigDecimal cap = slotDao.getTotalAvailableCapacityByZoneId(z.getZoneId());
+                if (cap != null) excAvail = excAvail.add(cap);
+            }
+        }
 
         boolean goodOk = totalGood.compareTo(stoAvail) <= 0;
         boolean damOk = totalDamaged.compareTo(damAvail) <= 0;
@@ -666,24 +676,26 @@ public class GoodsReceiptController extends HttpServlet {
         Warehouse warehouse = warehouseDao.getWarehouseById(grn.getWarehouseId());
         request.setAttribute("warehouseName", warehouse != null ? warehouse.getName() : "ID: " + grn.getWarehouseId());
 
-        // Tìm các Zone Z-STO và Z-DAM để lấy Slot gợi ý
+        // Tìm các Zone theo zoneType để lấy Slot gợi ý
         List<Zone> zones = zoneDao.getZonesByWarehouseId(grn.getWarehouseId());
-        Zone stoZone = zones.stream().filter(z -> "Z-STO".equals(z.getCode())).findFirst().orElse(null);
-        Zone damZone = zones.stream().filter(z -> "Z-DAM".equals(z.getCode())).findFirst().orElse(null);
-        Zone excZone = zones.stream().filter(z -> "Z-EXC".equals(z.getCode())).findFirst().orElse(null);
+        
+        List<Object> storageSlots = new java.util.ArrayList<>();
+        List<Object> damageSlots = new java.util.ArrayList<>();
+        List<Object> excessSlots = new java.util.ArrayList<>();
 
-        if (stoZone != null) {
-            request.setAttribute("storageSlots",
-                    slotDao.getSlotsWithInventoryByZoneId(stoZone.getZoneId(), grn.getWarehouseId()));
+        for (Zone z : zones) {
+            if ("STORAGE".equals(z.getZoneType())) {
+                storageSlots.addAll(slotDao.getSlotsWithInventoryByZoneId(z.getZoneId(), grn.getWarehouseId()));
+            } else if ("DAMAGE".equals(z.getZoneType())) {
+                damageSlots.addAll(slotDao.getSlotsWithInventoryByZoneId(z.getZoneId(), grn.getWarehouseId()));
+            } else if ("EXCESS".equals(z.getZoneType())) {
+                excessSlots.addAll(slotDao.getSlotsWithInventoryByZoneId(z.getZoneId(), grn.getWarehouseId()));
+            }
         }
-        if (damZone != null) {
-            request.setAttribute("damageSlots",
-                    slotDao.getSlotsWithInventoryByZoneId(damZone.getZoneId(), grn.getWarehouseId()));
-        }
-        if (excZone != null) {
-            request.setAttribute("excessSlots",
-                    slotDao.getSlotsWithInventoryByZoneId(excZone.getZoneId(), grn.getWarehouseId()));
-        }
+        
+        request.setAttribute("storageSlots", storageSlots);
+        request.setAttribute("damageSlots", damageSlots);
+        request.setAttribute("excessSlots", excessSlots);
 
         // Pass RBAC flags to JSP
         request.setAttribute("canMutation", roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
