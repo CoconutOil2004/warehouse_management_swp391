@@ -57,16 +57,16 @@
                                             </button>
 
                                             <t:alert id="deleteModal${s.supplierId}">
-                                                <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
+                                                <jsp:attribute name="title"> Confirm Change </jsp:attribute>
                                                 <jsp:attribute name="desciption">
-                                                    Are you sure you want to delete supplier
+                                                    Are you sure you want to change status of supplier
                                                     <strong>${s.name}</strong>? This action cannot be undone.
                                                 </jsp:attribute>
                                                 <jsp:attribute name="action">
                                                     <button type="button" class="btn btn-danger"
                                                         data-bs-dismiss="modal"
                                                         onclick="document.getElementById('deleteForm${s.supplierId}').submit()">
-                                                        Delete
+                                                        Change
                                                     </button>
                                                 </jsp:attribute>
                                             </t:alert>
