@@ -42,7 +42,7 @@
                     Orders</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/goods-receipt?action=list">GRN
                     List</a>
-                
+
             </div>
         </div>
     </li>
@@ -59,7 +59,8 @@
                 <a class="collapse-item" href="${pageContext.request.contextPath}/sales-orders">Sales Orders</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/goods-delivery-note?action=list">GDN List</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/pick-wave?action=list">Pick Wave</a>
-                <a class="collapse-item" href="${pageContext.request.contextPath}/pick-task?action=myTasks">My Tasks</a>
+                <a class="collapse-item" href="${pageContext.request.contextPath}/pick-task?action=myLines">My Pick Lines</a>
+                <%-- <a class="collapse-item" href="${pageContext.request.contextPath}/pick-task?action=myTasks">My Tasks</a> --%>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/packing?action=list">Packing</a>
                 <a class="collapse-item" href="${pageContext.request.contextPath}/shipment?action=list">Shipment</a>
             </div>
@@ -113,7 +114,7 @@
                     </a>
                 </li>
 
-                
+
 
     <!-- Divider -->
     <hr class="sidebar-divider" />

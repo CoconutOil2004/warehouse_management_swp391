@@ -57,15 +57,15 @@
                             </button>
 
                             <t:alert id="deleteModal${cst.customerId}">
-                                <jsp:attribute name="title"> Confirm Change </jsp:attribute>
+                                <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
                                 <jsp:attribute name="desciption">
-                                    Are you sure you want to change status of customer
+                                    Are you sure you want to delete customer
                                     <strong>${cst.name}</strong>? This action cannot be undone.
                                 </jsp:attribute>
                                 <jsp:attribute name="action">
                                     <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
                                         onclick="document.getElementById('deleteForm${cst.customerId}').submit()">
-                                        Change
+                                        Delete
                                     </button>
                                 </jsp:attribute>
                             </t:alert>

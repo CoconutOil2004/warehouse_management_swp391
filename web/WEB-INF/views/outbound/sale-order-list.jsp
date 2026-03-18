@@ -87,11 +87,29 @@
                                     <t:button type="submit" size="sm" variant="outline" color="primary">View</t:button>
                                     </form>
                                 <c:if test="${so.status != 'CLOSED'}">
-                                    <form action="${pageContext.request.contextPath}/sales-orders" method="post" style="display:inline;" onsubmit="return confirm('Delete SO ${so.soNumber}?');">
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-bs-toggle="modal" data-bs-target="#deleteModal${so.soId}">
+                                        Delete
+                                    </button>
+
+                                    <t:alert id="deleteModal${so.soId}">
+                                        <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
+                                        <jsp:attribute name="desciption">
+                                            Are you sure you want to delete sale order
+                                            <strong>${so.soNumber}</strong>? This action cannot be undone.
+                                        </jsp:attribute>
+                                        <jsp:attribute name="action">
+                                            <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                                                    onclick="document.getElementById('deleteForm${so.soId}').submit()">
+                                                Delete
+                                            </button>
+                                        </jsp:attribute>
+                                    </t:alert>
+                                    <form id="deleteForm${so.soId}" action="${pageContext.request.contextPath}/sales-orders"
+                                          method="post" class="d-none">
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="${so.soId}">
                                         <input type="hidden" name="page" value="${page}">
-                                        <t:button type="submit" size="sm" variant="outline" color="danger">Delete</t:button>
                                     </form>
                                 </c:if>
                                 <c:if test="${so.status == 'CREATED'}">
