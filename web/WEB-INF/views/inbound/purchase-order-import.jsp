@@ -12,17 +12,6 @@
                 <div class="card shadow-sm">
                     <div class="card-header fw-semibold bg-primary text-white">Upload Excel File</div>
                     <div class="card-body">
-                        <c:if test="${not empty errorMsg}">
-                            <div class="alert alert-danger">
-                                ${errorMsg}
-                            </div>
-                        </c:if>
-                        <c:if test="${not empty successMsg}">
-                            <div class="alert alert-success">
-                                ${successMsg}
-                            </div>
-                        </c:if>
-
                         <form action="${pageContext.request.contextPath}/purchase-orders" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="action" value="processImport">
                             
