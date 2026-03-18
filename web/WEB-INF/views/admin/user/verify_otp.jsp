@@ -227,8 +227,8 @@
                         <div class="header">
                             <div class="logo-area"><i class="fas fa-shield-alt"
                                     style="color:white; font-size:24px;"></i></div>
-                            <h1>Xác thực OTP</h1>
-                            <p>Mã OTP đã được gửi đến email của bạn</p>
+                            <h1>Verify OTP</h1>
+                            <p>OTP has been sent to your email</p>
                         </div>
 
                         <c:if test="${not empty error}">
@@ -243,13 +243,13 @@
                                         autocomplete="one-time-code">
                                 </div>
                             </div>
-                            <button type="submit" class="btn-action">Xác nhận mã</button>
+                            <button type="submit" class="btn-action">Verify code</button>
                         </form>
 
                         <div class="footer-links">
                             <a href="<%=request.getContextPath()%>/authen?action=forgot"><i class="fas fa-sync-alt"
-                                    style="margin-right:5px;"></i> Gửi lại mã OTP</a>
-                            <a href="<%=request.getContextPath()%>/authen" style="opacity: 0.6;">Hủy xác thực</a>
+                                    style="margin-right:5px;"></i> Resend OTP</a>
+                            <a href="<%=request.getContextPath()%>/authen" style="opacity: 0.6;">Cancel verify</a>
                         </div>
                     </div>
                 </div>

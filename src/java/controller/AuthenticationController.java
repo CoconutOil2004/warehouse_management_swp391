@@ -15,13 +15,13 @@ import util.ViewPath;
 public class AuthenticationController extends HttpServlet {
 
     private static final String SESSION_USER_KEY = "USER";
-    private static final boolean IS_OTP_ENABLED = false; // Set to false to bypass OTP for testing
+    private static final boolean IS_OTP_ENABLED = false;
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // đọc action từ query param
+        // read action from query param
         String action = trimOrEmpty(request.getParameter("action"));
 
         // logout
@@ -89,7 +89,7 @@ public class AuthenticationController extends HttpServlet {
 
         // validate khong de trong
         if (identity.isEmpty() || password.isEmpty()) {
-            request.setAttribute("error", "Vui lòng nhập đầy đủ email và password");
+            request.setAttribute("error", "Please enter both email and password");
             request.getRequestDispatcher(ViewPath.VIEW_LOGIN).forward(request, response);
             return;
         }
@@ -99,7 +99,7 @@ public class AuthenticationController extends HttpServlet {
         User user = userDAO.login(identity, password);
 
         if (user == null) {
-            request.setAttribute("error", "Sai email hoặc password");
+            request.setAttribute("error", "Invalid email or password");
             request.getRequestDispatcher(ViewPath.VIEW_LOGIN).forward(request, response);
             return;
         }
@@ -132,7 +132,7 @@ public class AuthenticationController extends HttpServlet {
 
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("error", "Lỗi khi tạo OTP: " + e.getMessage());
+            request.setAttribute("error", "Failed to generate OTP " + e.getMessage());
             request.getRequestDispatcher(ViewPath.VIEW_LOGIN).forward(request, response);
         }
     }
@@ -148,22 +148,21 @@ public class AuthenticationController extends HttpServlet {
 
         // validate
         if (email.isEmpty()) {
-            request.setAttribute("error", "Vui lòng nhập email");
+            request.setAttribute("error", "Please enter your email");
             request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
             return;
         }
 
         UserDAO dao = new UserDAO();
         try {
-            // Tạo OTP lưu DB + trả về raw OTP để gửi email
+            // Tạo OTP lưu DB + trả OTP raw để gửi email
             String otp = dao.createPasswordResetOtpByEmail(email);
             if (otp == null) {
-                request.setAttribute("error", "Email không tồn tại trong hệ thống");
+                request.setAttribute("error", "Email does not exist in the system");
                 request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
                 return;
             }
 
-            // Gửi OTP qua email
             SendEmail.sendOTP(email, otp);
 
             // lưu email vào session
@@ -175,7 +174,7 @@ public class AuthenticationController extends HttpServlet {
             request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("error", "Có lỗi xảy ra. Vui lòng thử lại.");
+            request.setAttribute("error", "An error occurred. Please try again.");
             request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
         }
     }
@@ -185,7 +184,7 @@ public class AuthenticationController extends HttpServlet {
         String otp = trimOrEmpty(request.getParameter("otp"));
 
         if (otp.isEmpty()) {
-            request.setAttribute("error", "Vui lòng nhập OTP");
+            request.setAttribute("error", "Please enter OTP");
             request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
             return;
         }
@@ -197,13 +196,12 @@ public class AuthenticationController extends HttpServlet {
             return;
         }
 
-        // Verify OTP từ DB (thay vì session)
         UserDAO dao = new UserDAO();
         try {
             Long verifiedUserId = dao.verifyResetOtpAndGetUserId(otp);
 
             if (verifiedUserId == null) {
-                request.setAttribute("error", "OTP không chính xác hoặc đã hết hạn");
+                request.setAttribute("error", "OTP is invalid or expired");
                 request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
                 return;
             }
@@ -234,12 +232,10 @@ public class AuthenticationController extends HttpServlet {
             session.setAttribute("VERIFIED_OTP", "TRUE");
             session.setAttribute("VERIFIED_USER_ID", verifiedUserId);
 
-            // Chuyển sang trang reset password
             request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
-
         } catch (SQLException e) {
             e.printStackTrace();
-            request.setAttribute("error", "Có lỗi xảy ra. Vui lòng thử lại.");
+            request.setAttribute("error", "An error occurred. Please try again.");
             request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
         }
     }
@@ -252,7 +248,7 @@ public class AuthenticationController extends HttpServlet {
         String otp = (session != null) ? (String) session.getAttribute("VERIFIED_OTP") : null;
 
         if (otp == null) {
-            // Chưa verify OTP mà nhảy vào đây -> đá về forgot
+            // OTP not verified yet -> redirect to forgot
             response.sendRedirect(request.getContextPath() + "/authen?action=forgot");
             return;
         }
@@ -262,13 +258,13 @@ public class AuthenticationController extends HttpServlet {
 
         // validate input
         if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
-            request.setAttribute("error", "Vui lòng nhập mật khẩu mới");
+            request.setAttribute("error", "Please enter a new password");
             request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
             return;
         }
 
         if (!newPassword.equals(confirmPassword)) {
-            request.setAttribute("error", "Mật khẩu xác nhận không khớp");
+            request.setAttribute("error", "Password confirmation does not match");
             request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
             return;
         }
@@ -284,7 +280,7 @@ public class AuthenticationController extends HttpServlet {
 
             User user = dao.findByEmail(email);
             if (user == null) {
-                request.setAttribute("error", "User không tìm thấy");
+                request.setAttribute("error", "User not found");
                 request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
                 return;
             }
@@ -296,7 +292,7 @@ public class AuthenticationController extends HttpServlet {
 
             boolean updated = dao.updatePasswordHash(userId, newHash);
             if (!updated) {
-                request.setAttribute("error", "Không thể cập nhật mật khẩu");
+                request.setAttribute("error", "Failed to update password");
                 request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
                 return;
             }
@@ -308,14 +304,14 @@ public class AuthenticationController extends HttpServlet {
                 session.removeAttribute("OTP_CREATION_TIME");
             }
 
-            // thành công → quay về login
+            // success -> back to login
             request.setAttribute("message",
-                    "Đổi mật khẩu thành công. Vui lòng đăng nhập lại.");
+                    "Password changed successfully. Please log in again");
             request.getRequestDispatcher(ViewPath.VIEW_LOGIN).forward(request, response);
 
         } catch (Exception e) {
             e.printStackTrace();
-            request.setAttribute("error", "Có lỗi xảy ra. Vui lòng thử lại.");
+            request.setAttribute("error", "An error occurred. Please try again");
             request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
         }
     }

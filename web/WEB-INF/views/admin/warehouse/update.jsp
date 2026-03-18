@@ -13,14 +13,6 @@
                 <jsp:body>
                     <div class="card shadow-sm">
                         <div class="card-body">
-                            <c:if test="${not empty error}">
-                                <div class="alert alert-danger">${error}</div>
-                            </c:if>
-                            
-                            <c:if test="${not empty success}">
-                                <div class="alert alert-success">${success}</div>
-                            </c:if>
-
                             <form method="POST" action="${pageContext.request.contextPath}/admin/warehouse/update" class="m-0">
 
                                 <input type="hidden" name="id" value="${warehouse.warehouseId}">
@@ -58,7 +50,7 @@
                                 <div class="mb-4">
                                     <label for="address" class="form-label">Address</label>
                                     <textarea class="form-control" id="address" name="address" rows="2"
-                                        placeholder="Warehouse Address">${warehouse.address}</textarea>
+                                        placeholder="Warehouse Address" maxlength="255">${warehouse.address}</textarea>
                                 </div>
 
                                 <div class="d-flex justify-content-end gap-2">
