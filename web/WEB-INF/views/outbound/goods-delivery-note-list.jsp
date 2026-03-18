@@ -74,6 +74,7 @@
                                 <th>Status</th>
                                 <th>Created By</th>
                                 <th>Created At</th>
+                                <th>Shipment</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -97,6 +98,21 @@
                                     <td>${gdn.creatorName}</td>
                                     <td class="text-center">
                                         ${gdn.createdAtDisplay}
+                                    </td>
+                                    <td class="text-center">
+                                        <c:choose>
+                                            <c:when test="${not empty gdn.lastShipmentStatus}">
+                                                <span class="badge ${
+                                                    gdn.lastShipmentStatus == 'DELIVERED' ? 'bg-success text-white' :
+                                                    (gdn.lastShipmentStatus == 'CANCELLED' ? 'bg-danger text-white' :
+                                                    'bg-info text-white')}">
+                                                    ${gdn.lastShipmentStatus}
+                                                </span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="text-muted small">-</span>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </td>
                                     <td class="text-center">
                                         <div class="d-flex justify-content-center align-items-center gap-2">

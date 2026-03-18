@@ -333,4 +333,14 @@ public class ShipmentDAO extends DBContext {
             return String.format("SHIP-%05d", nextId);
         }
     }
+
+    // Xoa mot ban ghi lo hang theo ID
+    public boolean deleteShipment(Long id) throws SQLException {
+        String sql = "DELETE FROM shipment WHERE shipment_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            return ps.executeUpdate() > 0;
+        }
+    }
 }

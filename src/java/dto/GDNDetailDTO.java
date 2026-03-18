@@ -25,6 +25,7 @@ public class GDNDetailDTO {
     private String creatorName;
     private LocalDateTime createdAt;
     private LocalDateTime confirmedAt;
+    private String lastShipmentStatus;
     private List<GDNLineDTO> lines;
 
     /** For JSP display; avoids fmt:formatDate with LocalDateTime (prevents ERR_INCOMPLETE_CHUNKED_ENCODING). */
