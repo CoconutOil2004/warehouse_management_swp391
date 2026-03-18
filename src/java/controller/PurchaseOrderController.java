@@ -1,5 +1,6 @@
 package controller;
 
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import service.ProductService;
 import service.ProductVariantService;
 import service.PurchaseOrderImportService;
@@ -635,13 +636,28 @@ public class PurchaseOrderController extends HttpServlet {
             response.sendRedirect(redirectUrl);
             return;
         }
+        // Business rule: PO cannot be deleted once a GRN exists (regardless of putaway)
+        if (poService.hasAnyGrn(poId)) {
+            ToastUtil.setToast(request, "error",
+                    "Không thể xóa Purchase Order vì đã phát sinh phiếu nhập kho (GRN).");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
 
-        boolean ok = poService.deletePurchaseOrder(poId);
-        if (ok) {
-            String poNumber = (po != null && po.getPoNumber() != null) ? po.getPoNumber() : ("#" + poId);
-            ToastUtil.setToast(request, "success", "Delete Purchase Order successfully: " + poNumber);
-        } else {
-            ToastUtil.setToast(request, "error", "Purchase Order not found.");
+        try {
+            boolean ok = poService.deletePurchaseOrder(poId);
+            if (ok) {
+                String poNumber = (po != null && po.getPoNumber() != null) ? po.getPoNumber() : ("#" + poId);
+                ToastUtil.setToast(request, "success", "Delete Purchase Order successfully: " + poNumber);
+            } else {
+                ToastUtil.setToast(request, "error", "Purchase Order not found.");
+            }
+        } catch (java.sql.SQLIntegrityConstraintViolationException ex) {
+            ToastUtil.setToast(request, "error",
+                    "Không thể xóa Purchase Order vì đang được sử dụng bởi chứng từ khác (ràng buộc dữ liệu).");
+        } catch (java.sql.SQLException ex) {
+            ToastUtil.setToast(request, "error",
+                    "Không thể xóa Purchase Order. Lỗi DB: " + ex.getMessage());
         }
 
         response.sendRedirect(redirectUrl);
