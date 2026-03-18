@@ -21,12 +21,14 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.sql.Date;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
 import jakarta.servlet.annotation.MultipartConfig;
 import java.io.InputStream;
+
 @MultipartConfig(fileSizeThreshold = 1024 * 1024, maxFileSize = 10485760, maxRequestSize = 20971520)
-@WebServlet(name = "PurchaseOrderController", urlPatterns = { "/purchase-orders" })
+@WebServlet(name = "PurchaseOrderController", urlPatterns = {"/purchase-orders"})
 public class PurchaseOrderController extends HttpServlet {
 
     private static final int DEFAULT_PAGE = 1;
@@ -35,6 +37,7 @@ public class PurchaseOrderController extends HttpServlet {
     private final ProductService pService = new ProductService();
     private final PurchaseOrderService poService = new PurchaseOrderService();
     private final PurchaseOrderImportService poImportService = new PurchaseOrderImportService();
+
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -93,6 +96,7 @@ public class PurchaseOrderController extends HttpServlet {
             throw new ServletException(e);
         }
     }
+
     private void handleGetVariants(HttpServletRequest request, HttpServletResponse response)
             throws Exception {
 
@@ -208,8 +212,8 @@ public class PurchaseOrderController extends HttpServlet {
             if (userId == null) {
                 userId = 1L;
             }
-            PurchaseOrderImportService.ImportResult result =
-                    poImportService.importFromExcel(filePart, userId);
+            PurchaseOrderImportService.ImportResult result
+                    = poImportService.importFromExcel(filePart, userId);
 
             if (result.hasErrors()) {
                 StringBuilder errMsg = new StringBuilder("Import failed due to the following errors: <ul>");
@@ -365,6 +369,9 @@ public class PurchaseOrderController extends HttpServlet {
         }
 
         poService.createManualPO(poNumber, supplierId, expectedDate, note, userId, lines);
+        // toast.jspf listens on sessionScope.message and auto-clears it after rendering
+        request.getSession().setAttribute("message", "Create Purchase Order successfully: " + poNumber);
+        request.getSession().setAttribute("type", "success");
         response.sendRedirect(request.getContextPath() + "/purchase-orders");
 
     }
@@ -493,8 +500,13 @@ public class PurchaseOrderController extends HttpServlet {
                 }
 
                 PurchaseOrderLineDTO line = new PurchaseOrderLineDTO();
+                // Lấy ID của dòng hàng cũ (nếu có) để DAO thực hiện update thay vì delete-insert
+                String poLineIdStr = request.getParameter("lines[" + i + "].poLineId");
+                if (poLineIdStr != null && !poLineIdStr.isBlank()) {
+                    line.setPoLineId(Long.parseLong(poLineIdStr));
+                }
                 line.setVariantId(variantId);
-                line.setOrderedQty(qty);     
+                line.setOrderedQty(qty);
                 line.setUnitPrice(unitPrice);
                 lines.add(line);
 
@@ -562,8 +574,22 @@ public class PurchaseOrderController extends HttpServlet {
         header.setExpectedDeliveryDate(expectedDate);
         header.setNote(note);
 
-        poService.updatePurchaseOrder(header, lines);
-        response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+        try {
+            poService.updatePurchaseOrder(header, lines);
+            request.getSession().setAttribute("message", "Update Purchase Order successfully: " + poNumber);
+            request.getSession().setAttribute("type", "success");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+        } catch (IllegalArgumentException ex) {
+            // DAO throws when status is neither CREATED nor IMPORTED
+            request.getSession().setAttribute("message",
+                    "Purchase Order cannot be updated: " + ex.getMessage());
+            request.getSession().setAttribute("type", "danger");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=edit&id=" + poId);
+        } catch (Exception ex) {
+            request.getSession().setAttribute("message", "Error updating PO: " + ex.getMessage());
+            request.getSession().setAttribute("type", "danger");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=edit&id=" + poId);
+        }
     }
 
     private void handleDelete(HttpServletRequest request, HttpServletResponse response)

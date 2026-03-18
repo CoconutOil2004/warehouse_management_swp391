@@ -49,9 +49,12 @@
                         <div class="col-md-4">
                             <label class="form-label fw-bold">Status</label>
                             <select name="status" class="form-control" required>
-                                <option value="PENDING" ${gdn.status == 'PENDING' ? 'selected' : ''}>PENDING</option>
-                                <option value="DRAFT" ${gdn.status == 'DRAFT' ? 'selected' : ''}>DRAFT</option>
-                                <option value="ONGOING" ${gdn.status == 'ONGOING' ? 'selected' : ''}>ONGOING</option>
+                                <option value="CREATED" ${gdn.status == 'CREATED' ? 'selected' : ''}>CREATED</option>
+                                <option value="PICKING" ${gdn.status == 'PICKING' ? 'selected' : ''}>PICKING</option>
+                                <option value="PACKING" ${gdn.status == 'PACKING' ? 'selected' : ''}>PACKING</option>
+                                <option value="CONFIRMED" ${gdn.status == 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
+                                <option value="CANCELLED" ${gdn.status == 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
+                                <option value="DONE" ${gdn.status == 'DONE' ? 'selected' : ''}>DONE</option>
                             </select>
                         </div>
                     </div>
@@ -59,12 +62,13 @@
             </div>
 
             <div class="d-flex justify-content-between align-items-center">
-                <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${gdn.gdnId}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Cancel
-                </a>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save me-1"></i> Update
-                </button>
+                <t:link url="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${gdn.gdnId}"
+                        color="secondary" variant="outline">
+                    Cancel
+                </t:link>
+                <t:button type="submit" color="primary">
+                    Update
+                </t:button>
             </div>
         </form>
     </div>

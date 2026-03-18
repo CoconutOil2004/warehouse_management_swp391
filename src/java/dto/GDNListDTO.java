@@ -22,6 +22,7 @@ public class GDNListDTO {
     private String creatorName;
     private LocalDateTime createdAt;
     private LocalDateTime confirmedAt;
+    private String lastShipmentStatus;
 
     /** For JSP display; avoids fmt:formatDate with LocalDateTime (can cause ERR_INCOMPLETE_CHUNKED_ENCODING). */
     public String getCreatedAtDisplay() {

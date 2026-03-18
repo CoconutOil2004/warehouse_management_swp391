@@ -91,11 +91,8 @@
                         <label for="zoneType" class="form-label">Zone Type</label>
                         <select class="form-select" id="zoneType" name="zoneType" required style="cursor: pointer; height: 38px;">
                             <option value="">-- Select Type --</option>
-                            <option value="INBOUND">INBOUND</option>
-                            <option value="QC">QC</option>
                             <option value="STORAGE">STORAGE</option>
-                            <option value="PICKING">PICKING</option>
-                            <option value="PACKING">PACKING</option>
+                            <option value="EXCESS">EXCESS</option>
                             <option value="DAMAGE">DAMAGE</option>
                         </select>
                     </div>
@@ -217,12 +214,12 @@
     </c:if>
 
     <script>
-    // Lưu trữ các modal instances
+    // Store modal instances
     var slotModals = {};
     
-    // Đảm bảo Bootstrap modal hoạt động
+    // Ensure Bootstrap modals work correctly
     document.addEventListener('DOMContentLoaded', function() {
-        // Khởi tạo lại tất cả modals
+        // Initialize all slot modals
         var modals = document.querySelectorAll('.modal');
         modals.forEach(function(modal) {
             var modalId = modal.getAttribute('id');
@@ -234,7 +231,7 @@
             }
         });
         
-        // Đảm bảo các button modal có thể click
+        // Ensure modal trigger buttons are clickable
         var modalButtons = document.querySelectorAll('[data-bs-toggle="modal"]');
         modalButtons.forEach(function(button) {
             button.addEventListener('click', function(e) {
@@ -276,7 +273,7 @@
     }
     
     function loadSlotsForZone(zoneId) {
-        // Có thể load danh sách slots hiện có của zone này nếu cần
+        // Can be used to load existing slots for this zone if needed
         console.log('Loading slots for zone: ' + zoneId);
     }
     </script>

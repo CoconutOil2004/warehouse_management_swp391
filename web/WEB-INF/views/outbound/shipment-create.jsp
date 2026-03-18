@@ -2,7 +2,16 @@
     <%@taglib tagdir="/WEB-INF/tags/" prefix="t" %>
         <%@taglib uri="jakarta.tags.core" prefix="c" %>
             <t:layout title="Create New Shipment">
-                <div class="row justify-content-center">
+                <div class="container-fluid py-4">
+                    <c:if test="${not empty error}">
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i> ${error}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    </c:if>
+                    <div class="row justify-content-center">
                     <div class="col-lg-8">
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">

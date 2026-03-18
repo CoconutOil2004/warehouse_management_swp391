@@ -24,9 +24,21 @@
                     <li class="breadcrumb-item active" aria-current="page">${gdn.gdnNumber}</li>
                 </ol>
             </nav>
-            <span class="badge ${gdn.status == 'PENDING' ? 'bg-warning text-dark' : (gdn.status == 'CONFIRMED' ? 'bg-success' : (gdn.status == 'CANCELLED' ? 'bg-danger' : 'bg-secondary'))} px-3 py-2 rounded-pill shadow-sm">
-                <i class="fas ${gdn.status == 'PENDING' ? 'fa-clock' : (gdn.status == 'CONFIRMED' ? 'fa-check-circle' : (gdn.status == 'CANCELLED' ? 'fa-times-circle' : 'fa-file'))} me-1"></i>
-                ${gdn.status == 'CONFIRMED' ? 'Done' : (gdn.status == 'CANCELLED' ? 'Cancelled' : gdn.status)}
+            <span class="badge ${
+                    gdn.status == 'CREATED' ? 'bg-secondary' :
+                    (gdn.status == 'PICKING' ? 'bg-warning text-dark' :
+                    (gdn.status == 'PACKING' ? 'bg-info text-dark' :
+                    (gdn.status == 'CONFIRMED' ? 'bg-primary' :
+                    (gdn.status == 'DONE' ? 'bg-success' :
+                    (gdn.status == 'CANCELLED' ? 'bg-danger' : 'bg-secondary')))))} px-3 py-2 rounded-pill shadow-sm">
+                <i class="fas ${
+                        gdn.status == 'CREATED' ? 'fa-file' :
+                        (gdn.status == 'PICKING' ? 'fa-dolly' :
+                        (gdn.status == 'PACKING' ? 'fa-box' :
+                        (gdn.status == 'CONFIRMED' ? 'fa-check' :
+                        (gdn.status == 'DONE' ? 'fa-check-circle' :
+                        (gdn.status == 'CANCELLED' ? 'fa-times-circle' : 'fa-file')))))} me-1"></i>
+                ${gdn.status}
             </span>
         </div>
 
@@ -58,8 +70,14 @@
                             <div class="col">
                                 <p class="text-muted small mb-1 text-uppercase fw-bold">Status</p>
                                 <p class="mb-0">
-                                    <span class="badge ${gdn.status == 'PENDING' ? 'bg-warning' : (gdn.status == 'CONFIRMED' ? 'bg-success' : (gdn.status == 'CANCELLED' ? 'bg-danger' : 'bg-secondary'))} fw-semibold">
-                                        ${gdn.status == 'CONFIRMED' ? 'Done' : (gdn.status == 'CANCELLED' ? 'Cancelled' : gdn.status)}
+                                    <span class="badge ${
+                                            gdn.status == 'CREATED' ? 'bg-secondary' :
+                                            (gdn.status == 'PICKING' ? 'bg-warning' :
+                                            (gdn.status == 'PACKING' ? 'bg-info' :
+                                            (gdn.status == 'CONFIRMED' ? 'bg-primary' :
+                                            (gdn.status == 'DONE' ? 'bg-success' :
+                                            (gdn.status == 'CANCELLED' ? 'bg-danger' : 'bg-secondary')))))} fw-semibold">
+                                        ${gdn.status}
                                     </span>
                                 </p>
                             </div>
@@ -125,6 +143,122 @@
             </div>
         </div>
 
+        <!-- Pick Tasks & Shipments -->
+        <div class="row g-4 mt-1">
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-header bg-secondary text-white py-3">
+                        <h5 class="card-title mb-0 d-flex align-items-center">
+                            <i class="fas fa-tasks me-2"></i>Pick Tasks
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light text-secondary text-uppercase small">
+                                    <tr class="text-center">
+                                        <th class="text-start">Task ID</th>
+                                        <th class="text-start">Wave</th>
+                                        <th class="text-start">Assigned To</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:if test="${empty pickTasks}">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-3">
+                                                No pick tasks created for this GDN yet.
+                                            </td>
+                                        </tr>
+                                    </c:if>
+                                    <c:forEach var="task" items="${pickTasks}">
+                                        <tr class="text-center">
+                                            <td class="text-start">#${task.pickTaskId}</td>
+                                            <td class="text-start">
+                                                <c:choose>
+                                                    <c:when test="${task.waveId != null}">Wave #${task.waveId}</c:when>
+                                                    <c:otherwise>-</c:otherwise>
+                                                </c:choose>
+                                            </td>
+                                            <td class="text-start">
+                                                <c:out value="${task.assignedToName != null ? task.assignedToName : 'Unassigned'}" />
+                                            </td>
+                                            <td>
+                                                <span class="badge
+                                                    ${task.status == 'COMPLETED' ? 'bg-success' :
+                                                      task.status == 'IN_PROGRESS' ? 'bg-info text-dark' :
+                                                      task.status == 'ASSIGNED' ? 'bg-primary' :
+                                                      'bg-secondary'}">
+                                                    ${task.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-header bg-secondary text-white py-3">
+                        <h5 class="card-title mb-0 d-flex align-items-center">
+                            <i class="fas fa-truck me-2"></i>Shipments
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light text-secondary text-uppercase small">
+                                    <tr class="text-center">
+                                        <th class="text-start">Shipment</th>
+                                        <th class="text-start">Carrier</th>
+                                        <th>Status</th>
+                                        <th>Tracking</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:if test="${empty shipments}">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-3">
+                                                No shipments created for this GDN yet.
+                                            </td>
+                                        </tr>
+                                    </c:if>
+                                    <c:forEach var="s" items="${shipments}">
+                                        <tr class="text-center">
+                                            <td class="text-start">
+                                                <a href="${pageContext.request.contextPath}/shipment?action=detail&id=${s.shipmentId}" class="text-decoration-none">
+                                                    ${s.shipmentNumber}
+                                                </a>
+                                            </td>
+                                            <td class="text-start">
+                                                <c:out value="${s.carrierName != null ? s.carrierName : '-'}" />
+                                            </td>
+                                            <td>
+                                                <span class="badge ${
+                                                    s.status == 'DELIVERED' ? 'bg-success' :
+                                                    (s.status == 'CANCELLED' ? 'bg-danger' :
+                                                    (s.status == 'IN_TRANSIT' || s.status == 'PICKED_UP' ? 'bg-info text-dark' :
+                                                    'bg-secondary'))}">
+                                                    ${s.status}
+                                                </span>
+                                            </td>
+                                            <td class="text-start">
+                                                <c:out value="${s.trackingCode != null ? s.trackingCode : '-'}" />
+                                            </td>
+                                        </tr>
+                                    </c:forEach>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="d-flex justify-content-between align-items-center mt-3 p-3 bg-white rounded shadow-sm border">
             <div>
@@ -134,8 +268,8 @@
                 </a>
             </div>
 
-            <%-- PENDING: Edit (popup) + Create wave & start picking --%>
-            <c:if test="${gdn.status == 'PENDING'}">
+            <%-- CREATED: Edit (popup) + Create wave & start picking --%>
+            <c:if test="${gdn.status == 'CREATED'}">
                 <div class="d-flex gap-2 flex-wrap align-items-center">
                     <button type="button" class="btn btn-warning shadow-sm text-dark d-flex align-items-center" data-toggle="modal" data-target="#editGdnModal"
                         style="min-width: 100px; height: 38px;">
@@ -152,28 +286,25 @@
                 </div>
             </c:if>
 
-            <c:if test="${gdn.status == 'ONGOING' || gdn.status == 'DRAFT'}">
+            <c:if test="${gdn.status == 'PICKING'}">
                 <div class="d-flex gap-2 flex-wrap align-items-center">
-                    <button type="button" class="btn btn-warning shadow-sm text-dark" data-toggle="modal" data-target="#editGdnModal">
-                        <i class="fas fa-edit me-2"></i>Edit
-                    </button>
                     <c:if test="${wave != null}">
                         <a href="${pageContext.request.contextPath}/pick-task?action=assign&waveId=${wave.waveId}"
-                            class="btn btn-primary shadow-sm">
+                           class="btn btn-primary shadow-sm">
                             <i class="fas fa-user-check me-2"></i>Assign tasks
                         </a>
                     </c:if>
-                    <c:if test="${wave == null && gdn.status == 'DRAFT'}">
+                    <c:if test="${wave == null}">
                         <a href="${pageContext.request.contextPath}/pick-task?action=assign&gdnId=${gdn.gdnId}"
-                            class="btn btn-primary shadow-sm d-flex align-items-center justify-content-center"
-                            style="min-width: 165px; height: 38px; padding: 0 1rem;">
+                           class="btn btn-primary shadow-sm d-flex align-items-center justify-content-center"
+                           style="min-width: 165px; height: 38px; padding: 0 1rem;">
                             <i class="fas fa-user-check me-2"></i>Assign Pick Task
                         </a>
                     </c:if>
                 </div>
             </c:if>
 
-            <c:if test="${gdn.status == 'CONFIRMED'}">
+            <c:if test="${gdn.status == 'CONFIRMED' && empty shipments}">
                 <div class="d-flex gap-2">
                     <a href="${pageContext.request.contextPath}/shipment?action=create&gdnId=${gdn.gdnId}&soNumber=${gdn.soNumber}"
                         class="btn btn-success shadow-sm">
@@ -183,8 +314,8 @@
             </c:if>
         </div>
 
-        <!-- Edit GDN Modal (Status + Qty Picked / Qty Packed) -->
-        <c:if test="${gdn.status == 'PENDING' || gdn.status == 'DRAFT' || gdn.status == 'ONGOING'}">
+        <!-- Edit GDN Modal (Status only, CREATED -> CANCELLED) -->
+        <c:if test="${gdn.status == 'CREATED'}">
             <div class="modal fade" id="editGdnModal" tabindex="-1" aria-labelledby="editGdnModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable">
                     <div class="modal-content shadow">
@@ -201,7 +332,7 @@
                             </div>
                             <div class="modal-body pt-0 pb-4">
                                 <!-- One row: GDN Number, SO, Customer, Status -->
-                                <div class="row align-items-end g-3 mb-4 p-3 rounded bg-light">
+                                <div class="row align-items-end g-3 mb-2 p-3 rounded bg-light">
                                     <div class="col">
                                         <label class="text-muted small text-uppercase fw-bold mb-1">GDN Number</label>
                                         <p class="mb-0 fw-semibold text-dark">${gdn.gdnNumber}</p>
@@ -217,48 +348,14 @@
                                     <div class="col">
                                         <label class="text-muted small text-uppercase fw-bold mb-1">Status</label>
                                         <select name="status" class="form-control form-control-sm" required>
-                                            <option value="PENDING" ${gdn.status == 'PENDING' ? 'selected' : ''}>PENDING</option>
-                                            <option value="DRAFT" ${gdn.status == 'DRAFT' ? 'selected' : ''}>DRAFT</option>
-                                            <option value="ONGOING" ${gdn.status == 'ONGOING' ? 'selected' : ''}>ONGOING</option>
-                                            <option value="CONFIRMED" ${gdn.status == 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
-                                            <option value="CANCELLED" ${gdn.status == 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
+                                            <option value="CREATED" ${gdn.status == 'CREATED' ? 'selected' : ''}>CREATED</option>
+                                            <option value="CANCELLED">CANCELLED</option>
                                         </select>
                                     </div>
                                 </div>
-                                <!-- Items table -->
-                                <p class="text-muted small text-uppercase fw-bold mb-2">Items – Qty Picked / Qty Packed</p>
-                                <div class="table-responsive rounded border">
-                                    <table class="table table-hover table-sm align-middle mb-0">
-                                        <thead class="thead-light">
-                                            <tr class="text-center">
-                                                <th class="text-start py-2 px-3">Variant / Product</th>
-                                                <th class="py-2 px-3">Qty Required</th>
-                                                <th class="py-2 px-3">Qty Picked</th>
-                                                <th class="py-2 px-3">Qty Packed</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <c:forEach var="line" items="${gdn.lines != null ? gdn.lines : []}">
-                                                <tr>
-                                                    <td class="text-start py-2 px-3">
-                                                        <span class="fw-bold">${line.variantSku}</span>
-                                                        <br /><small class="text-muted">${line.productName}</small>
-                                                    </td>
-                                                    <td class="text-center align-middle py-2 px-3"><fmt:formatNumber value="${line.qtyRequired != null ? line.qtyRequired : 0}" maxFractionDigits="0" /></td>
-                                                    <td class="text-center py-2 px-3">
-                                                        <input type="hidden" name="lineIds" value="${line.gdnLineId}" />
-                                                        <input type="number" name="qtyPicked" class="form-control form-control-sm text-center mx-auto" min="0" step="1"
-                                                            value="${line.qtyPicked != null ? line.qtyPicked.stripTrailingZeros().toPlainString() : '0'}" style="max-width: 80px;" />
-                                                    </td>
-                                                    <td class="text-center py-2 px-3">
-                                                        <input type="number" name="qtyPacked" class="form-control form-control-sm text-center mx-auto" min="0" step="1"
-                                                            value="${line.qtyPacked != null ? line.qtyPacked.stripTrailingZeros().toPlainString() : '0'}" style="max-width: 80px;" />
-                                                    </td>
-                                                </tr>
-                                            </c:forEach>
-                                        </tbody>
-                                    </table>
-                                </div>
+                                <p class="text-muted small mb-0">
+                                    Item quantities (Qty Picked / Qty Packed) are now updated automatically from related pick tasks and cannot be edited here.
+                                </p>
                             </div>
                             <div class="modal-footer border-0 bg-light py-3">
                                 <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>

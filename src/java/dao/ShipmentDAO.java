@@ -207,6 +207,54 @@ public class ShipmentDAO extends DBContext {
         return null;
     }
 
+    /**
+     * Get all shipments linked to a specific GDN.
+     */
+    public List<Shipment> getByGdnId(Long gdnId) throws SQLException {
+        String sql = """
+                    SELECT s.*, c.name as carrier_name, gdn.gdn_number
+                    FROM shipment s
+                    LEFT JOIN carrier c ON s.carrier_id = c.carrier_id
+                    LEFT JOIN goods_delivery_note gdn ON s.gdn_id = gdn.gdn_id
+                    WHERE s.gdn_id = ?
+                    ORDER BY s.shipment_id DESC
+                """;
+        List<Shipment> list = new ArrayList<>();
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, gdnId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Shipment s = new Shipment();
+                    s.setShipmentId(rs.getLong("shipment_id"));
+                    s.setShipmentNumber(rs.getString("shipment_number"));
+                    s.setGdnId(rs.getObject("gdn_id") != null ? rs.getLong("gdn_id") : null);
+                    s.setCarrierId(rs.getObject("carrier_id") != null ? rs.getLong("carrier_id") : null);
+                    s.setShipmentType(rs.getString("shipment_type"));
+                    s.setStatus(rs.getString("status"));
+                    Timestamp createdAtTs = rs.getTimestamp("created_at");
+                    if (createdAtTs != null) {
+                        s.setCreatedAt(createdAtTs.toLocalDateTime());
+                    }
+                    Timestamp pickedTs = rs.getTimestamp("picked_up_at");
+                    if (pickedTs != null) {
+                        s.setPickedUpAt(pickedTs.toLocalDateTime());
+                    }
+                    Timestamp deliveredTs = rs.getTimestamp("delivered_at");
+                    if (deliveredTs != null) {
+                        s.setDeliveredAt(deliveredTs.toLocalDateTime());
+                    }
+                    s.setTrackingCode(rs.getString("tracking_code"));
+                    s.setCarrierName(rs.getString("carrier_name"));
+                    s.setGdnNumber(rs.getString("gdn_number"));
+                    s.setNote(rs.getString("note"));
+                    list.add(s);
+                }
+            }
+        }
+        return list;
+    }
+
     // Cap nhat cac thong tin thay doi cua lo hang
     public boolean updateShipment(Shipment shipment) throws SQLException {
         String sql = """
@@ -283,6 +331,16 @@ public class ShipmentDAO extends DBContext {
                 nextId = rs.getLong(1) + 1;
             }
             return String.format("SHIP-%05d", nextId);
+        }
+    }
+
+    // Xoa mot ban ghi lo hang theo ID
+    public boolean deleteShipment(Long id) throws SQLException {
+        String sql = "DELETE FROM shipment WHERE shipment_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            return ps.executeUpdate() > 0;
         }
     }
 }

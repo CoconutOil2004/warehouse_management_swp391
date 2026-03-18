@@ -73,11 +73,13 @@
 
                 <div class="col-12 mt-4">
                     <div class="d-flex justify-content-end gap-2">
-                        <a href="${pageContext.request.contextPath}/goods-delivery-note?action=list"
-                            class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary" id="btnCreateGdn">
-                            <i class="fas fa-save me-1"></i> Create GDN
-                        </button>
+                        <t:link url="${pageContext.request.contextPath}/goods-delivery-note?action=list"
+                                color="secondary">
+                            Cancel
+                        </t:link>
+                        <t:button type="submit" color="primary">
+                            Create GDN
+                        </t:button>
                     </div>
                 </div>
             </div>

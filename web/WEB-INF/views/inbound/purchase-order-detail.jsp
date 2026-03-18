@@ -4,7 +4,6 @@
 <%@taglib tagdir="/WEB-INF/tags/" prefix="t" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <t:layout title="Purchase Order Detail">
-
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <!-- Page Heading is already handled by layout tag title, but we can add breadcrumbs or actions here -->
         <a href="purchase-orders?action=list" class="btn btn-sm btn-secondary shadow-sm">

@@ -131,13 +131,13 @@
     let idx = 0;
 
     function addLine() {
-        //lấy phần tbody để append thêm dòng
+        // Get tbody to append new row
         const tbody = document.querySelector("#linesTable tbody");
-        //tạo thêm dòng mới 
+        // Create new row
         const tr = document.createElement("tr");
-        //lấy template product
+        // Get product template
         const productOptionsHtml = document.getElementById("productOptionsTpl").innerHTML;
-        //gán html cho row
+        // Assign HTML to row
         tr.innerHTML =
                 '<td>' +
                 '  <select class="form-control product-select" name="lines[' + idx + '].productId">' +
@@ -145,7 +145,7 @@
                 '  </select>' +
                 '</td>' +
                 '<td>' +
-                //disabled chỉ bật khi chọn product
+                // Enabled only when product is selected
                 '  <select class="form-control variant-select" name="lines[' + idx + '].variantId" disabled>' +
                 '    <option value="">-- Select product first --</option>' +
                 '  </select>' +
@@ -153,9 +153,9 @@
                 '<td><input class="form-control qty-input" type="number" step="1"  name="lines[' + idx + '].qty"></td>' +
                 '<td><input class="form-control unit-input" type="number" step="1"  \n\
  name="lines[' + idx + '].unitPrice"></td>' +
-                '<td><input class="form-control" name="lines[' + idx + '].currency" value="VND"></td>' +
+                '<td><input class="form-control" name="lines[' + idx + '].currency" value="VND" readonly></td>' +
                 '<td class="text-center"><button type="button" class="btn btn-sm btn-danger btn-remove">X</button></td>';
-        //apend vào tbody
+        // Append to tbody
         tbody.appendChild(tr);
         idx++;
     }
@@ -167,7 +167,7 @@
         const productId = e.target.value;
         const tr = e.target.closest("tr");
         const variantSelect = tr.querySelector(".variant-select");
-        // reset variant mỗi lần đổi product
+        // Reset variant every time product changes
         variantSelect.disabled = true;
         variantSelect.innerHTML = '<option value="">-- Select product first --</option>';
         if (!productId)
@@ -201,7 +201,7 @@
             variantSelect.disabled = true;
         }
     });
-    // IMPORTANT: submit -> enable tất cả variant-select để backend nhận được value (disabled sẽ không submit)
+    // IMPORTANT: submit -> enable all variant-selects so backend receives value (disabled will not submit)
     document.getElementById("poForm").addEventListener("submit", function () {
         document.querySelectorAll(".variant-select").forEach(s => s.disabled = false);
     });
@@ -213,7 +213,7 @@
     });
     // default 1 line
     async function loadVariantsForRow(productSelect, variantSelect, productId, variantId) {
-        // gọi lại đúng endpoint variants
+        // Call the correct variants endpoint
         const url = '${pageContext.request.contextPath}/purchase-orders?action=variants&productId=' + encodeURIComponent(productId);
         const res = await fetch(url, {headers: {"Accept": "application/json"}});
         if (!res.ok)

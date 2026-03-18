@@ -47,6 +47,7 @@ public class ShipmentController extends HttpServlet {
             switch (action) {
                 case "store" -> handleStore(request, response);
                 case "update" -> handleUpdate(request, response);
+                case "delete" -> handleDelete(request, response);
                 default -> response.sendRedirect(request.getContextPath() + "/shipment?action=list");
             }
         } catch (SQLException e) {
@@ -102,7 +103,28 @@ public class ShipmentController extends HttpServlet {
         String gdnIdParam = request.getParameter("gdnId");
         if (gdnIdParam != null && !gdnIdParam.isBlank()) {
             try {
-                request.setAttribute("selectedGdnId", Long.valueOf(gdnIdParam.trim()));
+                Long gdnId = Long.valueOf(gdnIdParam.trim());
+                // Validate that the GDN is actually CONFIRMED
+                dao.GoodsDeliveryNoteDAO gdnDao = new dao.GoodsDeliveryNoteDAO();
+                try {
+                    dto.GDNDetailDTO gdn = gdnDao.getGDNDetailById(gdnId);
+                    if (gdn == null || !"CONFIRMED".equals(gdn.getStatus())) {
+                        request.setAttribute("error", "Lỗi: Chỉ có thể tạo lô hàng cho Phiếu Xuất Kho đã hoàn thành Pick & Pack (CONFIRMED).");
+                        request.getRequestDispatcher(ViewPath.SHIPMENT_CREATE).forward(request, response);
+                        return;
+                    }
+
+                    // Check if shipment already exists for this GDN
+                    List<model.Shipment> existingShipments = shipmentDAO.getByGdnId(gdnId);
+                    if (existingShipments != null && !existingShipments.isEmpty()) {
+                        request.setAttribute("error", "Lỗi: Phiếu Xuất Kho này đã có lô hàng. Không thể tạo thêm.");
+                        request.getRequestDispatcher(ViewPath.SHIPMENT_CREATE).forward(request, response);
+                        return;
+                    }
+                } catch (Exception e) {
+                    request.setAttribute("error", "Lỗi kiểm tra trạng thái GDN: " + e.getMessage());
+                }
+                request.setAttribute("selectedGdnId", gdnId);
             } catch (NumberFormatException ignored) { }
         }
         request.getRequestDispatcher(ViewPath.SHIPMENT_CREATE).forward(request, response);
@@ -111,9 +133,40 @@ public class ShipmentController extends HttpServlet {
     // Ham luu thong tin lo hang moi vao database
     private void handleStore(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException, SQLException {
+        String gdnIdStr = request.getParameter("gdnId");
+        if (gdnIdStr == null || gdnIdStr.isBlank()) {
+            request.setAttribute("error", "Lỗi: Chưa chọn Phiếu Xuất Kho (GDN).");
+            handleCreate(request, response);
+            return;
+        }
+
+        Long gdnId = Long.valueOf(gdnIdStr);
+        // Strict server-side validation: must be CONFIRMED
+        dao.GoodsDeliveryNoteDAO gdnDao = new dao.GoodsDeliveryNoteDAO();
+        try {
+            dto.GDNDetailDTO gdn = gdnDao.getGDNDetailById(gdnId);
+            if (gdn == null || !"CONFIRMED".equals(gdn.getStatus())) {
+                request.setAttribute("error", "Lỗi: Phiếu Xuất Kho phải ở trạng thái CONFIRMED mới có thể tạo lô hàng.");
+                handleCreate(request, response);
+                return;
+            }
+
+            // Check if shipment already exists for this GDN
+            List<model.Shipment> existingShipments = shipmentDAO.getByGdnId(gdnId);
+            if (existingShipments != null && !existingShipments.isEmpty()) {
+                request.setAttribute("error", "Lỗi: Phiếu Xuất Kho này đã được tạo lô hàng trước đó.");
+                handleCreate(request, response);
+                return;
+            }
+        } catch (Exception e) {
+            request.setAttribute("error", "Lỗi hệ thống khi kiểm tra GDN: " + e.getMessage());
+            handleCreate(request, response);
+            return;
+        }
+
         Shipment s = new Shipment();
         s.setShipmentNumber(request.getParameter("shipmentNumber"));
-        s.setGdnId(Long.valueOf(request.getParameter("gdnId")));
+        s.setGdnId(gdnId);
         String carrierIdStr = request.getParameter("carrierId");
         s.setCarrierId((carrierIdStr != null && !carrierIdStr.isBlank()) ? Long.valueOf(carrierIdStr) : null);
         s.setShipmentType(request.getParameter("shipmentType"));
@@ -121,6 +174,8 @@ public class ShipmentController extends HttpServlet {
         s.setNote(request.getParameter("note"));
 
         shipmentDAO.createShipment(s);
+        request.getSession().setAttribute("message", "Lô hàng đã được tạo thành công!");
+        request.getSession().setAttribute("type", "success");
         response.sendRedirect(request.getContextPath() + "/shipment?action=list");
     }
 
@@ -191,7 +246,35 @@ public class ShipmentController extends HttpServlet {
                 s.setStatus(newStatus);
             }
             shipmentDAO.updateShipment(s);
+            request.getSession().setAttribute("message", "Cập nhật lô hàng thành công!");
+            request.getSession().setAttribute("type", "success");
+
+            // When shipment is delivered, mark related GDN as DONE
+            if ("DELIVERED".equals(newStatus) && s.getGdnId() != null) {
+                dao.GoodsDeliveryNoteDAO gdnDao = new dao.GoodsDeliveryNoteDAO();
+                try {
+                    gdnDao.updateGDNStatus(s.getGdnId(), "DONE");
+                } catch (Exception ignored) {
+                }
+            }
         }
         response.sendRedirect(request.getContextPath() + "/shipment?action=detail&id=" + id);
+    }
+
+    // Ham xoa lo hang (chi cho phep khi trang thai la CREATED)
+    private void handleDelete(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException, SQLException {
+        Long id = Long.valueOf(request.getParameter("id"));
+        Shipment s = shipmentDAO.getById(id);
+        
+        if (s != null && "CREATED".equals(s.getStatus())) {
+            shipmentDAO.deleteShipment(id);
+            request.getSession().setAttribute("message", "Xóa lô hàng thành công!");
+            request.getSession().setAttribute("type", "success");
+            response.sendRedirect(request.getContextPath() + "/shipment?action=list");
+        } else {
+            // Neu khong phai CREATED hoac khong ton tai, khong cho xoa va quay lai trang chi tiet
+            response.sendRedirect(request.getContextPath() + "/shipment?action=detail&id=" + id + "&error=Cannot+delete+shipment+after+pickup");
+        }
     }
 }
