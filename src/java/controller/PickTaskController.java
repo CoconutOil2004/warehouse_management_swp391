@@ -342,7 +342,8 @@ public class PickTaskController extends HttpServlet {
             switch (action) {
                 case "assign" -> handleAssign(request, response);
                 case "assign-lines" -> handleAssignLines(request, response);
-                case "assign-lines-batch" -> handleAssignLinesBatch(request, response);
+                case "assign-lines-batch" ->
+                    handleAssignLinesBatch(request, response);
                 case "assign-all-batch" ->
                     handleAssignAllBatch(request, response);
                 case "batch-assign" -> handleBatchAssign(request, response);
@@ -682,6 +683,14 @@ public class PickTaskController extends HttpServlet {
             if (pickTaskDao.isWaveComplete(task.getWaveId())) {
                 PickWaveDAO waveDao = new PickWaveDAO();
                 waveDao.updateWaveStatus(task.getWaveId(), "DONE");
+
+                GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
+                gdnDao.updateGDNStatus(task.getGdnId(), "PACKING");
+            }
+        } else {
+            GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
+            if (pickTaskDao.isAllTasksCompleteForGDN(task.getGdnId())) {
+                gdnDao.updateGDNStatus(task.getGdnId(), "PACKING");
             }
         }
 
@@ -689,7 +698,7 @@ public class PickTaskController extends HttpServlet {
         .getSession()
         .setAttribute(
         "message",
-        "Hoàn thành task #" + pickTaskId + " thành công!"
+        "Hoàn thành task #" + pickTaskId + " thành công! GDN đã chuyển sang trạng thái PACKING."
         );
         response.sendRedirect(
         request.getContextPath() + "/pick-task?action=myTasks"
@@ -743,7 +752,8 @@ public class PickTaskController extends HttpServlet {
     }
 
     /**
-     * Batch assign multiple lines to different staff members (line-level assignment).
+     * Batch assign multiple lines to different staff members (line-level
+     * assignment).
      */
     private void handleAssignLinesBatch(
     HttpServletRequest request,
@@ -919,7 +929,15 @@ public class PickTaskController extends HttpServlet {
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         pickTaskDao.completeLinePicking(lineId, qtyPicked, user.getUserId());
 
-        request.getSession().setAttribute("message", "Đã lưu kết quả nhặt hàng!");
+        Long gdnId = pickTaskDao.getGdnIdByLineId(lineId);
+        if (gdnId != null && pickTaskDao.isAllLinesPickedForGDN(gdnId)) {
+            GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
+            gdnDao.updateGDNStatus(gdnId, "PACKING");
+            request.getSession().setAttribute("message", "Đã lưu kết quả nhặt hàng! GDN đã chuyển sang trạng thái PACKING.");
+        } else {
+            request.getSession().setAttribute("message", "Đã lưu kết quả nhặt hàng!");
+        }
+
         response.sendRedirect(
         request.getContextPath() + "/pick-task?action=myLines"
         );
