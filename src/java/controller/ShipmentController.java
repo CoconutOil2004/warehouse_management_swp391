@@ -191,6 +191,15 @@ public class ShipmentController extends HttpServlet {
                 s.setStatus(newStatus);
             }
             shipmentDAO.updateShipment(s);
+
+            // When shipment is delivered, mark related GDN as DONE
+            if ("DELIVERED".equals(newStatus) && s.getGdnId() != null) {
+                dao.GoodsDeliveryNoteDAO gdnDao = new dao.GoodsDeliveryNoteDAO();
+                try {
+                    gdnDao.updateGDNStatus(s.getGdnId(), "DONE");
+                } catch (Exception ignored) {
+                }
+            }
         }
         response.sendRedirect(request.getContextPath() + "/shipment?action=detail&id=" + id);
     }

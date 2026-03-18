@@ -141,9 +141,9 @@
             </div>
         </div>
 
-        <!-- Pick Tasks Status Card -->
+        <!-- Pick Tasks & Shipments -->
         <div class="row g-4 mt-1">
-            <div class="col-lg-12">
+            <div class="col-lg-6">
                 <div class="card shadow-sm border-0 mb-3">
                     <div class="card-header bg-secondary text-white py-3">
                         <h5 class="card-title mb-0 d-flex align-items-center">
@@ -159,15 +159,12 @@
                                         <th class="text-start">Wave</th>
                                         <th class="text-start">Assigned To</th>
                                         <th>Status</th>
-                                        <th>Assigned At</th>
-                                        <th>Started At</th>
-                                        <th>Completed At</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <c:if test="${empty pickTasks}">
                                         <tr>
-                                            <td colspan="7" class="text-center text-muted py-3">
+                                            <td colspan="4" class="text-center text-muted py-3">
                                                 No pick tasks created for this GDN yet.
                                             </td>
                                         </tr>
@@ -193,14 +190,62 @@
                                                     ${task.status}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <c:out value="${task.assignedAt != null ? task.assignedAt : '-'}" />
+                                        </tr>
+                                    </c:forEach>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-header bg-secondary text-white py-3">
+                        <h5 class="card-title mb-0 d-flex align-items-center">
+                            <i class="fas fa-truck me-2"></i>Shipments
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light text-secondary text-uppercase small">
+                                    <tr class="text-center">
+                                        <th class="text-start">Shipment</th>
+                                        <th class="text-start">Carrier</th>
+                                        <th>Status</th>
+                                        <th>Tracking</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <c:if test="${empty shipments}">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-3">
+                                                No shipments created for this GDN yet.
+                                            </td>
+                                        </tr>
+                                    </c:if>
+                                    <c:forEach var="s" items="${shipments}">
+                                        <tr class="text-center">
+                                            <td class="text-start">
+                                                <a href="${pageContext.request.contextPath}/shipment?action=detail&id=${s.shipmentId}" class="text-decoration-none">
+                                                    ${s.shipmentNumber}
+                                                </a>
+                                            </td>
+                                            <td class="text-start">
+                                                <c:out value="${s.carrierName != null ? s.carrierName : '-'}" />
                                             </td>
                                             <td>
-                                                <c:out value="${task.startedAt != null ? task.startedAt : '-'}" />
+                                                <span class="badge ${
+                                                    s.status == 'DELIVERED' ? 'bg-success' :
+                                                    (s.status == 'CANCELLED' ? 'bg-danger' :
+                                                    (s.status == 'IN_TRANSIT' || s.status == 'PICKED_UP' ? 'bg-info text-dark' :
+                                                    'bg-secondary'))}">
+                                                    ${s.status}
+                                                </span>
                                             </td>
-                                            <td>
-                                                <c:out value="${task.completedAt != null ? task.completedAt : '-'}" />
+                                            <td class="text-start">
+                                                <c:out value="${s.trackingCode != null ? s.trackingCode : '-'}" />
                                             </td>
                                         </tr>
                                     </c:forEach>
@@ -241,19 +286,16 @@
 
             <c:if test="${gdn.status == 'PICKING'}">
                 <div class="d-flex gap-2 flex-wrap align-items-center">
-                    <button type="button" class="btn btn-warning shadow-sm text-dark" data-toggle="modal" data-target="#editGdnModal">
-                        <i class="fas fa-edit me-2"></i>Edit
-                    </button>
                     <c:if test="${wave != null}">
                         <a href="${pageContext.request.contextPath}/pick-task?action=assign&waveId=${wave.waveId}"
-                            class="btn btn-primary shadow-sm">
+                           class="btn btn-primary shadow-sm">
                             <i class="fas fa-user-check me-2"></i>Assign tasks
                         </a>
                     </c:if>
                     <c:if test="${wave == null}">
                         <a href="${pageContext.request.contextPath}/pick-task?action=assign&gdnId=${gdn.gdnId}"
-                            class="btn btn-primary shadow-sm d-flex align-items-center justify-content-center"
-                            style="min-width: 165px; height: 38px; padding: 0 1rem;">
+                           class="btn btn-primary shadow-sm d-flex align-items-center justify-content-center"
+                           style="min-width: 165px; height: 38px; padding: 0 1rem;">
                             <i class="fas fa-user-check me-2"></i>Assign Pick Task
                         </a>
                     </c:if>

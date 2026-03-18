@@ -91,11 +91,8 @@
                         <label for="zoneType" class="form-label">Zone Type</label>
                         <select class="form-select" id="zoneType" name="zoneType" required style="cursor: pointer; height: 38px;">
                             <option value="">-- Select Type --</option>
-                            <option value="INBOUND">INBOUND</option>
-                            <option value="QC">QC</option>
                             <option value="STORAGE">STORAGE</option>
-                            <option value="PICKING">PICKING</option>
-                            <option value="PACKING">PACKING</option>
+                            <option value="EXCESS">EXCESS</option>
                             <option value="DAMAGE">DAMAGE</option>
                         </select>
                     </div>
