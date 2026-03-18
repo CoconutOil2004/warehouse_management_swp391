@@ -58,10 +58,6 @@
                                                 class="btn btn-sm btn-circle btn-outline-primary me-1" title="Update">
                                                 <i class="bi bi-pencil fab"></i>
                                             </a>
-
-                                          
-
-                                            
                                         </td>
                                     </tr>
                                 </c:forEach>

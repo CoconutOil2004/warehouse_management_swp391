@@ -247,8 +247,8 @@
                     <div class="login-card">
                         <div class="header">
                             <div class="logo-area"><i class="fas fa-key" style="color:white; font-size:24px;"></i></div>
-                            <h1>Đặt lại mật khẩu</h1>
-                            <p>Tạo mật khẩu mới</p>
+                            <h1>Reset Password</h1>
+                            <p>Create new password</p>
                         </div>
 
                         <c:if test="${not empty error}">
@@ -262,7 +262,7 @@
                             <input type="hidden" name="action" value="reset" />
 
                             <div class="form-group">
-                                <label>Mật khẩu mới</label>
+                                <label>New Password</label>
                                 <div class="input-box">
                                     <i class="fas fa-lock"></i>
                                     <input type="password" name="newPassword" required placeholder="••••••••">
@@ -270,18 +270,18 @@
                             </div>
 
                             <div class="form-group">
-                                <label>Xác nhận mật khẩu</label>
+                                <label>Confirm Password</label>
                                 <div class="input-box">
                                     <i class="fas fa-check-double"></i>
                                     <input type="password" name="confirmPassword" required placeholder="••••••••">
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn-action">Cập nhật mật khẩu</button>
+                            <button type="submit" class="btn-action">Update Password</button>
                         </form>
 
                         <div class="footer-links">
-                            <a href="<%=request.getContextPath()%>/authen">Quay lại đăng nhập</a>
+                            <a href="<%=request.getContextPath()%>/authen">Back to login</a>
                         </div>
                     </div>
                 </div>

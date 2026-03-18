@@ -490,7 +490,6 @@
                                 <i class="fas fa-tshirt"></i>
                             </div>
                             <h1>Warehouse Management System</h1>
-                            <p>Hệ thống quản lý kho thời trang chuyên nghiệp</p>
                         </div>
 
                         <!-- Notifications -->
@@ -511,41 +510,41 @@
                             <div class="form-group" id="emailGroup">
                                 <div class="input-field">
                                     <i class="fas fa-envelope icon"></i>
-                                    <input type="email" name="mail" id="email" placeholder="Địa chỉ Email của bạn"
+                                    <input type="email" name="mail" id="email" placeholder="Enter your Email address"
                                         required autocomplete="email">
                                 </div>
-                                <span class="error-hint">Vui lòng nhập địa chỉ email hợp lệ</span>
+                                <span class="error-hint">Please enter a valid email address</span>
                             </div>
 
                             <div class="form-group" id="passGroup">
                                 <div class="input-field">
                                     <i class="fas fa-fingerprint icon"></i>
-                                    <input type="password" name="password" id="password" placeholder="Mật khẩu bảo mật"
+                                    <input type="password" name="password" id="password" placeholder="Password"
                                         required autocomplete="current-password">
                                     <i class="fas fa-eye-slash eye-toggle" id="togglePassword"></i>
                                 </div>
                                 <div class="password-check-list" id="passwordCheckList">
                                     <div class="check-item" id="reqLength">
-                                        <i class="fas fa-times-circle"></i> Mật khẩu có ít nhất 8 ký tự
+                                        <i class="fas fa-times-circle"></i> Password must be at least 8 characters long
                                     </div>
                                     <div class="check-item" id="reqUpper">
-                                        <i class="fas fa-times-circle"></i> Mật khẩu có ít nhất 1 chữ cái in hoa
+                                        <i class="fas fa-times-circle"></i> Password must contain at least one uppercase letter
                                     </div>
                                     <div class="check-item" id="reqNumber">
-                                        <i class="fas fa-times-circle"></i> Mật khẩu có ít nhất 1 chữ số (0-9)
+                                        <i class="fas fa-times-circle"></i> Password must contain at least one digit (0–9)
                                     </div>
                                 </div>
-                                <span class="error-hint" id="passwordError">Vui lòng nhập mật khẩu hợp lệ</span>
+                                <span class="error-hint" id="passwordError">Please enter a valid password</span>
                             </div>
 
                             <button type="submit" class="btn-login" id="loginBtn">
-                                <span class="btn-text">Đăng Nhập Ngay</span>
+                                <span class="btn-text">Log In</span>
                                 <div class="loader"></div>
                             </button>
                         </form>
 
                         <div class="footer-links">
-                            <a href="<%=request.getContextPath()%>/authen?action=forgot">Bạn quên mật khẩu?</a>
+                            <a href="<%=request.getContextPath()%>/authen?action=forgot">Forgot password?</a>
                         </div>
                     </div>
                 </div>
