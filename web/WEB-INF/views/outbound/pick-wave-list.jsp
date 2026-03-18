@@ -89,30 +89,6 @@
                             ${w.createdAtDisplay}
                         </td>
                         <td>
-                            <c:if test="${w.status == 'CREATED'}">
-                                <form method="post" action="${pageContext.request.contextPath}/pick-wave" class="d-inline">
-                                    <input type="hidden" name="action" value="release"/>
-                                    <input type="hidden" name="id" value="${w.waveId}"/>
-                                    <button type="submit" class="btn btn-sm btn-outline-success me-1" title="Release Wave"
-                                        onclick="return confirm('Release this wave? Tasks will be created.')">
-                                        <i class="bi bi-play-fill"></i> Release
-                                    </button>
-                                </form>
-                            </c:if>
-                            <c:if test="${w.status == 'CREATED' || w.status == 'RELEASED'}">
-                                <form method="post" action="${pageContext.request.contextPath}/pick-wave" class="d-inline">
-                                    <input type="hidden" name="action" value="cancel"/>
-                                    <input type="hidden" name="id" value="${w.waveId}"/>
-                                    <button type="submit" class="btn btn-sm btn-outline-danger me-1" title="Cancel Wave"
-                                        onclick="return confirm('Cancel this wave?')">
-                                        <i class="bi bi-x-lg"></i>
-                                    </button>
-                                </form>
-                            </c:if>
-                            <a href="${pageContext.request.contextPath}/pick-task?action=assign&waveId=${w.waveId}"
-                               class="btn btn-sm btn-circle btn-outline-primary me-1" title="Assign tasks">
-                                <i class="bi bi-list-check"></i>
-                            </a>
                             <a href="${pageContext.request.contextPath}/pick-wave?action=detail&id=${w.waveId}"
                                class="btn btn-sm btn-circle btn-outline-secondary" title="Detail">
                                 <i class="bi bi-eye"></i>
