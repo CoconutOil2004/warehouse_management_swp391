@@ -389,18 +389,29 @@ public class PurchaseOrderController extends HttpServlet {
             return;
         }
 
-        // Block editing PO if there is an incomplete putaway GRN for this PO
-        if (grnService.hasIncompletePutawayForPo(poId)) {
-            ToastUtil.setToast(request, "error",
-                    "Không thể sửa Purchase Order vì phiếu nhập kho liên quan chưa Putaway xong. Vui lòng Putaway hoàn tất trước khi sửa PO.");
-            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
-            return;
-        }
-
         PurchaseOrderHeaderDTO po = poService.getPurchaseOrderHeader(poId);
         if (po == null) {
             ToastUtil.setToast(request, "error", "Purchase Order not found.");
             response.sendRedirect(request.getContextPath() + "/purchase-orders");
+            return;
+        }
+        // Block editing PO when status is CLOSED or IMPORTED
+        if ("CLOSED".equalsIgnoreCase(po.getStatus()) || "IMPORTED".equalsIgnoreCase(po.getStatus())) {
+            ToastUtil.setToast(request, "error", "Unabel to update PO with status " + po.getStatus() + ".");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+            return;
+        }
+        // Block editing PO once any GRN exists (regardless of putaway)
+        if (poService.hasAnyGrn(poId)) {
+            ToastUtil.setToast(request, "error", "Unable to update Purchase Order because GRN is already available.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+            return;
+        }
+        // Block editing PO if there is an incomplete putaway GRN for this PO
+        if (grnService.hasIncompletePutawayForPo(poId)) {
+            ToastUtil.setToast(request, "error",
+                    "Unable to update Purchase Order because GRN is already available.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
             return;
         }
 
@@ -428,21 +439,12 @@ public class PurchaseOrderController extends HttpServlet {
             return;
         }
 
-        // Server-side enforcement too (in case user bypasses UI)
-        if (grnService.hasIncompletePutawayForPo(poId)) {
-            ToastUtil.setToast(request, "error",
-                    "Không thể cập nhật Purchase Order vì phiếu nhập kho liên quan chưa Putaway xong. Vui lòng Putaway hoàn tất trước khi sửa PO.");
-            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
-            return;
-        }
-
         PurchaseOrderHeaderDTO current = poService.getPurchaseOrderHeader(poId);
         if (current == null) {
             ToastUtil.setToast(request, "error", "Purchase Order not found.");
             response.sendRedirect(request.getContextPath() + "/purchase-orders");
             return;
         }
-
         String poNumber = request.getParameter("poNumber");
         String supplierStr = request.getParameter("supplierId");
         long supplierId = (supplierStr == null || supplierStr.isBlank()) ? 0L : Long.parseLong(supplierStr);
@@ -639,7 +641,7 @@ public class PurchaseOrderController extends HttpServlet {
         // Business rule: PO cannot be deleted once a GRN exists (regardless of putaway)
         if (poService.hasAnyGrn(poId)) {
             ToastUtil.setToast(request, "error",
-                    "Không thể xóa Purchase Order vì đã phát sinh phiếu nhập kho (GRN).");
+                    "Unable to delete PO because GRN is already available.");
             response.sendRedirect(redirectUrl);
             return;
         }
@@ -654,10 +656,10 @@ public class PurchaseOrderController extends HttpServlet {
             }
         } catch (java.sql.SQLIntegrityConstraintViolationException ex) {
             ToastUtil.setToast(request, "error",
-                    "Không thể xóa Purchase Order vì đang được sử dụng bởi chứng từ khác (ràng buộc dữ liệu).");
+                    "Unable to update Purchase Order because GRN is already available.");
         } catch (java.sql.SQLException ex) {
             ToastUtil.setToast(request, "error",
-                    "Không thể xóa Purchase Order. Lỗi DB: " + ex.getMessage());
+                    "Cannot delete PO. ERROR IN DB: " + ex.getMessage());
         }
 
         response.sendRedirect(redirectUrl);
