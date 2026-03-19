@@ -611,17 +611,16 @@ public class PickTaskDAO extends DBContext {
 
     private void checkAndUpdateGDNStatus(Long pickTaskId) throws Exception {
         String sqlGetGdnIds = """
-      SELECT DISTINCT COALESCE(pt.gdn_id, pwg.gdn_id) AS gdn_id
-      FROM pick_task pt
-      LEFT JOIN pick_wave pw ON pt.wave_id = pw.wave_id
-      LEFT JOIN pick_wave_gdn pwg ON pw.wave_id = pwg.wave_id
-      WHERE pt.pick_task_id = ?
-      """;
+                SELECT DISTINCT COALESCE(pt.gdn_id, pwg.gdn_id) AS gdn_id
+                FROM pick_task pt
+                LEFT JOIN pick_wave pw ON pt.wave_id = pw.wave_id
+                LEFT JOIN pick_wave_gdn pwg ON pw.wave_id = pwg.wave_id
+                WHERE pt.pick_task_id = ?
+                """;
 
         List<Long> gdnIds = new ArrayList<>();
 
-        try (
-        Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sqlGetGdnIds)) {
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sqlGetGdnIds)) {
             ps.setLong(1, pickTaskId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -637,17 +636,22 @@ public class PickTaskDAO extends DBContext {
             return;
         }
 
-        String sqlCheckPending = """
-            SELECT COUNT(*) FROM pick_task pt
-            WHERE pt.gdn_id IN (?)
-            AND pt.status != 'COMPLETED'
-        """;
+        StringBuilder sqlCheckPending = new StringBuilder("""
+                SELECT COUNT(*)
+                FROM pick_task pt
+                LEFT JOIN pick_wave pw ON pt.wave_id = pw.wave_id
+                LEFT JOIN pick_wave_gdn pwg ON pw.wave_id = pwg.wave_id
+                WHERE COALESCE(pt.gdn_id, pwg.gdn_id) IN (
+                """);
+        for (int i = 0; i < gdnIds.size(); i++) {
+            if (i > 0) sqlCheckPending.append(",");
+            sqlCheckPending.append("?");
+        }
+        sqlCheckPending.append(") AND pt.status != 'COMPLETED'");
 
-        try (
-        Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sqlCheckPending)) {
-            int idx = 1;
-            for (Long gdnId : gdnIds) {
-                ps.setLong(idx++, gdnId);
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sqlCheckPending.toString())) {
+            for (int i = 0; i < gdnIds.size(); i++) {
+                ps.setLong(i + 1, gdnIds.get(i));
             }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next() && rs.getInt(1) == 0) {

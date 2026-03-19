@@ -686,11 +686,21 @@ public class PickTaskController extends HttpServlet {
 
                 GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
                 gdnDao.updateGDNStatus(task.getGdnId(), "PACKING");
+                // Ensure packing record exists so it can be assigned
+                dao.PackingDAO packingDao = new dao.PackingDAO();
+                if (packingDao.getByGdnId(task.getGdnId()) == null) {
+                    packingDao.createPackingForGDN(task.getGdnId());
+                }
             }
         } else {
             GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
             if (pickTaskDao.isAllTasksCompleteForGDN(task.getGdnId())) {
                 gdnDao.updateGDNStatus(task.getGdnId(), "PACKING");
+                // Ensure packing record exists so it can be assigned
+                dao.PackingDAO packingDao = new dao.PackingDAO();
+                if (packingDao.getByGdnId(task.getGdnId()) == null) {
+                    packingDao.createPackingForGDN(task.getGdnId());
+                }
             }
         }
 

@@ -188,12 +188,16 @@
                                         <td>${g.soNumber}</td>
                                         <td>${g.customerName}</td>
                                         <td class="text-center">
-                                            <span class="badge ${
-                                                g.status == 'CREATED' ? 'bg-secondary' :
-                                                (g.status == 'PICKING' ? 'bg-warning text-dark' :
-                                                (g.status == 'PACKING' ? 'bg-info text-dark' :
-                                                (g.status == 'CANCELLED' ? 'bg-danger' :
-                                                (g.status == 'DONE' || g.status == 'CONFIRMED' ? 'bg-success' : 'bg-secondary'))))}">
+                                            <c:set var="gdnStatusBadge" value="bg-secondary" />
+                                            <c:choose>
+                                                <c:when test="${g.status == 'CREATED'}"><c:set var="gdnStatusBadge" value="bg-secondary" /></c:when>
+                                                <c:when test="${g.status == 'PICKING'}"><c:set var="gdnStatusBadge" value="bg-warning text-dark" /></c:when>
+                                                <c:when test="${g.status == 'PACKING'}"><c:set var="gdnStatusBadge" value="bg-info text-dark" /></c:when>
+                                                <c:when test="${g.status == 'SHIPPING'}"><c:set var="gdnStatusBadge" value="bg-primary" /></c:when>
+                                                <c:when test="${g.status == 'DONE'}"><c:set var="gdnStatusBadge" value="bg-success" /></c:when>
+                                                <c:when test="${g.status == 'CANCELLED'}"><c:set var="gdnStatusBadge" value="bg-danger" /></c:when>
+                                            </c:choose>
+                                            <span class="badge ${gdnStatusBadge}">
                                                 ${g.status}
                                             </span>
                                         </td>

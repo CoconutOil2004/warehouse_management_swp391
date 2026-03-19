@@ -122,10 +122,12 @@ public class GoodsDeliveryNoteController extends HttpServlet {
 
         PickWaveDAO waveDao = new PickWaveDAO();
         PickTaskDAO pickTaskDao = new PickTaskDAO();
+        dao.PackingDAO packingDao = new dao.PackingDAO();
         dao.ShipmentDAO shipmentDao = new dao.ShipmentDAO();
         request.setAttribute("gdn", gdn);
         request.setAttribute("wave", waveDao.getWaveByGdnId(gdnId));
         request.setAttribute("pickTasks", pickTaskDao.getTasksByGdnId(gdnId));
+        request.setAttribute("packTasks", packingDao.listByGdnId(gdnId));
         request.setAttribute("shipments", shipmentDao.getByGdnId(gdnId));
         request.getRequestDispatcher("WEB-INF/views/outbound/goods-delivery-note-detail.jsp")
                .forward(request, response);
@@ -145,8 +147,8 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list");
             return;
         }
-        if ("CONFIRMED".equals(gdn.getStatus()) || "CANCELLED".equals(gdn.getStatus())) {
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+edit+GDN+in+CONFIRMED+or+CANCELLED+status");
+        if ("SHIPPING".equals(gdn.getStatus()) || "CANCELLED".equals(gdn.getStatus()) || "DONE".equals(gdn.getStatus())) {
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+edit+GDN+in+SHIPPING,+DONE+or+CANCELLED+status");
             return;
         }
 
@@ -171,6 +173,8 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         }
 
         List<dto.SaleOrderLineDTO> lines = soDao.getSaleOrderDetailLines(so.getSoId());
+        Long warehouseId = getWarehouseId(request);
+        dao.InventoryBalanceDAO invBalDao = new dao.InventoryBalanceDAO();
 
         response.setContentType("application/json;charset=UTF-8");
         StringBuilder sb = new StringBuilder();
@@ -184,6 +188,12 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         for (int i = 0; i < lines.size(); i++) {
             dto.SaleOrderLineDTO l = lines.get(i);
             if (i > 0) sb.append(",");
+            java.math.BigDecimal qtyAvailable = java.math.BigDecimal.ZERO;
+            try {
+                if (warehouseId != null && l.getVariantId() != null) {
+                    qtyAvailable = invBalDao.getTotalAvailableQty(warehouseId, l.getVariantId());
+                }
+            } catch (Exception ignored) { }
             sb.append("{");
             sb.append("\"soLineId\":").append(l.getSoLineId()).append(",");
             sb.append("\"variantId\":").append(l.getVariantId()).append(",");
@@ -192,6 +202,7 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             sb.append("\"color\":\"").append(escapeJson(l.getColor())).append("\",");
             sb.append("\"size\":\"").append(escapeJson(l.getSize())).append("\",");
             sb.append("\"qtyOrdered\":").append(l.getOrderedQty()).append(",");
+            sb.append("\"qtyAvailable\":").append(qtyAvailable != null ? qtyAvailable : 0).append(",");
             sb.append("\"unitPrice\":").append(l.getUnitPrice() != null ? l.getUnitPrice() : 0);
             sb.append("}");
         }
@@ -233,7 +244,7 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         Long warehouseId = getWarehouseId(request);
 
         if (warehouseId == null) {
-            setToast(request.getSession(true), "No warehouse found", "error");
+            request.setAttribute("error", "No warehouse found. Please ensure your user is assigned to a warehouse.");
             handleCreateForm(request, response);
             return;
         }
@@ -276,7 +287,15 @@ public class GoodsDeliveryNoteController extends HttpServlet {
 
         User user = (User) request.getSession().getAttribute("USER");
         Long createdBy = user != null ? user.getUserId() : null;
-        Long gdnId = gdnDao.createGDNFromSO(so.getSoId(), warehouseId, createdBy);
+        Long gdnId;
+        try {
+            gdnId = gdnDao.createGDNFromSO(so.getSoId(), warehouseId, createdBy);
+        } catch (Exception ex) {
+            // Surface a readable error on the create form instead of a 500 page.
+            request.setAttribute("error", ex.getMessage() != null ? ex.getMessage() : "Failed to create GDN.");
+            handleCreateForm(request, response);
+            return;
+        }
 
         if (gdnId == null) {
             setToast(request.getSession(true), "Failed to create GDN.", "error");
@@ -303,9 +322,8 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list");
             return;
         }
-        if ("CONFIRMED".equals(gdnCurrent.getStatus()) || "CANCELLED".equals(gdnCurrent.getStatus()) || "DONE".equals(gdnCurrent.getStatus())) {
-            setToast(request.getSession(true), "Cannot edit GDN in CONFIRMED, DONE or CANCELLED status.", "error");
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
+        if ("SHIPPING".equals(gdnCurrent.getStatus()) || "CANCELLED".equals(gdnCurrent.getStatus()) || "DONE".equals(gdnCurrent.getStatus())) {
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+edit+GDN+in+SHIPPING,+DONE+or+CANCELLED+status");
             return;
         }
 
@@ -333,8 +351,8 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             return;
         }
 
-        // 2) If switching to CONFIRMED manually: still enforce Qty Picked/Packed = Qty Required for all lines
-        if ("CONFIRMED".equals(status)) {
+        // 2) If switching to SHIPPING manually: still enforce Qty Picked/Packed = Qty Required for all lines
+        if ("SHIPPING".equals(status)) {
             dto.GDNDetailDTO gdnAfterUpdate = gdnDao.getGDNDetailById(gdnId);
             if (gdnAfterUpdate != null && gdnAfterUpdate.getLines() != null) {
                 for (dto.GDNLineDTO line : gdnAfterUpdate.getLines()) {
@@ -342,24 +360,19 @@ public class GoodsDeliveryNoteController extends HttpServlet {
                     java.math.BigDecimal picked = line.getQtyPicked() != null ? line.getQtyPicked() : java.math.BigDecimal.ZERO;
                     java.math.BigDecimal packed = line.getQtyPacked() != null ? line.getQtyPacked() : java.math.BigDecimal.ZERO;
                     if (picked.compareTo(req) != 0 || packed.compareTo(req) != 0) {
-                        setToast(request.getSession(true),
-                                "Cannot confirm: Qty Picked and Qty Packed must equal Qty Required for all lines.",
-                                "error");
-                        response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
+                        response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+set+SHIPPING%3A+Qty+Picked+and+Qty+Packed+must+equal+Qty+Required+for+all+lines");
                         return;
                     }
                 }
             }
-            gdnDao.updateGDNStatus(gdnId, "CONFIRMED");
+            gdnDao.updateGDNStatus(gdnId, "SHIPPING");
             gdnDao.deductInventoryOnConfirm(gdnId);
-            request.getSession().setAttribute("message", "GDN has been confirmed.");
-            request.getSession().setAttribute("type", "success");
+            request.getSession().setAttribute("message", "GDN is now SHIPPING.");
             response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
             return;
         } else if (newStatus != null && !newStatus.isBlank() && !"CREATED".equals(newStatus)) {
             // For safety, do not allow switching to other statuses (PICKING, PACKING, DONE) manually here.
-            setToast(request.getSession(true), "Status can only be changed to CANCELLED or CONFIRMED manually.", "error");
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Status+can+only+be+changed+to+CANCELLED+or+SHIPPING+manually");
             return;
         }
 
