@@ -134,12 +134,16 @@
                                                 <td>${gdn.soNumber}</td>
                                                 <td>${gdn.customerName}</td>
                                                 <td>
-                                                    <span class="badge ${
-                                                        gdn.status == 'CREATED' ? 'bg-secondary' :
-                                                        (gdn.status == 'PICKING' ? 'bg-warning text-dark' :
-                                                        (gdn.status == 'PACKING' ? 'bg-info text-dark' :
-                                                        (gdn.status == 'CANCELLED' ? 'bg-danger' :
-                                                        (gdn.status == 'DONE' || gdn.status == 'CONFIRMED' ? 'bg-success' : 'bg-secondary'))))}">
+                                                    <c:set var="gdnStatusBadge" value="bg-secondary" />
+                                                    <c:choose>
+                                                        <c:when test="${gdn.status == 'CREATED'}"><c:set var="gdnStatusBadge" value="bg-secondary" /></c:when>
+                                                        <c:when test="${gdn.status == 'PICKING'}"><c:set var="gdnStatusBadge" value="bg-warning text-dark" /></c:when>
+                                                        <c:when test="${gdn.status == 'PACKING'}"><c:set var="gdnStatusBadge" value="bg-info text-dark" /></c:when>
+                                                        <c:when test="${gdn.status == 'SHIPPING'}"><c:set var="gdnStatusBadge" value="bg-primary" /></c:when>
+                                                        <c:when test="${gdn.status == 'DONE'}"><c:set var="gdnStatusBadge" value="bg-success" /></c:when>
+                                                        <c:when test="${gdn.status == 'CANCELLED'}"><c:set var="gdnStatusBadge" value="bg-danger" /></c:when>
+                                                    </c:choose>
+                                                    <span class="badge ${gdnStatusBadge}">
                                                         ${gdn.status}
                                                     </span>
                                                 </td>

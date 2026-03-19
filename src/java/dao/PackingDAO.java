@@ -75,6 +75,28 @@ public class PackingDAO extends DBContext {
         return null;
     }
 
+    public List<PackingDTO> listByGdnId(Long gdnId) throws Exception {
+        List<PackingDTO> list = new ArrayList<>();
+        String sql = """
+                SELECT p.pack_id, p.gdn_id, gdn.gdn_number, p.status, p.packed_by, u.full_name AS packed_by_name, p.packed_at, p.package_label
+                FROM packing p
+                JOIN goods_delivery_note gdn ON gdn.gdn_id = p.gdn_id
+                LEFT JOIN `user` u ON u.user_id = p.packed_by
+                WHERE p.gdn_id = ?
+                ORDER BY p.pack_id DESC
+                """;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, gdnId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapPackingDTO(rs));
+                }
+            }
+        }
+        return list;
+    }
+
     private static PackingDTO mapPackingDTO(ResultSet rs) throws SQLException {
         PackingDTO dto = new PackingDTO();
         dto.setPackId(rs.getLong("pack_id"));
@@ -87,14 +109,39 @@ public class PackingDAO extends DBContext {
         if (packedAt != null) {
             dto.setPackedAt(packedAt.toLocalDateTime());
         }
-        dto.setPackageLabel(rs.getString("package_label"));
-        dto.setPackageType(rs.getString("package_type"));
-        dto.setWeight(rs.getBigDecimal("weight"));
-        dto.setWeightUnit(rs.getString("weight_unit"));
-        dto.setNotes(rs.getString("notes"));
-        dto.setTotalPackages(rs.getObject("total_packages") != null ? rs.getInt("total_packages") : null);
-        dto.setCurrentPackageNum(rs.getObject("current_package_num") != null ? rs.getInt("current_package_num") : null);
+        dto.setPackageLabel(getStringSafe(rs, "package_label"));
+        dto.setPackageType(getStringSafe(rs, "package_type"));
+        dto.setWeight(getBigDecimalSafe(rs, "weight"));
+        dto.setWeightUnit(getStringSafe(rs, "weight_unit"));
+        dto.setNotes(getStringSafe(rs, "notes"));
+        dto.setTotalPackages(getIntSafe(rs, "total_packages"));
+        dto.setCurrentPackageNum(getIntSafe(rs, "current_package_num"));
         return dto;
+    }
+
+    private static String getStringSafe(ResultSet rs, String col) throws SQLException {
+        try {
+            return rs.getString(col);
+        } catch (SQLException e) {
+            // Backward-compatible with older SELECTs / schemas.
+            return null;
+        }
+    }
+
+    private static BigDecimal getBigDecimalSafe(ResultSet rs, String col) throws SQLException {
+        try {
+            return rs.getBigDecimal(col);
+        } catch (SQLException e) {
+            return null;
+        }
+    }
+
+    private static Integer getIntSafe(ResultSet rs, String col) throws SQLException {
+        try {
+            return rs.getObject(col) != null ? rs.getInt(col) : null;
+        } catch (SQLException e) {
+            return null;
+        }
     }
 
     public void updatePacking(Long packId, String status, Long packedBy, String packageLabel) throws Exception {
@@ -147,6 +194,44 @@ public class PackingDAO extends DBContext {
                 ps.setNull(10, Types.INTEGER);
             }
             ps.setLong(11, packId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            // Backward-compatible fallback when DB schema hasn't been migrated yet.
+            // (e.g. missing package_type/weight/notes columns)
+            String legacySql = """
+                    UPDATE packing SET
+                        status = ?,
+                        packed_by = ?,
+                        packed_at = CASE WHEN ? = 'DONE' THEN NOW() ELSE packed_at END,
+                        package_label = ?
+                    WHERE pack_id = ?
+                    """;
+            try (Connection conn = getConnection();
+                 PreparedStatement ps = conn.prepareStatement(legacySql)) {
+                ps.setString(1, status);
+                if (packedBy != null) {
+                    ps.setLong(2, packedBy);
+                } else {
+                    ps.setNull(2, Types.BIGINT);
+                }
+                ps.setString(3, status);
+                ps.setString(4, packageLabel);
+                ps.setLong(5, packId);
+                ps.executeUpdate();
+            }
+        }
+    }
+
+    public void assignPacking(Long packId, Long packedBy) throws Exception {
+        String sql = "UPDATE packing SET packed_by = ? WHERE pack_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (packedBy != null) {
+                ps.setLong(1, packedBy);
+            } else {
+                ps.setNull(1, Types.BIGINT);
+            }
+            ps.setLong(2, packId);
             ps.executeUpdate();
         }
     }
@@ -214,7 +299,7 @@ public class PackingDAO extends DBContext {
                 LEFT JOIN customer c ON so.customer_id = c.customer_id
                 LEFT JOIN `user` u ON u.user_id = p.packed_by
                 WHERE p.status IN ('PENDING', 'IN_PROGRESS')
-                AND gdn.status IN ('PACKING', 'CONFIRMED')
+                AND gdn.status IN ('PACKING')
                 ORDER BY p.pack_id ASC
                 """;
         List<PackingDTO> list = new ArrayList<>();
@@ -236,7 +321,7 @@ public class PackingDAO extends DBContext {
                 FROM goods_delivery_note gdn
                 LEFT JOIN sales_order so ON gdn.so_id = so.so_id
                 LEFT JOIN customer c ON so.customer_id = c.customer_id
-                WHERE gdn.status IN ('PACKING', 'CONFIRMED')
+                WHERE gdn.status IN ('PACKING')
                 ORDER BY gdn.gdn_id DESC
                 """;
         List<PackingDTO> list = new ArrayList<>();

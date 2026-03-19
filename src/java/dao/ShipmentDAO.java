@@ -297,12 +297,12 @@ public class ShipmentDAO extends DBContext {
 
     /**
      * Lay danh sach cac phieu xuat kho (GDN) chua duoc gan vao lo hang nao
-     * Only CONFIRMED GDN that do not yet have a shipment.
+     * Only SHIPPING GDN that do not yet have a shipment.
      */
     public List<model.GoodsDeliveryNote> getAvailableGDNs() throws SQLException {
         String sql = """
                     SELECT * FROM goods_delivery_note
-                    WHERE status = 'CONFIRMED'
+                    WHERE status = 'SHIPPING'
                     AND gdn_id NOT IN (SELECT gdn_id FROM shipment WHERE gdn_id IS NOT NULL)
                     ORDER BY gdn_id DESC
                 """;

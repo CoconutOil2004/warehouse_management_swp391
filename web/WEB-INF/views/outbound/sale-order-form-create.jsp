@@ -152,7 +152,7 @@
         idx++;
     }
 
-    // Product change -> load variants (reuse /purchase-orders?action=variants or a new /sales-orders?action=variants if đã có)
+    // Product change -> load variants via /sales-orders?action=variants
     document.addEventListener("change", async function (e) {
         if (!e.target.classList.contains("product-select"))
             return;
@@ -167,7 +167,7 @@
 
         variantSelect.innerHTML = '<option value="">Loading...</option>';
         try {
-            const url = '${pageContext.request.contextPath}/purchase-orders?action=variants&productId=' + encodeURIComponent(productId);
+            const url = '${pageContext.request.contextPath}/sales-orders?action=variants&productId=' + encodeURIComponent(productId);
             const res = await fetch(url, {headers: {"Accept": "application/json"}});
             if (!res.ok)
                 throw new Error("HTTP " + res.status);
@@ -206,7 +206,7 @@
     });
 
     async function loadVariantsForRow(productSelect, variantSelect, productId, variantId) {
-        const url = '${pageContext.request.contextPath}/purchase-orders?action=variants&productId=' + encodeURIComponent(productId);
+        const url = '${pageContext.request.contextPath}/sales-orders?action=variants&productId=' + encodeURIComponent(productId);
         const res = await fetch(url, {headers: {"Accept": "application/json"}});
         if (!res.ok)
             throw new Error("HTTP " + res.status);

@@ -188,7 +188,7 @@
 
                 variantSelect.innerHTML = '<option value="">Loading...</option>';
                 try {
-                    const url = '${pageContext.request.contextPath}/purchase-orders?action=variants&productId=' + encodeURIComponent(productId);
+                    const url = '${pageContext.request.contextPath}/sales-orders?action=variants&productId=' + encodeURIComponent(productId);
                     const res = await fetch(url, {headers: {"Accept": "application/json"}});
                     if (!res.ok)
                         throw new Error("HTTP " + res.status);
@@ -227,7 +227,7 @@
             });
 
             async function loadVariantsForRow(productSelect, variantSelect, productId, variantId) {
-                const url = '${pageContext.request.contextPath}/purchase-orders?action=variants&productId=' + encodeURIComponent(productId);
+                const url = '${pageContext.request.contextPath}/sales-orders?action=variants&productId=' + encodeURIComponent(productId);
                 const res = await fetch(url, {headers: {"Accept": "application/json"}});
                 if (!res.ok)
                     throw new Error("HTTP " + res.status);
