@@ -160,7 +160,15 @@ public class SupplierDAO extends DBContext implements Dao<Supplier> {
 
     @Override
     public boolean delete(Long id) throws SQLException {
-        String sql = "DELETE FROM supplier WHERE supplier_id = ?";
+        String sql = "UPDATE supplier SET status = 'INACTIVE' WHERE supplier_id = ?";
+        try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, id);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    public boolean activate(Long id) throws SQLException {
+        String sql = "UPDATE supplier SET status = 'ACTIVE' WHERE supplier_id = ?";
         try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setLong(1, id);
             return ps.executeUpdate() > 0;
@@ -211,16 +219,30 @@ public class SupplierDAO extends DBContext implements Dao<Supplier> {
     }
     
     public String generateNextCode() throws SQLException {
-        String sql = "SELECT code FROM supplier WHERE code LIKE 'SUP%' ORDER BY code DESC LIMIT 1";
+        // Required format: SUP-0001 (incremental)
+        // Also supports migrating legacy codes like SUP001 by considering both patterns.
+        String sql = "SELECT code FROM supplier WHERE code IS NOT NULL ORDER BY supplier_id DESC LIMIT 200";
+
+        int max = 0;
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("^SUP-?(\\d+)$");
+
         try (Connection con = DBContext.getConnection();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                String lastCode = rs.getString("code");
-                int num = Integer.parseInt(lastCode.substring(3));
-                return String.format("SUP%03d", num + 1);
+            while (rs.next()) {
+                String code = rs.getString("code");
+                if (code == null) continue;
+                code = code.trim();
+                java.util.regex.Matcher m = p.matcher(code);
+                if (!m.matches()) continue;
+                try {
+                    int n = Integer.parseInt(m.group(1));
+                    if (n > max) max = n;
+                } catch (NumberFormatException ignore) {
+                }
             }
         }
-        return "SUP001";
+
+        return String.format("SUP-%04d", max + 1);
     }
 }
