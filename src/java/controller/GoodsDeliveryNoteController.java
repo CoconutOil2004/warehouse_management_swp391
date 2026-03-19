@@ -173,6 +173,8 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         }
 
         List<dto.SaleOrderLineDTO> lines = soDao.getSaleOrderDetailLines(so.getSoId());
+        Long warehouseId = getWarehouseId(request);
+        dao.InventoryBalanceDAO invBalDao = new dao.InventoryBalanceDAO();
 
         response.setContentType("application/json;charset=UTF-8");
         StringBuilder sb = new StringBuilder();
@@ -186,6 +188,12 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         for (int i = 0; i < lines.size(); i++) {
             dto.SaleOrderLineDTO l = lines.get(i);
             if (i > 0) sb.append(",");
+            java.math.BigDecimal qtyAvailable = java.math.BigDecimal.ZERO;
+            try {
+                if (warehouseId != null && l.getVariantId() != null) {
+                    qtyAvailable = invBalDao.getTotalAvailableQty(warehouseId, l.getVariantId());
+                }
+            } catch (Exception ignored) { }
             sb.append("{");
             sb.append("\"soLineId\":").append(l.getSoLineId()).append(",");
             sb.append("\"variantId\":").append(l.getVariantId()).append(",");
@@ -194,6 +202,7 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             sb.append("\"color\":\"").append(escapeJson(l.getColor())).append("\",");
             sb.append("\"size\":\"").append(escapeJson(l.getSize())).append("\",");
             sb.append("\"qtyOrdered\":").append(l.getOrderedQty()).append(",");
+            sb.append("\"qtyAvailable\":").append(qtyAvailable != null ? qtyAvailable : 0).append(",");
             sb.append("\"unitPrice\":").append(l.getUnitPrice() != null ? l.getUnitPrice() : 0);
             sb.append("}");
         }
@@ -241,35 +250,37 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         }
 
         if (soNumber == null || soNumber.isBlank()) {
-            request.setAttribute("error", "Please select a Sales Order");
+            setToast(request.getSession(true), "Please select a Sales Order", "error");
             handleCreateForm(request, response);
             return;
         }
 
         dto.SaleOrderHeaderDTO so = soDao.getSaleOrderByNumber(soNumber.trim());
         if (so == null) {
-            request.setAttribute("error", "Sales Order not found.");
+            setToast(request.getSession(true), "Sales Order not found.", "error");
             handleCreateForm(request, response);
             return;
         }
         if (!"CREATED".equals(so.getStatus())) {
-            request.setAttribute("error", "Chỉ được tạo GDN từ Sales Order có trạng thái CREATED. SO hiện tại: " + so.getStatus());
+            setToast(request.getSession(true),
+                    "Chỉ được tạo GDN từ Sales Order có trạng thái CREATED. SO hiện tại: " + so.getStatus(),
+                    "error");
             handleCreateForm(request, response);
             return;
         }
         if (gdnDao.getSoIdsThatHaveGdn().contains(so.getSoId())) {
-            request.setAttribute("error", "This Sales Order already has a GDN.");
+            setToast(request.getSession(true), "This Sales Order already has a GDN.", "error");
             handleCreateForm(request, response);
             return;
         }
         Warehouse wh = new WarehouseDAO().getDetail(warehouseId);
         if (wh == null) {
-            request.setAttribute("error", "Warehouse not found.");
+            setToast(request.getSession(true), "Warehouse not found.", "error");
             handleCreateForm(request, response);
             return;
         }
         if (!"ACTIVE".equals(wh.getStatus())) {
-            request.setAttribute("error", "Chỉ được chọn warehouse đang ACTIVE.");
+            setToast(request.getSession(true), "Chỉ được chọn warehouse đang ACTIVE.", "error");
             handleCreateForm(request, response);
             return;
         }
@@ -287,12 +298,13 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         }
 
         if (gdnId == null) {
-            request.setAttribute("error", "Failed to create GDN.");
+            setToast(request.getSession(true), "Failed to create GDN.", "error");
             handleCreateForm(request, response);
             return;
         }
 
         request.getSession().setAttribute("message", "Goods Delivery Note created successfully.");
+        request.getSession().setAttribute("type", "success");
         response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
     }
 
@@ -321,17 +333,20 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         // 1) Allow manual cancel only from CREATED and only when there is no pick task.
         if ("CANCELLED".equals(newStatus)) {
             if (!"CREATED".equals(gdnCurrent.getStatus())) {
-                response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Only+GDN+in+CREATED+status+can+be+cancelled+manually");
+                setToast(request.getSession(true), "Only GDN in CREATED status can be cancelled manually.", "error");
+                response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
                 return;
             }
             dao.PickTaskDAO pickTaskDao = new dao.PickTaskDAO();
             java.util.List<dto.PickTaskDTO> tasks = pickTaskDao.getTasksByGdnId(gdnId);
             if (tasks != null && !tasks.isEmpty()) {
-                response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+cancel+GDN+that+already+has+pick+tasks");
+                setToast(request.getSession(true), "Cannot cancel GDN that already has pick tasks.", "error");
+                response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
                 return;
             }
             gdnDao.updateGDNStatus(gdnId, "CANCELLED");
             request.getSession().setAttribute("message", "GDN has been cancelled.");
+            request.getSession().setAttribute("type", "success");
             response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
             return;
         }
@@ -430,5 +445,11 @@ public class GoodsDeliveryNoteController extends HttpServlet {
                   .replace("\n", "\\n")
                   .replace("\r", "\\r")
                   .replace("\t", "\\t");
+    }
+
+    private void setToast(HttpSession session, String message, String type) {
+        if (session == null) return;
+        session.setAttribute("message", message);
+        session.setAttribute("type", type);
     }
 }

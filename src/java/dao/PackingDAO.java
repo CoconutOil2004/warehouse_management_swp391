@@ -109,14 +109,39 @@ public class PackingDAO extends DBContext {
         if (packedAt != null) {
             dto.setPackedAt(packedAt.toLocalDateTime());
         }
-        dto.setPackageLabel(rs.getString("package_label"));
-        dto.setPackageType(rs.getString("package_type"));
-        dto.setWeight(rs.getBigDecimal("weight"));
-        dto.setWeightUnit(rs.getString("weight_unit"));
-        dto.setNotes(rs.getString("notes"));
-        dto.setTotalPackages(rs.getObject("total_packages") != null ? rs.getInt("total_packages") : null);
-        dto.setCurrentPackageNum(rs.getObject("current_package_num") != null ? rs.getInt("current_package_num") : null);
+        dto.setPackageLabel(getStringSafe(rs, "package_label"));
+        dto.setPackageType(getStringSafe(rs, "package_type"));
+        dto.setWeight(getBigDecimalSafe(rs, "weight"));
+        dto.setWeightUnit(getStringSafe(rs, "weight_unit"));
+        dto.setNotes(getStringSafe(rs, "notes"));
+        dto.setTotalPackages(getIntSafe(rs, "total_packages"));
+        dto.setCurrentPackageNum(getIntSafe(rs, "current_package_num"));
         return dto;
+    }
+
+    private static String getStringSafe(ResultSet rs, String col) throws SQLException {
+        try {
+            return rs.getString(col);
+        } catch (SQLException e) {
+            // Backward-compatible with older SELECTs / schemas.
+            return null;
+        }
+    }
+
+    private static BigDecimal getBigDecimalSafe(ResultSet rs, String col) throws SQLException {
+        try {
+            return rs.getBigDecimal(col);
+        } catch (SQLException e) {
+            return null;
+        }
+    }
+
+    private static Integer getIntSafe(ResultSet rs, String col) throws SQLException {
+        try {
+            return rs.getObject(col) != null ? rs.getInt(col) : null;
+        } catch (SQLException e) {
+            return null;
+        }
     }
 
     public void updatePacking(Long packId, String status, Long packedBy, String packageLabel) throws Exception {
@@ -170,6 +195,30 @@ public class PackingDAO extends DBContext {
             }
             ps.setLong(11, packId);
             ps.executeUpdate();
+        } catch (SQLException e) {
+            // Backward-compatible fallback when DB schema hasn't been migrated yet.
+            // (e.g. missing package_type/weight/notes columns)
+            String legacySql = """
+                    UPDATE packing SET
+                        status = ?,
+                        packed_by = ?,
+                        packed_at = CASE WHEN ? = 'DONE' THEN NOW() ELSE packed_at END,
+                        package_label = ?
+                    WHERE pack_id = ?
+                    """;
+            try (Connection conn = getConnection();
+                 PreparedStatement ps = conn.prepareStatement(legacySql)) {
+                ps.setString(1, status);
+                if (packedBy != null) {
+                    ps.setLong(2, packedBy);
+                } else {
+                    ps.setNull(2, Types.BIGINT);
+                }
+                ps.setString(3, status);
+                ps.setString(4, packageLabel);
+                ps.setLong(5, packId);
+                ps.executeUpdate();
+            }
         }
     }
 

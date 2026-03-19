@@ -253,16 +253,29 @@
                                             <c:if test="${isManager}">
                                                 <!-- Approve Button -->
                                                 <c:if test="${isPutawayComplete}">
-                                                    <form action="${pageContext.request.contextPath}/goods-receipt"
-                                                        method="post"
-                                                        onsubmit="return confirm('Are you sure you want to APPROVE this receipt?')">
+                                                    <button type="button"
+                                                        class="btn btn-success shadow-sm d-flex align-items-center justify-content-center"
+                                                        style="height: 38px; padding: 0 16px;"
+                                                        data-bs-toggle="modal" data-bs-target="#approveGrnModal${grn.grnId}">
+                                                        <i class="fas fa-check me-2"></i>Approve
+                                                    </button>
+
+                                                    <t:alert id="approveGrnModal${grn.grnId}">
+                                                        <jsp:attribute name="title">Confirm Approve</jsp:attribute>
+                                                        <jsp:attribute name="desciption">
+                                                            Approve Goods Receipt <strong>${grn.grnNumber}</strong>?
+                                                        </jsp:attribute>
+                                                        <jsp:attribute name="action">
+                                                            <button type="button" class="btn btn-success" data-bs-dismiss="modal"
+                                                                onclick="document.getElementById('approveGrnForm${grn.grnId}').submit()">
+                                                                Approve
+                                                            </button>
+                                                        </jsp:attribute>
+                                                    </t:alert>
+                                                    <form id="approveGrnForm${grn.grnId}" action="${pageContext.request.contextPath}/goods-receipt"
+                                                        method="post" class="d-none">
                                                         <input type="hidden" name="action" value="approve">
                                                         <input type="hidden" name="id" value="${grn.grnId}">
-                                                        <button type="submit"
-                                                            class="btn btn-success shadow-sm d-flex align-items-center justify-content-center"
-                                                            style="height: 38px; padding: 0 16px;">
-                                                            <i class="fas fa-check me-2"></i>Approve
-                                                        </button>
                                                     </form>
                                                 </c:if>
                                                 <c:if test="${not isPutawayComplete}">
@@ -275,29 +288,35 @@
                                                 </c:if>
 
                                                 <!-- Reject Button -->
-                                                <form action="${pageContext.request.contextPath}/goods-receipt"
-                                                    method="post"
-                                                    onsubmit="return confirm('Are you sure you want to REJECT this receipt?')">
+                                                <button type="button"
+                                                    class="btn btn-outline-danger shadow-sm d-flex align-items-center justify-content-center"
+                                                    style="height: 38px; padding: 0 16px;"
+                                                    data-bs-toggle="modal" data-bs-target="#rejectGrnModal${grn.grnId}">
+                                                    <i class="fas fa-times me-2"></i>Reject
+                                                </button>
+
+                                                <t:alert id="rejectGrnModal${grn.grnId}">
+                                                    <jsp:attribute name="title">Confirm Reject</jsp:attribute>
+                                                    <jsp:attribute name="desciption">
+                                                        Reject Goods Receipt <strong>${grn.grnNumber}</strong>?
+                                                    </jsp:attribute>
+                                                    <jsp:attribute name="action">
+                                                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                                                            onclick="document.getElementById('rejectGrnForm${grn.grnId}').submit()">
+                                                            Reject
+                                                        </button>
+                                                    </jsp:attribute>
+                                                </t:alert>
+                                                <form id="rejectGrnForm${grn.grnId}" action="${pageContext.request.contextPath}/goods-receipt"
+                                                    method="post" class="d-none">
                                                     <input type="hidden" name="action" value="reject">
                                                     <input type="hidden" name="id" value="${grn.grnId}">
-                                                    <button type="submit"
-                                                        class="btn btn-outline-danger shadow-sm d-flex align-items-center justify-content-center"
-                                                        style="height: 38px; padding: 0 16px;">
-                                                        <i class="fas fa-times me-2"></i>Reject
-                                                    </button>
                                                 </form>
 
                                                 <div class="vr mx-2"></div>
                                             </c:if>
 
                                             <c:if test="${canMutation}">
-                                                <!-- Putaway Button -->
-                                                <button type="button" onclick="checkPutawayCapacity(${grn.grnId})"
-                                                    class="btn btn-primary d-inline-flex align-items-center justify-content-center shadow-sm"
-                                                    style="height: 38px; padding: 0 16px;">
-                                                    <i class="fas fa-dolly-flatbed me-2"></i>Putaway
-                                                </button>
-
                                                 <!-- Edit Button -->
                                                 <a href="${pageContext.request.contextPath}/goods-receipt?action=edit&id=${grn.grnId}"
                                                     class="btn btn-outline-primary shadow-sm d-flex align-items-center justify-content-center"
@@ -306,16 +325,30 @@
                                                 </a>
 
                                                 <!-- Delete Button -->
-                                                <form action="${pageContext.request.contextPath}/goods-receipt"
-                                                    method="post"
-                                                    onsubmit="return confirm('Delete this receipt? This action cannot be undone!')">
+                                                <button type="button"
+                                                    class="btn btn-danger shadow-sm d-flex align-items-center justify-content-center"
+                                                    style="height: 38px; padding: 0 16px;"
+                                                    data-bs-toggle="modal" data-bs-target="#deleteGrnModal${grn.grnId}">
+                                                    <i class="fas fa-trash-alt me-2"></i>Delete
+                                                </button>
+
+                                                <t:alert id="deleteGrnModal${grn.grnId}">
+                                                    <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
+                                                    <jsp:attribute name="desciption">
+                                                        Are you sure you want to delete Goods Receipt
+                                                        <strong>${grn.grnNumber}</strong>? This action cannot be undone.
+                                                    </jsp:attribute>
+                                                    <jsp:attribute name="action">
+                                                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                                                            onclick="document.getElementById('deleteGrnForm${grn.grnId}').submit()">
+                                                            Delete
+                                                        </button>
+                                                    </jsp:attribute>
+                                                </t:alert>
+                                                <form id="deleteGrnForm${grn.grnId}" action="${pageContext.request.contextPath}/goods-receipt"
+                                                    method="post" class="d-none">
                                                     <input type="hidden" name="action" value="delete">
                                                     <input type="hidden" name="id" value="${grn.grnId}">
-                                                    <button type="submit"
-                                                        class="btn btn-danger shadow-sm d-flex align-items-center justify-content-center"
-                                                        style="height: 38px; padding: 0 16px;">
-                                                        <i class="fas fa-trash-alt me-2"></i>Delete
-                                                    </button>
                                                 </form>
                                             </c:if>
 

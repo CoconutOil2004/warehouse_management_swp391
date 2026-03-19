@@ -106,10 +106,29 @@
                                                 <!-- Delete 버튼 Slot -->
                                                 <div style="width: 70px;" class="d-flex justify-content-center">
                                                     <c:if test="${canMutation && (gr.status == 'PENDING' || gr.status == 'DRAFT')}">
-                                                        <form action="${pageContext.request.contextPath}/goods-receipt" method="get" class="mb-0" onsubmit="return confirm('Are you sure you want to delete this GRN?');">
+                                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                                data-bs-toggle="modal" data-bs-target="#deleteGrnModal${gr.grnId}">
+                                                            Delete
+                                                        </button>
+
+                                                        <t:alert id="deleteGrnModal${gr.grnId}">
+                                                            <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
+                                                            <jsp:attribute name="desciption">
+                                                                Are you sure you want to delete Goods Receipt
+                                                                <strong>${gr.grnNumber}</strong>? This action cannot be undone.
+                                                            </jsp:attribute>
+                                                            <jsp:attribute name="action">
+                                                                <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                                                                        onclick="document.getElementById('deleteGrnForm${gr.grnId}').submit()">
+                                                                    Delete
+                                                                </button>
+                                                            </jsp:attribute>
+                                                        </t:alert>
+
+                                                        <form id="deleteGrnForm${gr.grnId}" action="${pageContext.request.contextPath}/goods-receipt"
+                                                              method="get" class="d-none">
                                                             <input type="hidden" name="action" value="delete">
                                                             <input type="hidden" name="id" value="${gr.grnId}">
-                                                            <t:button type="submit" size="sm" variant="outline" color="danger">Delete</t:button>
                                                         </form>
                                                     </c:if>
                                                 </div>

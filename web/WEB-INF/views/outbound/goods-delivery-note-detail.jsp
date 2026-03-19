@@ -80,7 +80,7 @@
                                         ${gdn.status}
                                     </span>
                                 </p>
-                            </div>
+                            </div>  
                             <div class="col">
                                 <p class="text-muted small mb-1 text-uppercase fw-bold">Created By</p>
                                 <p class="mb-0 fw-semibold">${gdn.creatorName}</p>
@@ -323,7 +323,8 @@
             <%-- CREATED: Edit (popup) + Create wave & start picking --%>
             <c:if test="${gdn.status == 'CREATED'}">
                 <div class="d-flex gap-2 flex-wrap align-items-center">
-                    <button type="button" class="btn btn-warning shadow-sm text-dark d-flex align-items-center" data-toggle="modal" data-target="#editGdnModal"
+                    <button type="button" class="btn btn-warning shadow-sm text-dark d-flex align-items-center"
+                        data-bs-toggle="modal" data-bs-target="#editGdnModal${gdn.gdnId}"
                         style="min-width: 100px; height: 38px;">
                         <i class="fas fa-edit me-2"></i>Edit
                     </button>
@@ -380,57 +381,48 @@
             </c:if>
         </div>
 
-        <!-- Edit GDN Modal (Status only, CREATED -> CANCELLED) -->
+        <!-- Edit GDN Modal (system modal: t:alert) -->
         <c:if test="${gdn.status == 'CREATED'}">
-            <div class="modal fade" id="editGdnModal" tabindex="-1" aria-labelledby="editGdnModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                    <div class="modal-content shadow">
-                        <form action="${pageContext.request.contextPath}/goods-delivery-note" method="post">
-                            <input type="hidden" name="action" value="update" />
-                            <input type="hidden" name="gdnId" value="${gdn.gdnId}" />
-                            <div class="modal-header py-3 bg-light border-0">
-                                <h5 class="modal-title text-dark mb-0" id="editGdnModalLabel">
-                                    <i class="fas fa-edit text-primary me-2"></i>Edit GDN
-                                </h5>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
+            <t:alert id="editGdnModal${gdn.gdnId}">
+                <jsp:attribute name="title">Edit GDN</jsp:attribute>
+                <jsp:attribute name="desciption">
+                    <form id="editGdnForm${gdn.gdnId}" action="${pageContext.request.contextPath}/goods-delivery-note" method="post" class="m-0">
+                        <input type="hidden" name="action" value="update" />
+                        <input type="hidden" name="gdnId" value="${gdn.gdnId}" />
+
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="small text-muted">GDN</div>
+                                <div class="fw-semibold">${gdn.gdnNumber}</div>
                             </div>
-                            <div class="modal-body pt-0 pb-4">
-                                <!-- One row: GDN Number, SO, Customer, Status -->
-                                <div class="row align-items-end g-3 mb-2 p-3 rounded bg-light">
-                                    <div class="col">
-                                        <label class="text-muted small text-uppercase fw-bold mb-1">GDN Number</label>
-                                        <p class="mb-0 fw-semibold text-dark">${gdn.gdnNumber}</p>
-                                    </div>
-                                    <div class="col">
-                                        <label class="text-muted small text-uppercase fw-bold mb-1">Sales Order</label>
-                                        <p class="mb-0 fw-semibold text-dark">${gdn.soNumber}</p>
-                                    </div>
-                                    <div class="col">
-                                        <label class="text-muted small text-uppercase fw-bold mb-1">Customer</label>
-                                        <p class="mb-0 fw-semibold text-dark">${gdn.customerName}</p>
-                                    </div>
-                                    <div class="col">
-                                        <label class="text-muted small text-uppercase fw-bold mb-1">Status</label>
-                                        <select name="status" class="form-control form-control-sm" required>
-                                            <option value="CREATED" ${gdn.status == 'CREATED' ? 'selected' : ''}>CREATED</option>
-                                            <option value="CANCELLED">CANCELLED</option>
-                                        </select>
-                                    </div>
+                            <div class="col-12">
+                                <div class="small text-muted">Sales Order</div>
+                                <div class="fw-semibold">${gdn.soNumber}</div>
+                            </div>
+                            <div class="col-12">
+                                <div class="small text-muted">Customer</div>
+                                <div class="fw-semibold">${gdn.customerName}</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold mb-1">Status</label>
+                                <select name="status" class="form-select" required>
+                                    <option value="CREATED" ${gdn.status == 'CREATED' ? 'selected' : ''}>CREATED</option>
+                                    <option value="CANCELLED">CANCELLED</option>
+                                </select>
+                                <div class="form-text">
+                                    Qty Picked / Qty Packed is updated from pick tasks and cannot be edited here.
                                 </div>
-                                <p class="text-muted small mb-0">
-                                    Item quantities (Qty Picked / Qty Packed) are now updated automatically from related pick tasks and cannot be edited here.
-                                </p>
                             </div>
-                            <div class="modal-footer border-0 bg-light py-3">
-                                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary px-3"><i class="fas fa-save me-1"></i> Save</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
+                        </div>
+                    </form>
+                </jsp:attribute>
+                <jsp:attribute name="action">
+                    <button type="button" class="btn btn-primary"
+                        onclick="document.getElementById('editGdnForm${gdn.gdnId}').submit()">
+                        Save
+                    </button>
+                </jsp:attribute>
+            </t:alert>
         </c:if>
     </div>
 </t:layout>

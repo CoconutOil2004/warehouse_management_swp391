@@ -722,6 +722,13 @@ public class GoodsReceiptController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list");
             return;
         }
+
+        // Prevent double-confirm putaway (idempotency guard)
+        if (grnDao.isPutawayComplete(grnId)) {
+            request.getSession().setAttribute("message", "Putaway was already confirmed for this GRN.");
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + grnId + "&putaway=already_confirmed");
+            return;
+        }
         Long warehouseId = grn.getWarehouseId();
 
         Object sessionUser = request.getSession().getAttribute("USER");

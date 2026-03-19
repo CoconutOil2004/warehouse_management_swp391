@@ -599,7 +599,8 @@ public class GoodsReceiptDAO extends DBContext {
     }
 
     public boolean isPutawayComplete(Long grnId) throws SQLException {
-        String sqlExpected = "SELECT SUM(qty_good + qty_damaged) FROM goods_receipt_line WHERE grn_id = ?";
+        // Putaway must cover all physically received items: GOOD + DAMAGED + EXCESS
+        String sqlExpected = "SELECT SUM(qty_good + qty_damaged + qty_extra) FROM goods_receipt_line WHERE grn_id = ?";
         String sqlActual = "SELECT SUM(pl.qty_putaway) FROM putaway_line pl JOIN putaway_order po ON pl.putaway_id = po.putaway_id WHERE po.grn_id = ?";
 
         java.math.BigDecimal expected = java.math.BigDecimal.ZERO;
@@ -627,5 +628,40 @@ public class GoodsReceiptDAO extends DBContext {
         }
 
         return expected.compareTo(java.math.BigDecimal.ZERO) > 0 && expected.compareTo(actual) == 0;
+    }
+
+    /**
+     * Business rule: if there is any GRN (PENDING/DRAFT) for this PO whose
+     * putaway is not complete yet, PO must not be editable to avoid mismatch.
+     */
+    public boolean hasIncompletePutawayForPo(Long poId) throws SQLException {
+        if (poId == null) return false;
+        String sql = """
+                SELECT 1
+                FROM goods_receipt gr
+                JOIN (
+                    SELECT grn_id, COALESCE(SUM(qty_good + qty_damaged + qty_extra), 0) AS expected
+                    FROM goods_receipt_line
+                    GROUP BY grn_id
+                ) e ON e.grn_id = gr.grn_id
+                LEFT JOIN (
+                    SELECT po.grn_id, COALESCE(SUM(pl.qty_putaway), 0) AS actual
+                    FROM putaway_order po
+                    JOIN putaway_line pl ON pl.putaway_id = po.putaway_id
+                    GROUP BY po.grn_id
+                ) a ON a.grn_id = gr.grn_id
+                WHERE gr.po_id = ?
+                  AND gr.status IN ('PENDING', 'DRAFT')
+                  AND e.expected > 0
+                  AND e.expected <> COALESCE(a.actual, 0)
+                LIMIT 1
+                """;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, poId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
     }
 }

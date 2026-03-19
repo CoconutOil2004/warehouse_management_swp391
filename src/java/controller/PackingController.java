@@ -398,23 +398,32 @@ public class PackingController extends HttpServlet {
 
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
 
+        // 1) Mark packing DONE (also stamps packed_at)
         packingDao.updatePacking(packId, "DONE", packedBy, packageLabel, packageType, weight, weightUnit, notes, null, null);
 
+        // 2) Sync all GDN lines packed qty = picked qty (legacy behavior)
         GDNDetailDTO gdn = gdnDao.getGDNDetailById(gdnId);
         if (gdn != null && gdn.getLines() != null) {
             Map<Long, BigDecimal> lineQtyPacked = new HashMap<>();
             for (GDNLineDTO line : gdn.getLines()) {
-                lineQtyPacked.put(line.getGdnLineId(), line.getQtyPicked() != null ? line.getQtyPicked() : BigDecimal.ZERO);
+                lineQtyPacked.put(
+                        line.getGdnLineId(),
+                        line.getQtyPicked() != null ? line.getQtyPicked() : BigDecimal.ZERO
+                );
             }
             packingDao.updateGDNLinesPacked(gdnId, lineQtyPacked);
         }
 
-        // Packing completed => GDN moves to SHIPPING (ready for shipment creation)
+        // 3) Packing completed => GDN moves to SHIPPING (ready for shipment creation)
         gdnDao.updateGDNStatus(gdnId, "SHIPPING");
         gdnDao.deductInventoryOnConfirm(gdnId);
 
         response.sendRedirect(request.getContextPath() + "/packing?action=list&message=Packing+completed+successfully");
     }
+
+    
+
+    
 
     private long parseLong(String raw, long def) {
         try {

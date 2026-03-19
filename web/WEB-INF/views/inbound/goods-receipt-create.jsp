@@ -277,31 +277,26 @@
                             const qExp = parseFloat(qExpInput.value) || 0;
                             const qGoodPhys = parseFloat(row.querySelector('.phys-good').value) || 0;
                             const qDamagedPhys = parseFloat(row.querySelector('.phys-damaged').value) || 0;
+                            const qExcessPhys = parseFloat(row.querySelector('.phys-excess')?.value) || 0;
                             
-                            const totalPhys = qGoodPhys + qDamagedPhys;
-                            let finalGood, finalDamaged, finalMissing, finalExcess;
-                            
-                            if (totalPhys < qExp) {
-                                finalGood = qGoodPhys;
-                                finalDamaged = qDamagedPhys;
-                                finalMissing = qExp - totalPhys;
-                                finalExcess = 0;
-                            } else {
-                                finalMissing = 0;
-                                finalExcess = totalPhys - qExp;
-                                finalGood = Math.min(qGoodPhys, qExp);
-                                finalDamaged = qExp - finalGood;
-                            }
+                            // Rule: missing is computed from expected vs (good + damaged),
+                            // excess is user-input as additional quantity above PO.
+                            const receivedAgainstPo = qGoodPhys + qDamagedPhys;
+                            const finalGood = qGoodPhys;
+                            const finalDamaged = qDamagedPhys;
+                            const finalExcess = qExcessPhys;
+                            const finalMissing = Math.max(0, qExp - receivedAgainstPo);
                             
                             row.querySelector('.server-good').value = finalGood;
                             row.querySelector('.server-damaged').value = finalDamaged;
                             row.querySelector('.server-extra').value = finalExcess;
                             row.querySelector('.server-missing').value = finalMissing;
                             
-                            row.querySelector('.display-extra').value = finalExcess;
+                            const displayExtra = row.querySelector('.display-extra');
+                            if (displayExtra) displayExtra.value = finalExcess;
                             row.querySelector('.display-missing').value = finalMissing;
                             
-                            if (totalPhys > 0 || finalMissing > 0) {
+                            if (receivedAgainstPo > 0 || finalMissing > 0 || finalExcess > 0) {
                                 let errorRow = row.nextElementSibling;
                                 if (errorRow && errorRow.querySelector('.error-message')) {
                                     const errorDiv = errorRow.querySelector('.error-message');
@@ -336,7 +331,7 @@
 </td>
 <td style="width: 130px; border-left: 2px solid #dee2e6;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-good phys-good" 
-           value="\${data && data.fromOld ? (data.qtyGood + Math.max(0, (data.qtyGood + data.qtyDamaged + data.qtyExtra) - data.qtyExpected)) : 0}" 
+           value="\${data && data.fromOld ? Math.floor(data.qtyGood) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Actual Good received">
     <input type="hidden" class="server-good" name="lines[\${idx}].qtyGood" value="\${data ? Math.floor(data.qtyGood) : 0}">
@@ -349,8 +344,10 @@
     <input type="hidden" class="server-damaged" name="lines[\${idx}].qtyDamaged" value="\${data ? Math.floor(data.qtyDamaged) : 0}">
 </td>
 <td style="width: 90px; border-left: 2px solid #dee2e6;">
-    <input type="number" class="form-control form-control-sm text-center bg-excess display-extra" 
-           value="\${data ? Math.floor(data.qtyExtra) : 0}" readonly title="Excess items (above PO)">
+    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-excess phys-excess display-extra" 
+           value="\${data && data.fromOld ? Math.floor(data.qtyExtra) : 0}" 
+           oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
+           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Excess items (above PO)">
     <input type="hidden" class="server-extra" name="lines[\${idx}].qtyExtra" value="\${data ? Math.floor(data.qtyExtra) : 0}">
 </td>
 <td style="width: 90px;">
@@ -380,6 +377,7 @@
                         }
 
                         document.addEventListener("DOMContentLoaded", function () {
+                            const grnForm = document.getElementById('grnForm');
                             const oldLinesDataTag = document.getElementById('oldLinesData');
                             const oldLines = oldLinesDataTag ? JSON.parse(oldLinesDataTag.textContent) : [];
 
@@ -397,6 +395,8 @@
                             const poIdHidden = document.getElementById('poIdHidden');
                             const noPoMessage = document.getElementById('noPoMessage');
                             const dropdownItems = poDropdownList.querySelectorAll('.dropdown-item:not(#noPoMessage)');
+                            const grnNumberDisplay = document.getElementById('grnNumberDisplay');
+                            const grnNumberHidden = document.getElementById('grnNumberHidden');
 
                             function showDropdown() { poDropdownList.style.display = 'block'; }
                             function hideDropdown() { poDropdownList.style.display = 'none'; }
@@ -463,12 +463,18 @@
                                     if(tb) tb.innerHTML = '';
                                     const sup = document.getElementById('supplierSelect');
                                     if(sup) sup.value = '';
+                                    if (grnNumberDisplay) grnNumberDisplay.value = '';
+                                    if (grnNumberHidden) grnNumberHidden.value = '';
                                     return;
                                 }
                                 try {
                                     const resp = await fetch(`${pageContext.request.contextPath}/goods-receipt?action=getPoDetails&poId=\${poId}`);
                                     if (!resp.ok) throw new Error("Failed to fetch PO details");
                                     const data = await resp.json();
+                                    if (data.grnNumber) {
+                                        if (grnNumberDisplay) grnNumberDisplay.value = data.grnNumber;
+                                        if (grnNumberHidden) grnNumberHidden.value = data.grnNumber;
+                                    }
                                     const sup = document.getElementById('supplierSelect');
                                     if (data.supplierId && sup) {
                                         sup.disabled = false;

@@ -5,10 +5,12 @@
 package controller;
 
 import dao.CustomerDAO;
+import dto.ProductVariantDTO;
 import dto.SOLineCreateDTO;
 import dto.SaleOrderHeaderDTO;
 import dto.SaleOrderLineDTO;
 import dto.SaleOrderListDTO;
+import service.ProductVariantService;
 import service.SaleOrderImportService;
 import service.SaleOrderService;
 import util.RequestUtil;
@@ -56,6 +58,8 @@ public class SaleOrderController extends HttpServlet {
                     forwardEditForm(request, response);
                 case "import" ->
                     forwardImportForm(request, response);
+                case "variants" ->
+                    handleGetVariants(request, response);
                 default ->
                     forwardList(request, response);
             }
@@ -91,6 +95,45 @@ public class SaleOrderController extends HttpServlet {
         } catch (Exception e) {
             throw new ServletException(e);
         }
+    }
+
+    private void handleGetVariants(HttpServletRequest request, HttpServletResponse response)
+            throws Exception {
+        String raw = request.getParameter("productId");
+        long productId;
+        try {
+            productId = Long.parseLong(raw);
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        ProductVariantService vService = new ProductVariantService();
+        List<ProductVariantDTO> list = vService.listByProductId(productId);
+
+        response.setContentType("application/json;charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0; i < list.size(); i++) {
+            ProductVariantDTO v = list.get(i);
+            if (i > 0) sb.append(",");
+            sb.append("{")
+                    .append("\"variantId\":").append(v.getVariantId()).append(",")
+                    .append("\"variantSku\":\"").append(esc(v.getVariantSku())).append("\",")
+                    .append("\"color\":\"").append(esc(v.getColor())).append("\",")
+                    .append("\"size\":\"").append(esc(v.getSize())).append("\"")
+                    .append("}");
+        }
+        sb.append("]");
+
+        response.getWriter().write(sb.toString());
+    }
+
+    private String esc(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private void forwardList(HttpServletRequest request, HttpServletResponse response) throws Exception {

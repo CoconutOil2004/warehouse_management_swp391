@@ -143,6 +143,27 @@ public class InventoryBalanceDAO extends DBContext {
         return BigDecimal.ZERO;
     }
 
+    public BigDecimal getTotalAvailableQty(Long warehouseId, Long variantId) throws Exception {
+        if (warehouseId == null || variantId == null) return BigDecimal.ZERO;
+        String sql = """
+                SELECT COALESCE(SUM(qty_available), 0) AS total
+                FROM inventory_balance
+                WHERE warehouse_id = ? AND variant_id = ?
+                """;
+        try (Connection con = DBContext.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, warehouseId);
+            ps.setLong(2, variantId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    BigDecimal v = rs.getBigDecimal("total");
+                    return v != null ? v : BigDecimal.ZERO;
+                }
+            }
+        }
+        return BigDecimal.ZERO;
+    }
+
     /**
      * Get slots with available qty for a variant (for allocating from_slot_id in pick task lines).
      * Ordered by slot for consistent allocation (FIFO by slot code).
