@@ -56,6 +56,7 @@
                                                         </div>
                                                         <input type="hidden" name="poId" id="poIdHidden"
                                                             value="${oldPoId != null ? oldPoId : ''}" required>
+                                                        <input type="hidden" name="nextStep" id="nextStep" value="putaway">
                                                         <div id="poDropdownList"
                                                             class="dropdown-menu w-100 shadow-sm overflow-auto"
                                                             style="max-height: 400px; display: none; z-index: 1050;">
@@ -314,11 +315,22 @@
                                     errorDiv.textContent = 'Good + Damaged (thực tế) không được vượt số đặt (' + qExp + '). Phần vượt nhập vào Extra.';
                                     row.querySelector('.phys-good')?.classList.add('is-invalid-field');
                                     row.querySelector('.phys-damaged')?.classList.add('is-invalid-field');
+                                    row.querySelector('.phys-extra-good')?.classList.remove('is-invalid-field');
+                                    row.querySelector('.phys-extra-damaged')?.classList.remove('is-invalid-field');
+                                } else if ((qExtraGoodPhys > 0 || qExtraDamagedPhys > 0) && (onPoGoodDamaged < qExp)) {
+                                    errorDiv.style.display = 'block';
+                                    errorDiv.textContent = 'Please fulfill the ordered quantity (' + qExp + ') in Good/Damaged columns before using the Extra columns.';
+                                    row.querySelector('.phys-extra-good')?.classList.add('is-invalid-field');
+                                    row.querySelector('.phys-extra-damaged')?.classList.add('is-invalid-field');
+                                    row.querySelector('.phys-good')?.classList.remove('is-invalid-field');
+                                    row.querySelector('.phys-damaged')?.classList.remove('is-invalid-field');
                                 } else {
                                     errorDiv.style.display = 'none';
                                     errorDiv.textContent = '';
                                     row.querySelector('.phys-good')?.classList.remove('is-invalid-field');
                                     row.querySelector('.phys-damaged')?.classList.remove('is-invalid-field');
+                                    row.querySelector('.phys-extra-good')?.classList.remove('is-invalid-field');
+                                    row.querySelector('.phys-extra-damaged')?.classList.remove('is-invalid-field');
                                 }
                             }
                         }
@@ -348,36 +360,36 @@
 </td>
 <td style="width: 130px; border-left: 2px solid #dee2e6;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-good phys-good" 
-           value="\${data && data.fromOld ? Math.floor(data.qtyGood) : 0}" 
+           value="\${data && data.qtyGood ? Math.floor(data.qtyGood) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Good condition counted vs ordered qty (with damaged on line)">
-    <input type="hidden" class="server-good" name="lines[\${idx}].qtyGood" value="\${data ? Math.floor(data.qtyGood) : 0}">
+    <input type="hidden" class="server-good" name="lines[\${idx}].qtyGood" value="\${data && data.qtyGood ? Math.floor(data.qtyGood) : 0}">
 </td>
 <td style="width: 130px;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-damaged phys-damaged" 
-           value="\${data && data.fromOld ? Math.floor(data.qtyDamaged) : 0}" 
+           value="\${data && data.qtyDamaged ? Math.floor(data.qtyDamaged) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Actual Damaged received">
-    <input type="hidden" class="server-damaged" name="lines[\${idx}].qtyDamaged" value="\${data ? Math.floor(data.qtyDamaged) : 0}">
+    <input type="hidden" class="server-damaged" name="lines[\${idx}].qtyDamaged" value="\${data && data.qtyDamaged ? Math.floor(data.qtyDamaged) : 0}">
 </td>
 <td style="width: 90px; border-left: 2px solid #dee2e6;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-excess phys-extra-good" 
-           value="\${data && data.fromOld ? Math.floor(data.qtyExtraGood != null ? data.qtyExtraGood : 0) : 0}" 
+           value="\${data && data.qtyExtraGood ? Math.floor(data.qtyExtraGood) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Extra good: counts vs ordered for shortage; putaway → EXCESS zone">
-    <input type="hidden" class="server-extra-good" name="lines[\${idx}].qtyExtraGood" value="\${data ? Math.floor(data.qtyExtraGood != null ? data.qtyExtraGood : 0) : 0}">
+    <input type="hidden" class="server-extra-good" name="lines[\${idx}].qtyExtraGood" value="\${data && data.qtyExtraGood ? Math.floor(data.qtyExtraGood) : 0}">
 </td>
 <td style="width: 90px;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-extra-damaged phys-extra-damaged" 
-           value="\${data && data.fromOld ? Math.floor(data.qtyExtraDamaged != null ? data.qtyExtraDamaged : 0) : 0}" 
+           value="\${data && data.qtyExtraDamaged ? Math.floor(data.qtyExtraDamaged) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Surplus damaged units (DAMAGE zone)">
-    <input type="hidden" class="server-extra-damaged" name="lines[\${idx}].qtyExtraDamaged" value="\${data ? Math.floor(data.qtyExtraDamaged != null ? data.qtyExtraDamaged : 0) : 0}">
+    <input type="hidden" class="server-extra-damaged" name="lines[\${idx}].qtyExtraDamaged" value="\${data && data.qtyExtraDamaged ? Math.floor(data.qtyExtraDamaged) : 0}">
 </td>
 <td style="width: 90px;">
     <input type="number" class="form-control form-control-sm text-center bg-missing display-missing" 
-           value="\${data ? Math.floor(data.qtyMissing) : 0}" readonly title="Missing vs PO = Ordered − (Good + Damaged + Extra good)">
-    <input type="hidden" class="server-missing" name="lines[\${idx}].qtyMissing" value="\${data ? Math.floor(data.qtyMissing) : 0}">
+           value="\${data && data.qtyMissing ? Math.floor(data.qtyMissing) : 0}" readonly title="Missing vs PO = Ordered − (Good + Damaged + Extra good)">
+    <input type="hidden" class="server-missing" name="lines[\${idx}].qtyMissing" value="\${data && data.qtyMissing ? Math.floor(data.qtyMissing) : 0}">
 </td>
 <td>
     <input type="text" class="form-control form-control-sm" name="lines[\${idx}].note" placeholder="Remark" value="\${data ? data.note : ''}">
@@ -550,6 +562,16 @@
                                             row.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                             return;
                                         }
+
+                                        if ((eg > 0 || ed > 0) && (g + d < qExp)) {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Invalid Entry Logic',
+                                                text: 'You cannot enter extra quantities when the ordered quantity (' + qExp + ') has not been fully accounted for in Good/Damaged columns.'
+                                            });
+                                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            return;
+                                        }
                                     }
 
                                     const warehouseId = document.getElementById('warehouseIdHidden').value;
@@ -592,12 +614,20 @@
                                                         title: 'Insufficient Warehouse Capacity!',
                                                         html: html,
                                                         icon: 'warning',
-                                                        confirmButtonText: '<i class="fas fa-th me-1"></i> Go to Warehouse Layout',
-                                                        confirmButtonColor: '#0d6efd'
-                                                    }).then(() => {
-                                                        window.location.href = `${pageContext.request.contextPath}/warehouse-layout`;
+                                                        showCancelButton: true,
+                                                        confirmButtonText: '<i class="fas fa-th me-1"></i> Save & Go to Layout',
+                                                        cancelButtonText: 'Cancel',
+                                                        confirmButtonColor: '#0d6efd',
+                                                        cancelButtonColor: '#6e7881'
+                                                    }).then((result) => {
+                                                        if (result.isConfirmed) {
+                                                            document.getElementById('nextStep').value = 'layout';
+                                                            const sup = document.getElementById('supplierSelect');
+                                                            if (sup) sup.disabled = false;
+                                                            document.getElementById('grnForm').submit();
+                                                        }
                                                     });
-                                                    return; // Stop submission
+                                                    return; // STOP automatic submission below, we use the Swal confirmation instead
                                                 }
                                             }
                                             // resp không ok (400, 500,...) hoặc đủ chỗ → submit bình thường
