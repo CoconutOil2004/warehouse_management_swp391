@@ -45,5 +45,6 @@ src/java/util/CommonVariables.java
 .github/
 .opencode/
 .qwen/
+.kilocode/
 
 openspec/
