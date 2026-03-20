@@ -104,12 +104,12 @@ public class ShipmentController extends HttpServlet {
         if (gdnIdParam != null && !gdnIdParam.isBlank()) {
             try {
                 Long gdnId = Long.valueOf(gdnIdParam.trim());
-                // Validate that the GDN is actually CONFIRMED
+                // Validate that the GDN is actually SHIPPING
                 dao.GoodsDeliveryNoteDAO gdnDao = new dao.GoodsDeliveryNoteDAO();
                 try {
                     dto.GDNDetailDTO gdn = gdnDao.getGDNDetailById(gdnId);
-                    if (gdn == null || !"CONFIRMED".equals(gdn.getStatus())) {
-                        request.setAttribute("error", "Lỗi: Chỉ có thể tạo lô hàng cho Phiếu Xuất Kho đã hoàn thành Pick & Pack (CONFIRMED).");
+                    if (gdn == null || !"SHIPPING".equals(gdn.getStatus())) {
+                        request.setAttribute("error", "Lỗi: Chỉ có thể tạo lô hàng cho Phiếu Xuất Kho đã hoàn thành packing (SHIPPING).");
                         request.getRequestDispatcher(ViewPath.SHIPMENT_CREATE).forward(request, response);
                         return;
                     }
@@ -117,12 +117,12 @@ public class ShipmentController extends HttpServlet {
                     // Check if shipment already exists for this GDN
                     List<model.Shipment> existingShipments = shipmentDAO.getByGdnId(gdnId);
                     if (existingShipments != null && !existingShipments.isEmpty()) {
-                        request.setAttribute("error", "Lỗi: Phiếu Xuất Kho này đã có lô hàng. Không thể tạo thêm.");
+                        request.setAttribute("error", "Error: This GDN already has a shipment.");
                         request.getRequestDispatcher(ViewPath.SHIPMENT_CREATE).forward(request, response);
                         return;
                     }
                 } catch (Exception e) {
-                    request.setAttribute("error", "Lỗi kiểm tra trạng thái GDN: " + e.getMessage());
+                    request.setAttribute("error", "Error validating GDN status: " + e.getMessage());
                 }
                 request.setAttribute("selectedGdnId", gdnId);
             } catch (NumberFormatException ignored) { }
@@ -141,12 +141,12 @@ public class ShipmentController extends HttpServlet {
         }
 
         Long gdnId = Long.valueOf(gdnIdStr);
-        // Strict server-side validation: must be CONFIRMED
+        // Strict server-side validation: must be SHIPPING
         dao.GoodsDeliveryNoteDAO gdnDao = new dao.GoodsDeliveryNoteDAO();
         try {
             dto.GDNDetailDTO gdn = gdnDao.getGDNDetailById(gdnId);
-            if (gdn == null || !"CONFIRMED".equals(gdn.getStatus())) {
-                request.setAttribute("error", "Lỗi: Phiếu Xuất Kho phải ở trạng thái CONFIRMED mới có thể tạo lô hàng.");
+            if (gdn == null || !"SHIPPING".equals(gdn.getStatus())) {
+                request.setAttribute("error", "Lỗi: Phiếu Xuất Kho phải ở trạng thái SHIPPING mới có thể tạo lô hàng.");
                 handleCreate(request, response);
                 return;
             }
@@ -154,12 +154,12 @@ public class ShipmentController extends HttpServlet {
             // Check if shipment already exists for this GDN
             List<model.Shipment> existingShipments = shipmentDAO.getByGdnId(gdnId);
             if (existingShipments != null && !existingShipments.isEmpty()) {
-                request.setAttribute("error", "Lỗi: Phiếu Xuất Kho này đã được tạo lô hàng trước đó.");
+                request.setAttribute("error", "Error: This GDN already has a shipment.");
                 handleCreate(request, response);
                 return;
             }
         } catch (Exception e) {
-            request.setAttribute("error", "Lỗi hệ thống khi kiểm tra GDN: " + e.getMessage());
+            request.setAttribute("error", "System error while validating GDN: " + e.getMessage());
             handleCreate(request, response);
             return;
         }

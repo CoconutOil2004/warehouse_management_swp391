@@ -221,16 +221,30 @@ public class CustomerDAO extends DBContext implements Dao<Customer> {
     
     
     public String generateNextCode() throws SQLException {
-        String sql = "SELECT code FROM customer WHERE code LIKE 'CUS%' ORDER BY code DESC LIMIT 1";
+        // Required format: CUS-0001 (incremental)
+        // Also supports migrating legacy codes like CUS001 by considering both patterns.
+        String sql = "SELECT code FROM customer WHERE code IS NOT NULL ORDER BY customer_id DESC LIMIT 200";
+
+        int max = 0;
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("^CUS-?(\\d+)$");
+
         try (Connection con = DBContext.getConnection();
              PreparedStatement ps = con.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) {
-                String lastCode = rs.getString("code");
-                int num = Integer.parseInt(lastCode.substring(4));
-                return String.format("CUS%04d", num + 1);
+            while (rs.next()) {
+                String code = rs.getString("code");
+                if (code == null) continue;
+                code = code.trim();
+                java.util.regex.Matcher m = p.matcher(code);
+                if (!m.matches()) continue;
+                try {
+                    int n = Integer.parseInt(m.group(1));
+                    if (n > max) max = n;
+                } catch (NumberFormatException ignore) {
+                }
             }
         }
-        return "CUS0001";
+
+        return String.format("CUS-%04d", max + 1);
     }
 }

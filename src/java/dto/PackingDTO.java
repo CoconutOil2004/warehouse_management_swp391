@@ -1,5 +1,6 @@
 package dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,4 +16,12 @@ public class PackingDTO {
     private String packedByName;
     private LocalDateTime packedAt;
     private String packageLabel;
+    private String packageType;
+    private BigDecimal weight;
+    private String weightUnit;
+    private String notes;
+    private Integer totalPackages;
+    private Integer currentPackageNum;
+    private String customerName;
+    private String soNumber;
 }

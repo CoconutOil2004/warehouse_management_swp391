@@ -1,9 +1,10 @@
-<%@page contentType="text/html" pageEncoding="UTF-8" %>
+    <%@page contentType="text/html" pageEncoding="UTF-8" %>
 <%@taglib tagdir="/WEB-INF/tags/" prefix="t" %>
 <%@taglib uri="jakarta.tags.core" prefix="c" %>
 <%@taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 
 <t:layout title="Goods Receipt Putaway">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <div class="container-fluid py-4">
         <!-- Back Link -->
         <div class="mb-3">
@@ -68,16 +69,16 @@
                                 </c:if>
 
                                 <!-- Damaged Items Summary -->
-                                <c:if test="${l.qtyDamaged > 0}">
+                                <c:if test="${l.damagePutawayQty > 0}">
                                     <div class="mb-1">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <span class="badge bg-danger-subtle text-danger small">DAMAGED</span>
                                             <span class="small fw-bold" id="summary_received_${l.grnLineId}_DAMAGE"
-                                                data-total="<fmt:formatNumber value='${l.qtyDamaged}' pattern='0' />">
+                                                data-total="<fmt:formatNumber value='${l.damagePutawayQty}' pattern='0' />">
                                                 <span id="summary_assigned_${l.grnLineId}_DAMAGE">
-                                                    Remaining: ${l.qtyDamaged}
+                                                    Remaining: ${l.damagePutawayQty}
                                                 </span> /
-                                                <fmt:formatNumber value="${l.qtyDamaged}" pattern="#,##0" />
+                                                <fmt:formatNumber value="${l.damagePutawayQty}" pattern="#,##0" />
                                             </span>
                                         </div>
                                         <div class="progress" style="height: 6px;">
@@ -88,16 +89,16 @@
                                 </c:if>
 
                                 <!-- Excess Items Summary -->
-                                <c:if test="${l.qtyExtra > 0}">
+                                <c:if test="${l.excessPutawayQty > 0}">
                                     <div class="mb-1 mt-3">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <span class="badge bg-info-subtle text-info small">EXCESS</span>
                                             <span class="small fw-bold" id="summary_received_${l.grnLineId}_EXCESS"
-                                                data-total="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />">
+                                                data-total="<fmt:formatNumber value='${l.excessPutawayQty}' pattern='0' />">
                                                 <span id="summary_assigned_${l.grnLineId}_EXCESS">
-                                                    Remaining: ${l.qtyExtra}
+                                                    Remaining: ${l.excessPutawayQty}
                                                 </span> /
-                                                <fmt:formatNumber value="${l.qtyExtra}" pattern="#,##0" />
+                                                <fmt:formatNumber value="${l.excessPutawayQty}" pattern="#,##0" />
                                             </span>
                                         </div>
                                         <div class="progress" style="height: 6px;">
@@ -146,7 +147,7 @@
                                             </td>
                                             <td><span
                                                     class="badge bg-success-subtle text-success border border-success-subtle w-100">GOOD
-                                                    (Z-STO)</span></td>
+                                                    (STORAGE)</span></td>
                                             <td>
                                                 <input type="number" class="form-control text-center qty-input"
                                                     name="qty_${l.grnLineId}_STORAGE[]"
@@ -190,10 +191,10 @@
                                     </c:if>
 
                                     <!-- Damage Assignment(s) -->
-                                    <c:if test="${l.qtyDamaged > 0}">
+                                    <c:if test="${l.damagePutawayQty > 0}">
                                         <tr class="assignment-row damage-row" data-grn-line-id="${l.grnLineId}"
                                             data-sku="${l.sku}"
-                                            data-max="<fmt:formatNumber value='${l.qtyDamaged}' pattern='0' />"
+                                            data-max="<fmt:formatNumber value='${l.damagePutawayQty}' pattern='0' />"
                                             data-type="DAMAGE">
                                             <td class="ps-4">
                                                 <div class="fw-bold text-primary">${l.sku}</div>
@@ -202,13 +203,13 @@
                                             </td>
                                             <td><span
                                                     class="badge bg-danger-subtle text-danger border border-danger-subtle w-100">DAMAGED
-                                                    (Z-DAM)</span></td>
+                                                    (DAMAGE)</span></td>
                                             <td>
                                                 <input type="number" class="form-control text-center qty-input"
                                                     name="qty_${l.grnLineId}_DAMAGE[]"
-                                                    value="<fmt:formatNumber value='${l.qtyDamaged}' pattern='0' />"
+                                                    value="<fmt:formatNumber value='${l.damagePutawayQty}' pattern='0' />"
                                                     min="0"
-                                                    max="<fmt:formatNumber value='${l.qtyDamaged}' pattern='0' />"
+                                                    max="<fmt:formatNumber value='${l.damagePutawayQty}' pattern='0' />"
                                                     step="1">
                                             </td>
                                             <td>
@@ -248,10 +249,10 @@
                                     </c:if>
 
                                     <!-- Excess Assignment(s) -->
-                                    <c:if test="${l.qtyExtra > 0}">
+                                    <c:if test="${l.excessPutawayQty > 0}">
                                         <tr class="assignment-row excess-row" data-grn-line-id="${l.grnLineId}"
                                             data-sku="${l.sku}"
-                                            data-max="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />"
+                                            data-max="<fmt:formatNumber value='${l.excessPutawayQty}' pattern='0' />"
                                             data-type="EXCESS">
                                             <td class="ps-4">
                                                 <div class="fw-bold text-primary">${l.sku}</div>
@@ -260,13 +261,13 @@
                                             </td>
                                             <td><span
                                                     class="badge bg-info-subtle text-info border border-info-subtle w-100">EXCESS
-                                                    (Z-EXC)</span></td>
+                                                    (EXCESS)</span></td>
                                             <td>
                                                 <input type="number" class="form-control text-center qty-input"
                                                     name="qty_${l.grnLineId}_EXCESS[]"
-                                                    value="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />"
+                                                    value="<fmt:formatNumber value='${l.excessPutawayQty}' pattern='0' />"
                                                     min="0"
-                                                    max="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />"
+                                                    max="<fmt:formatNumber value='${l.excessPutawayQty}' pattern='0' />"
                                                     step="1">
                                             </td>
                                             <td>
@@ -332,6 +333,7 @@
             var putawayTable = document.getElementById('putawayTable');
             var putawayForm = document.getElementById('putawayForm');
             var submitBtn = document.getElementById('submitBtn');
+            var isSubmitting = false;
 
             function updateSummaryAndLogic() {
                 var totals = {};
@@ -468,15 +470,14 @@
                         var usageByOthers = (currentUsage[option.value] || 0) - (option.value === currentValue ? currentQtyThisRow : 0);
                         var effectiveAvail = origAvail - usageByOthers;
 
-                        // UNIQUE CONSTRAINT REMOVED: No longer disabling if selected in another row.
-                        // Only disable if the slot is full (capacity <= 0).
-                        option.disabled = (effectiveAvail <= 0 && option.value !== currentValue);
-
                         var baseText = option.text.split(' (')[0];
-                        if (effectiveAvail <= 0 && option.value !== currentValue) {
-                            option.text = baseText + " (FULL)";
-                            option.style.color = "#dc3545";
-                        } else {
+                        // Hide slots that are full (effective available <= 0),
+                        // but keep the currently selected one visible so user can change it.
+                        var isFull = effectiveAvail <= 0;
+                        option.hidden = (isFull && option.value !== currentValue);
+                        option.disabled = false;
+
+                        if (!option.hidden) {
                             option.text = baseText + " (" + (effectiveAvail < 0 ? 0 : effectiveAvail) + " left)";
                             option.style.color = "";
                         }
@@ -632,6 +633,70 @@
                     }
                 }
             });
+
+            if (putawayForm) {
+                putawayForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    if (isSubmitting) return;
+
+                    var grnId = putawayForm.querySelector('input[name="grnId"]').value;
+
+                    // Capacity Check trước khi confirm putaway
+                    fetch('${pageContext.request.contextPath}/goods-receipt?action=checkCapacity&id=' + grnId)
+                        .then(function(resp) { return resp.json(); })
+                        .then(function(data) {
+                            if (!data.sufficient) {
+                                var html = '<div class="text-start small">';
+                                if (data.details.good && !data.details.good.isSufficient) {
+                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>GOOD ITEMS:</b> Need ' + data.details.good.required + ', available ' + data.details.good.available + '</p>';
+                                }
+                                if (data.details.damaged && !data.details.damaged.isSufficient) {
+                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>DAMAGED ITEMS:</b> Need ' + data.details.damaged.required + ', available ' + data.details.damaged.available + '</p>';
+                                }
+                                if (data.details.excess && !data.details.excess.isSufficient) {
+                                    html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>EXCESS ITEMS:</b> Need ' + data.details.excess.required + ', available ' + data.details.excess.available + '</p>';
+                                }
+                                html += '</div><hr><p class="mb-0">Do you want to go to <b>Warehouse Layout</b> to add more slots?</p>';
+
+                                Swal.fire({
+                                    title: 'Insufficient Capacity!',
+                                    html: html,
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    showDenyButton: true,
+                                    confirmButtonText: 'Go to Warehouse Layout',
+                                    denyButtonText: 'Continue Anyway',
+                                    cancelButtonText: 'Close',
+                                    confirmButtonColor: '#0d6efd',
+                                    denyButtonColor: '#fd7e14',
+                                    cancelButtonColor: '#6e7881'
+                                }).then(function(result) {
+                                    if (result.isConfirmed) {
+                                        window.location.href = '${pageContext.request.contextPath}/warehouse-layout';
+                                    } else if (result.isDenied) {
+                                        doSubmit();
+                                    }
+                                });
+                            } else {
+                                doSubmit();
+                            }
+                        })
+                        .catch(function(err) {
+                            console.error('Capacity check error:', err);
+                            doSubmit(); // Nếu check lỗi thì cho submit luôn
+                        });
+
+                    function doSubmit() {
+                        isSubmitting = true;
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.setAttribute('aria-busy', 'true');
+                            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Confirming...';
+                        }
+                        putawayForm.submit();
+                    }
+                });
+            }
 
             updateSummaryAndLogic();
         });

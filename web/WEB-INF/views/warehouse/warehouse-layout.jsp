@@ -91,9 +91,9 @@
                         <label for="zoneType" class="form-label">Zone Type</label>
                         <select class="form-select" id="zoneType" name="zoneType" required style="cursor: pointer; height: 38px;">
                             <option value="">-- Select Type --</option>
-                            <option value="STORAGE">STORAGE</option>
-                            <option value="EXCESS">EXCESS</option>
-                            <option value="DAMAGE">DAMAGE</option>
+                            <option value="STORAGE">Storage Zone (Main)</option>
+                            <option value="EXCESS">Excess Zone (Overstock)</option>
+                            <option value="DAMAGE">Damage Zone (Defects)</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -120,7 +120,13 @@
                                 <span class="badge bg-info"><c:out value="${zone.code}" /></span>
                                 <c:out value="${zone.name}" />
                             </h6>
-                            <small class="text-muted">Type: <c:out value="${zone.zoneType}" /> 
+                            <small class="text-muted">Type: 
+                                <c:choose>
+                                    <c:when test="${zone.zoneType == 'STORAGE'}">Storage Zone (Main)</c:when>
+                                    <c:when test="${zone.zoneType == 'EXCESS'}">Excess Zone (Overstock)</c:when>
+                                    <c:when test="${zone.zoneType == 'DAMAGE'}">Damage Zone (Defects)</c:when>
+                                    <c:otherwise><c:out value="${zone.zoneType}" /></c:otherwise>
+                                </c:choose>
                                 <span>Status: 
                                         <span class="badge bg-${zone.status == 'ACTIVE' ? 'success' : 'secondary'}">
                                                 <c:out value="${zone.status}" /></span>

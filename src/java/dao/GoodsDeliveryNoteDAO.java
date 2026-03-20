@@ -337,7 +337,7 @@ public class GoodsDeliveryNoteDAO extends DBContext {
     public boolean updateGDNStatus(Long gdnId, String status) throws Exception {
         String sql = """
                 UPDATE goods_delivery_note
-                SET status = ?, confirmed_at = CASE WHEN ? = 'CONFIRMED' THEN NOW() ELSE confirmed_at END
+                SET status = ?, confirmed_at = CASE WHEN ? = 'SHIPPING' THEN NOW() ELSE confirmed_at END
                 WHERE gdn_id = ?
             """;
 

@@ -205,7 +205,7 @@ public class PurchaseOrderDAO extends DBContext {
     public boolean deletePurchaseOrder(long poId) throws SQLException {
         String deleteLinesSql = "DELETE FROM purchase_order_line WHERE po_id = ?";
         String deletePoSql = "DELETE FROM purchase_order WHERE po_id = ?";
-
+//        if( )
         boolean oldAutoCommit = conn.getAutoCommit();
         try {
             conn.setAutoCommit(false);
@@ -486,7 +486,15 @@ public class PurchaseOrderDAO extends DBContext {
             }
         }
     }
-
+public boolean hasAnyGrn(long poId) throws SQLException {
+        String sql = "SELECT 1 FROM goods_receipt WHERE po_id = ? LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, poId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
     private boolean isPoLineReferenced(long poLineId) throws SQLException {
         String sql = "SELECT 1 FROM goods_receipt_line WHERE po_line_id = ? LIMIT 1";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
