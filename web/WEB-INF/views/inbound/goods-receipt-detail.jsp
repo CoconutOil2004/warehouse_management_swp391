@@ -137,8 +137,7 @@
                                                                             pattern="#,##0" />
                                                                     </span>
                                                                 </td>
-                                                                <td><span
-                                                                        class="badge bg-info-subtle text-info px-3">
+                                                                <td><span class="badge bg-info-subtle text-info px-3">
                                                                         <fmt:formatNumber value="${l.qtyExtraGood}"
                                                                             pattern="#,##0" />
                                                                     </span>
@@ -308,13 +307,23 @@
                                                 <t:alert id="rejectGrnModal${grn.grnId}">
                                                     <jsp:attribute name="title">Confirm Reject</jsp:attribute>
                                                     <jsp:attribute name="desciption">
-                                                        Reject Goods Receipt <strong>${grn.grnNumber}</strong>?
+                                                        <div class="mb-3">
+                                                            Reject Goods Receipt <strong>${grn.grnNumber}</strong>?
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="rejectReasonInput${grn.grnId}" class="form-label fw-bold small text-muted text-uppercase">Reason for Rejection <span class="text-danger">*</span></label>
+                                                            <textarea class="form-control shadow-sm" id="rejectReasonInput${grn.grnId}" 
+                                                                      placeholder="Please enter the reason for rejecting this receipt..." 
+                                                                      rows="3" oninput="toggleRejectButton('${grn.grnId}')" required></textarea>
+                                                            <div class="invalid-feedback" id="reasonError${grn.grnId}" style="display: none;">
+                                                                Please provide a reason before rejecting.
+                                                            </div>
+                                                        </div>
                                                     </jsp:attribute>
                                                     <jsp:attribute name="action">
-                                                        <button type="button" class="btn btn-danger"
-                                                            data-bs-dismiss="modal"
-                                                            onclick="document.getElementById('rejectGrnForm${grn.grnId}').submit()">
-                                                            Reject
+                                                        <button type="button" class="btn btn-danger shadow-sm px-4" id="confirmRejectBtn${grn.grnId}"
+                                                            onclick="submitRejectForm('${grn.grnId}')" disabled>
+                                                            <i class="fas fa-times me-1"></i> Confirm Reject
                                                         </button>
                                                     </jsp:attribute>
                                                 </t:alert>
@@ -323,6 +332,7 @@
                                                     method="post" class="d-none">
                                                     <input type="hidden" name="action" value="reject">
                                                     <input type="hidden" name="id" value="${grn.grnId}">
+                                                    <input type="hidden" name="rejectReason" id="rejectReasonHidden${grn.grnId}">
                                                 </form>
 
                                                 <div class="vr mx-2"></div>
@@ -380,11 +390,42 @@
 
                         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
                         <script>
+                            function toggleRejectButton(grnId) {
+                                const reasonInput = document.getElementById('rejectReasonInput' + grnId);
+                                const confirmBtn = document.getElementById('confirmRejectBtn' + grnId);
+                                if (reasonInput && confirmBtn) {
+                                    confirmBtn.disabled = reasonInput.value.trim().length === 0;
+                                }
+                            }
+
+                            function submitRejectForm(grnId) {
+                                const reasonInput = document.getElementById('rejectReasonInput' + grnId);
+                                const reasonHidden = document.getElementById('rejectReasonHidden' + grnId);
+                                const errorDiv = document.getElementById('reasonError' + grnId);
+                                const form = document.getElementById('rejectGrnForm' + grnId);
+                                
+                                const reasonValue = reasonInput.value.trim();
+                                
+                                if (!reasonValue) {
+                                    reasonInput.classList.add('is-invalid');
+                                    errorDiv.style.display = 'block';
+                                    return;
+                                }
+                                
+                                // Hide error if valid
+                                reasonInput.classList.remove('is-invalid');
+                                errorDiv.style.display = 'none';
+                                
+                                // Set value to hidden input and submit
+                                reasonHidden.value = reasonValue;
+                                form.submit();
+                            }
+
                             async function checkPutawayCapacity(grnId) {
                                 try {
                                     const response = await fetch(`${pageContext.request.contextPath}/goods-receipt?action=checkCapacity&id=` + grnId);
                                     const data = await response.json();
-
+ 
                                     if (data.sufficient) {
                                         window.location.href = `${pageContext.request.contextPath}/goods-receipt?action=putaway&id=` + grnId;
                                     } else {
@@ -399,7 +440,7 @@
                                             html += '<p class="text-danger mb-1"><i class="fas fa-exclamation-triangle me-1"></i><b>EXCESS ITEMS:</b> Need ' + data.details.excess.required + ', available ' + data.details.excess.available + '</p>';
                                         }
                                         html += '</div><hr><p class="mb-0">Do you want to go to <b>Warehouse Layout</b> to create more storage slots?</p>';
-
+ 
                                         Swal.fire({
                                             title: 'Insufficient Capacity!',
                                             html: html,

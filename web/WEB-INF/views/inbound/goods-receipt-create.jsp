@@ -135,9 +135,9 @@
                                                             <th style="width: 100px;">Ordered</th>
                                                             <th style="width: 130px; border-left: 2px solid #dee2e6;">Good (Actual)</th>
                                                             <th style="width: 130px;">Damaged (Actual)</th>
-                                                            <th style="width: 90px; border-left: 2px solid #dee2e6;">Extra (good)</th>
-                                                            <th style="width: 90px;">Extra (dmg)</th>
-                                                            <th style="width: 90px;">Missing</th>
+                                                            <th style="width: 120px; border-left: 2px solid #dee2e6;">Extra (good)</th>
+                                                            <th style="width: 120px;">Extra (dmg)</th>
+                                                            <th style="width: 120px;">Missing</th>
                                                             <th>Note</th>
                                                         </tr>
                                                     </thead>
@@ -372,21 +372,21 @@
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Actual Damaged received">
     <input type="hidden" class="server-damaged" name="lines[\${idx}].qtyDamaged" value="\${data && data.qtyDamaged ? Math.floor(data.qtyDamaged) : 0}">
 </td>
-<td style="width: 90px; border-left: 2px solid #dee2e6;">
+<td style="width: 120px; border-left: 2px solid #dee2e6;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-excess phys-extra-good" 
            value="\${data && data.qtyExtraGood ? Math.floor(data.qtyExtraGood) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Extra good: counts vs ordered for shortage; putaway → EXCESS zone">
     <input type="hidden" class="server-extra-good" name="lines[\${idx}].qtyExtraGood" value="\${data && data.qtyExtraGood ? Math.floor(data.qtyExtraGood) : 0}">
 </td>
-<td style="width: 90px;">
+<td style="width: 120px;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-extra-damaged phys-extra-damaged" 
            value="\${data && data.qtyExtraDamaged ? Math.floor(data.qtyExtraDamaged) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Surplus damaged units (DAMAGE zone)">
     <input type="hidden" class="server-extra-damaged" name="lines[\${idx}].qtyExtraDamaged" value="\${data && data.qtyExtraDamaged ? Math.floor(data.qtyExtraDamaged) : 0}">
 </td>
-<td style="width: 90px;">
+<td style="width: 120px;">
     <input type="number" class="form-control form-control-sm text-center bg-missing display-missing" 
            value="\${data && data.qtyMissing ? Math.floor(data.qtyMissing) : 0}" readonly title="Missing vs PO = Ordered − (Good + Damaged + Extra good)">
     <input type="hidden" class="server-missing" name="lines[\${idx}].qtyMissing" value="\${data && data.qtyMissing ? Math.floor(data.qtyMissing) : 0}">
