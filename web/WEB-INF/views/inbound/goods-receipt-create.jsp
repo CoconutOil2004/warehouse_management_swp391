@@ -293,6 +293,7 @@
                             
                             // Shortage vs PO: good + damaged (on line) + extra good; extra damaged does not cover ordered qty
                             const receivedAgainstPo = qGoodPhys + qDamagedPhys + qExtraGoodPhys;
+                            const onPoGoodDamaged = qGoodPhys + qDamagedPhys;
                             const finalGood = qGoodPhys;
                             const finalDamaged = qDamagedPhys;
                             const finalMissing = Math.max(0, qExp - receivedAgainstPo);
@@ -304,13 +305,20 @@
                             row.querySelector('.server-missing').value = finalMissing;
                             
                             row.querySelector('.display-missing').value = finalMissing;
-                            
-                            if (receivedAgainstPo > 0 || finalMissing > 0 || qExtraDamagedPhys > 0) {
-                                let errorRow = row.nextElementSibling;
-                                if (errorRow && errorRow.querySelector('.error-message')) {
-                                    const errorDiv = errorRow.querySelector('.error-message');
+
+                            const errorRow = row.nextElementSibling;
+                            const errorDiv = errorRow && errorRow.querySelector('.error-message');
+                            if (errorDiv) {
+                                if (onPoGoodDamaged > qExp) {
+                                    errorDiv.style.display = 'block';
+                                    errorDiv.textContent = 'Good + Damaged (thực tế) không được vượt số đặt (' + qExp + '). Phần vượt nhập vào Extra.';
+                                    row.querySelector('.phys-good')?.classList.add('is-invalid-field');
+                                    row.querySelector('.phys-damaged')?.classList.add('is-invalid-field');
+                                } else {
                                     errorDiv.style.display = 'none';
                                     errorDiv.textContent = '';
+                                    row.querySelector('.phys-good')?.classList.remove('is-invalid-field');
+                                    row.querySelector('.phys-damaged')?.classList.remove('is-invalid-field');
                                 }
                             }
                         }
@@ -525,6 +533,23 @@
                                     if (rows.length === 0) {
                                         Swal.fire({ icon: 'warning', title: 'No Items', text: 'Please select a Purchase Order.' });
                                         return;
+                                    }
+
+                                    rows.forEach(row => updateBalance(row));
+                                    for (let r = 0; r < rows.length; r++) {
+                                        const row = rows[r];
+                                        const qExp = parseFloat(row.querySelector('.qty-expected')?.value) || 0;
+                                        const g = parseFloat(row.querySelector('.phys-good')?.value) || 0;
+                                        const d = parseFloat(row.querySelector('.phys-damaged')?.value) || 0;
+                                        if (g + d > qExp) {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Số lượng không hợp lệ',
+                                                text: 'Good + Damaged (thực tế) không được vượt số đặt. Phần vượt hãy nhập vào Extra (good) hoặc Extra (dmg).'
+                                            });
+                                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            return;
+                                        }
                                     }
 
                                     const warehouseId = document.getElementById('warehouseIdHidden').value;
