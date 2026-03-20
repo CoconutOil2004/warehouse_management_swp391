@@ -69,16 +69,16 @@
                                 </c:if>
 
                                 <!-- Damaged Items Summary -->
-                                <c:if test="${l.qtyDamaged > 0}">
+                                <c:if test="${l.damagePutawayQty > 0}">
                                     <div class="mb-1">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <span class="badge bg-danger-subtle text-danger small">DAMAGED</span>
                                             <span class="small fw-bold" id="summary_received_${l.grnLineId}_DAMAGE"
-                                                data-total="<fmt:formatNumber value='${l.qtyDamaged}' pattern='0' />">
+                                                data-total="<fmt:formatNumber value='${l.damagePutawayQty}' pattern='0' />">
                                                 <span id="summary_assigned_${l.grnLineId}_DAMAGE">
-                                                    Remaining: ${l.qtyDamaged}
+                                                    Remaining: ${l.damagePutawayQty}
                                                 </span> /
-                                                <fmt:formatNumber value="${l.qtyDamaged}" pattern="#,##0" />
+                                                <fmt:formatNumber value="${l.damagePutawayQty}" pattern="#,##0" />
                                             </span>
                                         </div>
                                         <div class="progress" style="height: 6px;">
@@ -89,16 +89,16 @@
                                 </c:if>
 
                                 <!-- Excess Items Summary -->
-                                <c:if test="${l.qtyExtra > 0}">
+                                <c:if test="${l.excessPutawayQty > 0}">
                                     <div class="mb-1 mt-3">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <span class="badge bg-info-subtle text-info small">EXCESS</span>
                                             <span class="small fw-bold" id="summary_received_${l.grnLineId}_EXCESS"
-                                                data-total="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />">
+                                                data-total="<fmt:formatNumber value='${l.excessPutawayQty}' pattern='0' />">
                                                 <span id="summary_assigned_${l.grnLineId}_EXCESS">
-                                                    Remaining: ${l.qtyExtra}
+                                                    Remaining: ${l.excessPutawayQty}
                                                 </span> /
-                                                <fmt:formatNumber value="${l.qtyExtra}" pattern="#,##0" />
+                                                <fmt:formatNumber value="${l.excessPutawayQty}" pattern="#,##0" />
                                             </span>
                                         </div>
                                         <div class="progress" style="height: 6px;">
@@ -191,10 +191,10 @@
                                     </c:if>
 
                                     <!-- Damage Assignment(s) -->
-                                    <c:if test="${l.qtyDamaged > 0}">
+                                    <c:if test="${l.damagePutawayQty > 0}">
                                         <tr class="assignment-row damage-row" data-grn-line-id="${l.grnLineId}"
                                             data-sku="${l.sku}"
-                                            data-max="<fmt:formatNumber value='${l.qtyDamaged}' pattern='0' />"
+                                            data-max="<fmt:formatNumber value='${l.damagePutawayQty}' pattern='0' />"
                                             data-type="DAMAGE">
                                             <td class="ps-4">
                                                 <div class="fw-bold text-primary">${l.sku}</div>
@@ -207,9 +207,9 @@
                                             <td>
                                                 <input type="number" class="form-control text-center qty-input"
                                                     name="qty_${l.grnLineId}_DAMAGE[]"
-                                                    value="<fmt:formatNumber value='${l.qtyDamaged}' pattern='0' />"
+                                                    value="<fmt:formatNumber value='${l.damagePutawayQty}' pattern='0' />"
                                                     min="0"
-                                                    max="<fmt:formatNumber value='${l.qtyDamaged}' pattern='0' />"
+                                                    max="<fmt:formatNumber value='${l.damagePutawayQty}' pattern='0' />"
                                                     step="1">
                                             </td>
                                             <td>
@@ -249,10 +249,10 @@
                                     </c:if>
 
                                     <!-- Excess Assignment(s) -->
-                                    <c:if test="${l.qtyExtra > 0}">
+                                    <c:if test="${l.excessPutawayQty > 0}">
                                         <tr class="assignment-row excess-row" data-grn-line-id="${l.grnLineId}"
                                             data-sku="${l.sku}"
-                                            data-max="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />"
+                                            data-max="<fmt:formatNumber value='${l.excessPutawayQty}' pattern='0' />"
                                             data-type="EXCESS">
                                             <td class="ps-4">
                                                 <div class="fw-bold text-primary">${l.sku}</div>
@@ -265,9 +265,9 @@
                                             <td>
                                                 <input type="number" class="form-control text-center qty-input"
                                                     name="qty_${l.grnLineId}_EXCESS[]"
-                                                    value="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />"
+                                                    value="<fmt:formatNumber value='${l.excessPutawayQty}' pattern='0' />"
                                                     min="0"
-                                                    max="<fmt:formatNumber value='${l.qtyExtra}' pattern='0' />"
+                                                    max="<fmt:formatNumber value='${l.excessPutawayQty}' pattern='0' />"
                                                     step="1">
                                             </td>
                                             <td>

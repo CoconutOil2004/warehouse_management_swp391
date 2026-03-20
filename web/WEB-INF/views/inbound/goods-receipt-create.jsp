@@ -134,7 +134,8 @@
                                                             <th style="width: 100px;">Ordered</th>
                                                             <th style="width: 130px; border-left: 2px solid #dee2e6;">Good (Actual)</th>
                                                             <th style="width: 130px;">Damaged (Actual)</th>
-                                                            <th style="width: 90px; border-left: 2px solid #dee2e6;">Excess</th>
+                                                            <th style="width: 90px; border-left: 2px solid #dee2e6;">Extra (good)</th>
+                                                            <th style="width: 90px;">Extra (dmg)</th>
                                                             <th style="width: 90px;">Missing</th>
                                                             <th>Note</th>
                                                         </tr>
@@ -247,6 +248,16 @@
                         background-color: #f5faff !important;
                         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1) !important;
                     }
+
+                    .bg-extra-damaged {
+                        background-color: #fce4ec !important;
+                        border-color: #f8bbd9 !important;
+                    }
+
+                    .bg-extra-damaged:focus {
+                        background-color: #fff8fa !important;
+                        box-shadow: 0 0 0 0.25rem rgba(233, 30, 99, 0.12) !important;
+                    }
                 </style>
 
                 <%-- Variants data: dùng data-attributes thay vì JSON để tránh quote-escaping --%>
@@ -277,26 +288,24 @@
                             const qExp = parseFloat(qExpInput.value) || 0;
                             const qGoodPhys = parseFloat(row.querySelector('.phys-good').value) || 0;
                             const qDamagedPhys = parseFloat(row.querySelector('.phys-damaged').value) || 0;
-                            const qExcessPhys = parseFloat(row.querySelector('.phys-excess')?.value) || 0;
+                            const qExtraGoodPhys = parseFloat(row.querySelector('.phys-extra-good')?.value) || 0;
+                            const qExtraDamagedPhys = parseFloat(row.querySelector('.phys-extra-damaged')?.value) || 0;
                             
-                            // Rule: missing is computed from expected vs (good + damaged),
-                            // excess is user-input as additional quantity above PO.
-                            const receivedAgainstPo = qGoodPhys + qDamagedPhys;
+                            // Shortage vs PO: good + damaged (on line) + extra good; extra damaged does not cover ordered qty
+                            const receivedAgainstPo = qGoodPhys + qDamagedPhys + qExtraGoodPhys;
                             const finalGood = qGoodPhys;
                             const finalDamaged = qDamagedPhys;
-                            const finalExcess = qExcessPhys;
                             const finalMissing = Math.max(0, qExp - receivedAgainstPo);
                             
                             row.querySelector('.server-good').value = finalGood;
                             row.querySelector('.server-damaged').value = finalDamaged;
-                            row.querySelector('.server-extra').value = finalExcess;
+                            row.querySelector('.server-extra-good').value = qExtraGoodPhys;
+                            row.querySelector('.server-extra-damaged').value = qExtraDamagedPhys;
                             row.querySelector('.server-missing').value = finalMissing;
                             
-                            const displayExtra = row.querySelector('.display-extra');
-                            if (displayExtra) displayExtra.value = finalExcess;
                             row.querySelector('.display-missing').value = finalMissing;
                             
-                            if (receivedAgainstPo > 0 || finalMissing > 0 || finalExcess > 0) {
+                            if (receivedAgainstPo > 0 || finalMissing > 0 || qExtraDamagedPhys > 0) {
                                 let errorRow = row.nextElementSibling;
                                 if (errorRow && errorRow.querySelector('.error-message')) {
                                     const errorDiv = errorRow.querySelector('.error-message');
@@ -333,7 +342,7 @@
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-good phys-good" 
            value="\${data && data.fromOld ? Math.floor(data.qtyGood) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
-           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Actual Good received">
+           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Good condition counted vs ordered qty (with damaged on line)">
     <input type="hidden" class="server-good" name="lines[\${idx}].qtyGood" value="\${data ? Math.floor(data.qtyGood) : 0}">
 </td>
 <td style="width: 130px;">
@@ -344,15 +353,22 @@
     <input type="hidden" class="server-damaged" name="lines[\${idx}].qtyDamaged" value="\${data ? Math.floor(data.qtyDamaged) : 0}">
 </td>
 <td style="width: 90px; border-left: 2px solid #dee2e6;">
-    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-excess phys-excess display-extra" 
-           value="\${data && data.fromOld ? Math.floor(data.qtyExtra) : 0}" 
+    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-excess phys-extra-good" 
+           value="\${data && data.fromOld ? Math.floor(data.qtyExtraGood != null ? data.qtyExtraGood : 0) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
-           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Excess items (above PO)">
-    <input type="hidden" class="server-extra" name="lines[\${idx}].qtyExtra" value="\${data ? Math.floor(data.qtyExtra) : 0}">
+           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Extra good: counts vs ordered for shortage; putaway → EXCESS zone">
+    <input type="hidden" class="server-extra-good" name="lines[\${idx}].qtyExtraGood" value="\${data ? Math.floor(data.qtyExtraGood != null ? data.qtyExtraGood : 0) : 0}">
+</td>
+<td style="width: 90px;">
+    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-extra-damaged phys-extra-damaged" 
+           value="\${data && data.fromOld ? Math.floor(data.qtyExtraDamaged != null ? data.qtyExtraDamaged : 0) : 0}" 
+           oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
+           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Surplus damaged units (DAMAGE zone)">
+    <input type="hidden" class="server-extra-damaged" name="lines[\${idx}].qtyExtraDamaged" value="\${data ? Math.floor(data.qtyExtraDamaged != null ? data.qtyExtraDamaged : 0) : 0}">
 </td>
 <td style="width: 90px;">
     <input type="number" class="form-control form-control-sm text-center bg-missing display-missing" 
-           value="\${data ? Math.floor(data.qtyMissing) : 0}" readonly title="Missing items (below PO)">
+           value="\${data ? Math.floor(data.qtyMissing) : 0}" readonly title="Missing vs PO = Ordered − (Good + Damaged + Extra good)">
     <input type="hidden" class="server-missing" name="lines[\${idx}].qtyMissing" value="\${data ? Math.floor(data.qtyMissing) : 0}">
 </td>
 <td>
@@ -363,7 +379,7 @@
 
                             const trError = document.createElement("tr");
                             trError.innerHTML = `
-<td colspan="7" class="border-0 py-0 ps-3">
+<td colspan="9" class="border-0 py-0 ps-3">
     <div class="error-message mb-2" id="error_\${idx}"></div>
 </td>
 `;
@@ -491,7 +507,7 @@
                                                 variantId: l.variantId,
                                                 unitPrice: l.unitPrice,
                                                 qtyExpected: l.orderedQty,
-                                                qtyGood: 0, qtyDamaged: 0, qtyExtra: 0, qtyMissing: l.orderedQty,
+                                                qtyGood: 0, qtyDamaged: 0, qtyExtraGood: 0, qtyExtraDamaged: 0, qtyMissing: l.orderedQty,
                                                 note: '', fromOld: false
                                             });
                                         });
@@ -518,7 +534,8 @@
                                         rows.forEach(row => {
                                             totalGood    += parseFloat(row.querySelector('.server-good').value)    || 0;
                                             totalDamaged += parseFloat(row.querySelector('.server-damaged').value) || 0;
-                                            totalExtra   += parseFloat(row.querySelector('.server-extra').value)   || 0;
+                                            totalDamaged += parseFloat(row.querySelector('.server-extra-damaged').value) || 0;
+                                            totalExtra   += parseFloat(row.querySelector('.server-extra-good').value)   || 0;
                                         });
 
                                         try {

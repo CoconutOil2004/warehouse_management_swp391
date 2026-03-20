@@ -104,7 +104,8 @@
                                                             <th>Quantity</th>
                                                             <th>Good</th>
                                                             <th>Damaged</th>
-                                                            <th>Excess</th>
+                                                            <th>Extra (good)</th>
+                                                            <th>Extra (dmg)</th>
                                                             <th>Missing</th>
                                                             <th class="text-start">Note</th>
                                                         </tr>
@@ -138,7 +139,13 @@
                                                                 </td>
                                                                 <td><span
                                                                         class="badge bg-info-subtle text-info px-3">
-                                                                        <fmt:formatNumber value="${l.qtyExtra}"
+                                                                        <fmt:formatNumber value="${l.qtyExtraGood}"
+                                                                            pattern="#,##0" />
+                                                                    </span>
+                                                                </td>
+                                                                <td><span
+                                                                        class="badge bg-danger-subtle text-danger px-3">
+                                                                        <fmt:formatNumber value="${l.qtyExtraDamaged}"
                                                                             pattern="#,##0" />
                                                                     </span>
                                                                 </td>

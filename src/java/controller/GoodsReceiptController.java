@@ -34,6 +34,21 @@ import java.math.BigDecimal;
 
 @WebServlet(name = "GoodsReceiptController", urlPatterns = { "/goods-receipt" })
 public class GoodsReceiptController extends HttpServlet {
+
+    /**
+     * Shortage vs PO: ordered − (good + damaged on line + extra good). Extra damaged does not cover the order.
+     */
+    private static BigDecimal computeQtyMissing(BigDecimal expected, BigDecimal qtyGood, BigDecimal qtyDamaged,
+            BigDecimal qtyExtraGood) {
+        if (expected == null) {
+            expected = BigDecimal.ZERO;
+        }
+        BigDecimal g = qtyGood != null ? qtyGood : BigDecimal.ZERO;
+        BigDecimal d = qtyDamaged != null ? qtyDamaged : BigDecimal.ZERO;
+        BigDecimal eg = qtyExtraGood != null ? qtyExtraGood : BigDecimal.ZERO;
+        BigDecimal m = expected.subtract(g.add(d).add(eg));
+        return m.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : m;
+    }
     // We instantiate DAOs per request to avoid "connection closed" issues
     // while respecting the "don't edit other files" constraint.
 
@@ -234,8 +249,10 @@ public class GoodsReceiptController extends HttpServlet {
                     .append("\",");
             sb.append("\"qtyMissing\":\"").append(l.getQtyMissing() != null ? l.getQtyMissing().toBigInteger() : 0)
                     .append("\",");
-            sb.append("\"qtyExtra\":\"").append(l.getQtyExtra() != null ? l.getQtyExtra().toBigInteger() : 0)
-                    .append("\",");
+            sb.append("\"qtyExtraGood\":\"")
+                    .append(l.getQtyExtraGood() != null ? l.getQtyExtraGood().toBigInteger() : 0).append("\",");
+            sb.append("\"qtyExtraDamaged\":\"")
+                    .append(l.getQtyExtraDamaged() != null ? l.getQtyExtraDamaged().toBigInteger() : 0).append("\",");
 
             String safeNote = l.getNote() != null ? l.getNote()
                     .replace("\\", "\\\\")
@@ -268,8 +285,10 @@ public class GoodsReceiptController extends HttpServlet {
                 List<GoodsReceiptLine> lines = grnDao.getLinesByGrnId(id);
                 for (GoodsReceiptLine line : lines) {
                     totalGood = totalGood.add(line.getQtyGood() != null ? line.getQtyGood() : BigDecimal.ZERO);
-                    totalDamaged = totalDamaged.add(line.getQtyDamaged() != null ? line.getQtyDamaged() : BigDecimal.ZERO);
-                    totalExtra = totalExtra.add(line.getQtyExtra() != null ? line.getQtyExtra() : BigDecimal.ZERO);
+                    BigDecimal d = line.getQtyDamaged() != null ? line.getQtyDamaged() : BigDecimal.ZERO;
+                    BigDecimal ed = line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : BigDecimal.ZERO;
+                    totalDamaged = totalDamaged.add(d).add(ed);
+                    totalExtra = totalExtra.add(line.getQtyExtraGood() != null ? line.getQtyExtraGood() : BigDecimal.ZERO);
                 }
             }
         } else {
@@ -461,7 +480,8 @@ public class GoodsReceiptController extends HttpServlet {
             rowData.put("qtyGood", qGood != null ? qGood : "0");
             rowData.put("qtyDamaged", request.getParameter("lines[" + i + "].qtyDamaged"));
             rowData.put("qtyMissing", request.getParameter("lines[" + i + "].qtyMissing"));
-            rowData.put("qtyExtra", request.getParameter("lines[" + i + "].qtyExtra"));
+            rowData.put("qtyExtraGood", request.getParameter("lines[" + i + "].qtyExtraGood"));
+            rowData.put("qtyExtraDamaged", request.getParameter("lines[" + i + "].qtyExtraDamaged"));
             rowData.put("note", request.getParameter("lines[" + i + "].note"));
             allSubmittedLines.add(rowData);
 
@@ -483,27 +503,30 @@ public class GoodsReceiptController extends HttpServlet {
                         qExp != null && !qExp.isBlank() ? new java.math.BigDecimal(qExp) : java.math.BigDecimal.ZERO);
 
                 String qDam = rowData.get("qtyDamaged");
-                String qMiss = rowData.get("qtyMissing");
 
                 java.math.BigDecimal g = new java.math.BigDecimal(rowData.get("qtyGood"));
                 java.math.BigDecimal d = (qDam != null && !qDam.isBlank()) ? new java.math.BigDecimal(qDam)
                         : java.math.BigDecimal.ZERO;
-                java.math.BigDecimal m = (qMiss != null && !qMiss.isBlank()) ? new java.math.BigDecimal(qMiss)
+                String qEg = rowData.get("qtyExtraGood");
+                String qEd = rowData.get("qtyExtraDamaged");
+                java.math.BigDecimal eg = (qEg != null && !qEg.isBlank()) ? new java.math.BigDecimal(qEg)
                         : java.math.BigDecimal.ZERO;
-                String qExt = rowData.get("qtyExtra");
-                java.math.BigDecimal e = (qExt != null && !qExt.isBlank()) ? new java.math.BigDecimal(qExt)
+                java.math.BigDecimal ed = (qEd != null && !qEd.isBlank()) ? new java.math.BigDecimal(qEd)
                         : java.math.BigDecimal.ZERO;
 
-                if (g.add(d).add(m).add(e).compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                java.math.BigDecimal m = computeQtyMissing(line.getQtyExpected(), g, d, eg);
+
+                if (g.add(d).add(m).add(eg).add(ed).compareTo(java.math.BigDecimal.ZERO) <= 0) {
                     fieldErrors.put("lines",
-                            "Mỗi dòng hàng phải có ít nhất một giá trị Số lượng (Good/Damaged/Missing/Excess) lớn hơn 0.");
+                            "Mỗi dòng hàng phải có ít nhất một giá trị Số lượng (Good/Damaged/Missing/Extra good/Extra damaged) lớn hơn 0.");
                 }
 
                 line.setQtyGood(g);
-                line.setQtyReceived(g.add(d).add(e)); // Total physical items received
+                line.setQtyReceived(g.add(d).add(eg).add(ed)); // Total physical items received (excludes missing)
                 line.setQtyDamaged(d);
                 line.setQtyMissing(m);
-                line.setQtyExtra(e);
+                line.setQtyExtraGood(eg);
+                line.setQtyExtraDamaged(ed);
 
                 line.setNote(rowData.get("note"));
                 validLines.add(line);
@@ -546,10 +569,18 @@ public class GoodsReceiptController extends HttpServlet {
                             request.getParameter("lines[" + allSubmittedLines.indexOf(m) + "].qtyExpected") != null
                                     ? request.getParameter("lines[" + allSubmittedLines.indexOf(m) + "].qtyExpected")
                                     : "0"));
-                    dl.setQtyGood(new BigDecimal(m.get("qtyGood")));
-                    dl.setQtyDamaged(new BigDecimal(m.get("qtyDamaged")));
-                    dl.setQtyMissing(new BigDecimal(m.get("qtyMissing")));
-                    dl.setQtyExtra(new BigDecimal(m.get("qtyExtra")));
+                    BigDecimal dg = new BigDecimal(m.get("qtyGood") != null && !m.get("qtyGood").isBlank() ? m.get("qtyGood") : "0");
+                    String dDam = m.get("qtyDamaged");
+                    BigDecimal dd = new BigDecimal(dDam != null && !dDam.isBlank() ? dDam : "0");
+                    String egStr = m.get("qtyExtraGood");
+                    String edStr = m.get("qtyExtraDamaged");
+                    BigDecimal deg = new BigDecimal(egStr != null && !egStr.isBlank() ? egStr : "0");
+                    BigDecimal ded = new BigDecimal(edStr != null && !edStr.isBlank() ? edStr : "0");
+                    dl.setQtyGood(dg);
+                    dl.setQtyDamaged(dd);
+                    dl.setQtyExtraGood(deg);
+                    dl.setQtyExtraDamaged(ded);
+                    dl.setQtyMissing(computeQtyMissing(dl.getQtyExpected(), dg, dd, deg));
                     dl.setNote(m.get("note"));
                     dummyLines.add(dl);
                 } catch (Exception e) {
@@ -755,9 +786,14 @@ public class GoodsReceiptController extends HttpServlet {
                     if (qStr != null && !qStr.isEmpty() && sStr != null && !sStr.isEmpty()) {
                         BigDecimal qty = new BigDecimal(qStr);
                         if (qty.compareTo(BigDecimal.ZERO) > 0) {
+                            long sid = Long.parseLong(sStr);
+                            if (!"STORAGE".equals(slotDao.getZoneTypeBySlotId(sid))) {
+                                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=invalid_slot_zone");
+                                return;
+                            }
                             model.PutAwayLine pl = new model.PutAwayLine();
                             pl.setGrnLineId(grnLineId);
-                            pl.setToSlotId(Long.parseLong(sStr));
+                            pl.setToSlotId(sid);
                             pl.setQtyPutaway(qty);
                             putawayLines.add(pl);
                         }
@@ -776,9 +812,14 @@ public class GoodsReceiptController extends HttpServlet {
                     if (qStr != null && !qStr.isEmpty() && sStr != null && !sStr.isEmpty()) {
                         BigDecimal qty = new BigDecimal(qStr);
                         if (qty.compareTo(BigDecimal.ZERO) > 0) {
+                            long sid = Long.parseLong(sStr);
+                            if (!"DAMAGE".equals(slotDao.getZoneTypeBySlotId(sid))) {
+                                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=invalid_slot_zone");
+                                return;
+                            }
                             model.PutAwayLine pl = new model.PutAwayLine();
                             pl.setGrnLineId(grnLineId);
-                            pl.setToSlotId(Long.parseLong(sStr));
+                            pl.setToSlotId(sid);
                             pl.setQtyPutaway(qty);
                             putawayLines.add(pl);
                         }
@@ -797,9 +838,14 @@ public class GoodsReceiptController extends HttpServlet {
                     if (qStr != null && !qStr.isEmpty() && sStr != null && !sStr.isEmpty()) {
                         BigDecimal qty = new BigDecimal(qStr);
                         if (qty.compareTo(BigDecimal.ZERO) > 0) {
+                            long sid = Long.parseLong(sStr);
+                            if (!"EXCESS".equals(slotDao.getZoneTypeBySlotId(sid))) {
+                                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=invalid_slot_zone");
+                                return;
+                            }
                             model.PutAwayLine pl = new model.PutAwayLine();
                             pl.setGrnLineId(grnLineId);
-                            pl.setToSlotId(Long.parseLong(sStr));
+                            pl.setToSlotId(sid);
                             pl.setQtyPutaway(qty);
                             putawayLines.add(pl);
                         }
@@ -808,24 +854,38 @@ public class GoodsReceiptController extends HttpServlet {
             }
         }
 
-        // Validate: each slot must belong to GRN warehouse; per-line putaway total <= qty_good
+        // Validate: warehouse + per-line caps by destination zone (STORAGE <= good, DAMAGE <= damaged+extra damaged, EXCESS <= extra good)
         if (!putawayLines.isEmpty()) {
-            java.util.Map<Long, BigDecimal> putawaySumByLine = new java.util.HashMap<>();
+            java.util.Map<Long, BigDecimal> sumStorage = new java.util.HashMap<>();
+            java.util.Map<Long, BigDecimal> sumDamage = new java.util.HashMap<>();
+            java.util.Map<Long, BigDecimal> sumExcess = new java.util.HashMap<>();
             for (model.PutAwayLine pl : putawayLines) {
-                putawaySumByLine.merge(pl.getGrnLineId(), pl.getQtyPutaway(), BigDecimal::add);
                 if (!slotDao.isSlotInWarehouse(pl.getToSlotId(), warehouseId)) {
                     response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=Slot+not+in+warehouse");
                     return;
                 }
+                String zt = slotDao.getZoneTypeBySlotId(pl.getToSlotId());
+                if ("STORAGE".equals(zt)) {
+                    sumStorage.merge(pl.getGrnLineId(), pl.getQtyPutaway(), BigDecimal::add);
+                } else if ("DAMAGE".equals(zt)) {
+                    sumDamage.merge(pl.getGrnLineId(), pl.getQtyPutaway(), BigDecimal::add);
+                } else if ("EXCESS".equals(zt)) {
+                    sumExcess.merge(pl.getGrnLineId(), pl.getQtyPutaway(), BigDecimal::add);
+                }
             }
             for (model.GoodsReceiptLine line : lines) {
-                BigDecimal totalPutaway = putawaySumByLine.getOrDefault(line.getGrnLineId(), BigDecimal.ZERO);
+                Long lid = line.getGrnLineId();
                 BigDecimal qtyGood = line.getQtyGood() != null ? line.getQtyGood() : BigDecimal.ZERO;
                 BigDecimal qtyDamaged = line.getQtyDamaged() != null ? line.getQtyDamaged() : BigDecimal.ZERO;
-                BigDecimal qtyExtra = line.getQtyExtra() != null ? line.getQtyExtra() : BigDecimal.ZERO;
-                BigDecimal maxQtyToPutaway = qtyGood.add(qtyDamaged).add(qtyExtra);
+                BigDecimal qtyExtraGood = line.getQtyExtraGood() != null ? line.getQtyExtraGood() : BigDecimal.ZERO;
+                BigDecimal qtyExtraDamaged = line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : BigDecimal.ZERO;
+                BigDecimal maxSto = qtyGood;
+                BigDecimal maxDam = qtyDamaged.add(qtyExtraDamaged);
+                BigDecimal maxExc = qtyExtraGood;
 
-                if (totalPutaway.compareTo(maxQtyToPutaway) > 0) {
+                if (sumStorage.getOrDefault(lid, BigDecimal.ZERO).compareTo(maxSto) > 0
+                        || sumDamage.getOrDefault(lid, BigDecimal.ZERO).compareTo(maxDam) > 0
+                        || sumExcess.getOrDefault(lid, BigDecimal.ZERO).compareTo(maxExc) > 0) {
                     response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=Putaway+qty+exceeds+received+qty+for+line");
                     return;
                 }

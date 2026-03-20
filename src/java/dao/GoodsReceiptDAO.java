@@ -136,8 +136,8 @@ public class GoodsReceiptDAO extends DBContext {
                     VALUES (?, ?, ?, 'PENDING', ?, NOW(), ?)
                 """;
         String sqlLine = """
-                    INSERT INTO goods_receipt_line (grn_id, po_line_id, variant_id, qty_expected, qty_received, qty_good, qty_missing, qty_damaged, qty_extra, note)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO goods_receipt_line (grn_id, po_line_id, variant_id, qty_expected, qty_received, qty_good, qty_missing, qty_damaged, qty_extra_good, qty_extra_damaged, note)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = getConnection()) {
@@ -170,8 +170,9 @@ public class GoodsReceiptDAO extends DBContext {
                     ps.setBigDecimal(6, line.getQtyGood());
                     ps.setBigDecimal(7, line.getQtyMissing());
                     ps.setBigDecimal(8, line.getQtyDamaged());
-                    ps.setBigDecimal(9, line.getQtyExtra());
-                    ps.setString(10, line.getNote());
+                    ps.setBigDecimal(9, line.getQtyExtraGood() != null ? line.getQtyExtraGood() : java.math.BigDecimal.ZERO);
+                    ps.setBigDecimal(10, line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : java.math.BigDecimal.ZERO);
+                    ps.setString(11, line.getNote());
                     ps.addBatch();
                 }
                 ps.executeBatch();
@@ -282,7 +283,8 @@ public class GoodsReceiptDAO extends DBContext {
         l.setQtyGood(rs.getBigDecimal("qty_good"));
         l.setQtyMissing(rs.getBigDecimal("qty_missing"));
         l.setQtyDamaged(rs.getBigDecimal("qty_damaged"));
-        l.setQtyExtra(rs.getBigDecimal("qty_extra"));
+        l.setQtyExtraGood(rs.getBigDecimal("qty_extra_good"));
+        l.setQtyExtraDamaged(rs.getBigDecimal("qty_extra_damaged"));
         try {
             l.setUnitPrice(rs.getBigDecimal("unit_price"));
         } catch (Exception e) {
@@ -402,8 +404,8 @@ public class GoodsReceiptDAO extends DBContext {
                 """;
         String sqlDeleteLines = "DELETE FROM goods_receipt_line WHERE grn_id = ?";
         String sqlInsertLine = """
-                    INSERT INTO goods_receipt_line (grn_id, po_line_id, variant_id, qty_expected, qty_received, qty_good, qty_missing, qty_damaged, qty_extra, note)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO goods_receipt_line (grn_id, po_line_id, variant_id, qty_expected, qty_received, qty_good, qty_missing, qty_damaged, qty_extra_good, qty_extra_damaged, note)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = getConnection()) {
@@ -443,8 +445,9 @@ public class GoodsReceiptDAO extends DBContext {
                     ps.setBigDecimal(6, line.getQtyGood());
                     ps.setBigDecimal(7, line.getQtyMissing());
                     ps.setBigDecimal(8, line.getQtyDamaged());
-                    ps.setBigDecimal(9, line.getQtyExtra());
-                    ps.setString(10, line.getNote());
+                    ps.setBigDecimal(9, line.getQtyExtraGood() != null ? line.getQtyExtraGood() : java.math.BigDecimal.ZERO);
+                    ps.setBigDecimal(10, line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : java.math.BigDecimal.ZERO);
+                    ps.setString(11, line.getNote());
                     ps.addBatch();
                 }
                 ps.executeBatch();
@@ -600,7 +603,7 @@ public class GoodsReceiptDAO extends DBContext {
 
     public boolean isPutawayComplete(Long grnId) throws SQLException {
         // Putaway must cover all physically received items: GOOD + DAMAGED + EXCESS
-        String sqlExpected = "SELECT SUM(qty_good + qty_damaged + qty_extra) FROM goods_receipt_line WHERE grn_id = ?";
+        String sqlExpected = "SELECT SUM(qty_good + qty_damaged + qty_extra_good + qty_extra_damaged) FROM goods_receipt_line WHERE grn_id = ?";
         String sqlActual = "SELECT SUM(pl.qty_putaway) FROM putaway_line pl JOIN putaway_order po ON pl.putaway_id = po.putaway_id WHERE po.grn_id = ?";
 
         java.math.BigDecimal expected = java.math.BigDecimal.ZERO;
@@ -640,7 +643,7 @@ public class GoodsReceiptDAO extends DBContext {
                 SELECT 1
                 FROM goods_receipt gr
                 JOIN (
-                    SELECT grn_id, COALESCE(SUM(qty_good + qty_damaged + qty_extra), 0) AS expected
+                    SELECT grn_id, COALESCE(SUM(qty_good + qty_damaged + qty_extra_good + qty_extra_damaged), 0) AS expected
                     FROM goods_receipt_line
                     GROUP BY grn_id
                 ) e ON e.grn_id = gr.grn_id
