@@ -516,6 +516,12 @@ public class GoodsReceiptController extends HttpServlet {
 
                 java.math.BigDecimal m = computeQtyMissing(line.getQtyExpected(), g, d, eg);
 
+                if (g.add(d).compareTo(line.getQtyExpected()) > 0) {
+                    fieldErrors.put("lines",
+                            "Good (thực tế) + Damaged (thực tế) không được vượt số đặt (Ordered). Phần vượt hãy nhập vào Extra (good) hoặc Extra (dmg).");
+                    continue;
+                }
+
                 if (g.add(d).add(m).add(eg).add(ed).compareTo(java.math.BigDecimal.ZERO) <= 0) {
                     fieldErrors.put("lines",
                             "Mỗi dòng hàng phải có ít nhất một giá trị Số lượng (Good/Damaged/Missing/Extra good/Extra damaged) lớn hơn 0.");
@@ -538,10 +544,12 @@ public class GoodsReceiptController extends HttpServlet {
         if (allSubmittedLines.isEmpty()) {
             fieldErrors.put("lines", "Please select a Purchase Order to load items.");
         } else if (validLines.isEmpty() || hasIncompleteRow) {
-            if (validLines.isEmpty()) {
-                fieldErrors.put("lines", "No products selected.");
-            } else {
-                fieldErrors.put("lines", "Please ensure all rows have a selected product.");
+            if (!fieldErrors.containsKey("lines")) {
+                if (validLines.isEmpty()) {
+                    fieldErrors.put("lines", "No products selected.");
+                } else {
+                    fieldErrors.put("lines", "Please ensure all rows have a selected product.");
+                }
             }
         }
 
