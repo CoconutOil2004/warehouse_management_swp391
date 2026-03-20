@@ -1,36 +1,33 @@
 package controller;
 
-import dao.GoodsReceiptDAO;
-import dao.PurchaseOrderDAO;
-import dao.SupplierDAO;
-import dto.GoodsReceiptListDTO;
-import dto.PurchaseOrderHeaderDTO;
-import dto.PurchaseOrderLineDTO;
-import jakarta.servlet.*;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-import model.GoodsReceipt;
-import model.User;
-import util.ViewPath;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import model.GoodsReceiptLine;
-import dao.ZoneDAO;
+
+import dao.GoodsReceiptDAO;
+import dao.PurchaseOrderDAO;
 import dao.SlotDAO;
-import dao.InventoryBalanceDAO;
+import dao.SupplierDAO;
 import dao.WarehouseDAO;
-import model.Zone;
-import model.Slot;
+import dao.ZoneDAO;
+import dto.GoodsReceiptListDTO;
+import dto.PurchaseOrderHeaderDTO;
+import dto.PurchaseOrderLineDTO;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import model.GoodsReceipt;
+import model.GoodsReceiptLine;
+import model.User;
 import model.Warehouse;
-import java.math.BigDecimal;
+import model.Zone;
+import util.ViewPath;
 
 @WebServlet(name = "GoodsReceiptController", urlPatterns = { "/goods-receipt" })
 public class GoodsReceiptController extends HttpServlet {
@@ -128,7 +125,8 @@ public class GoodsReceiptController extends HttpServlet {
         model.User user = (model.User) request.getSession().getAttribute("USER");
         String roles = user != null ? user.getRoleNames() : "";
         boolean canMutation = roles != null
-                && (roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
+                && (roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF")
+                        || roles.contains("ADMIN"));
         request.setAttribute("canMutation", canMutation);
 
         request.getRequestDispatcher(ViewPath.GRN_LIST).forward(request, response);
@@ -138,7 +136,8 @@ public class GoodsReceiptController extends HttpServlet {
             throws Exception {
         model.User user = (model.User) request.getSession().getAttribute("USER");
         String roles = user != null ? user.getRoleNames() : "";
-        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"))) {
+        if (roles == null || !(roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF")
+                || roles.contains("ADMIN"))) {
             response.sendRedirect(request.getContextPath() + "/goods-receipt?action=list&error=no_permission");
             return;
         }

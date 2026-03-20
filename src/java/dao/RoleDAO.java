@@ -1,6 +1,5 @@
 package dao;
 
-import context.DBContext;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,9 +7,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+
+import context.DBContext;
 import model.Role;
 
-public class RoleDAO extends DBContext implements Dao {
+public class RoleDAO extends DBContext implements Dao<Role> {
 
     private final Connection conn = DBContext.getConnection();
 
@@ -18,13 +19,13 @@ public class RoleDAO extends DBContext implements Dao {
         List<Role> list = new ArrayList<>();
 
         String query = """
-            SELECT * FROM role
-            WHERE (name LIKE ? OR description LIKE ?)
-            ORDER BY
-                CASE WHEN ? = 'name' THEN name END ASC,
-                CASE WHEN ? = 'description' THEN description END ASC
-            LIMIT ? OFFSET ?;
-        """;
+                    SELECT * FROM role
+                    WHERE (name LIKE ? OR description LIKE ?)
+                    ORDER BY
+                        CASE WHEN ? = 'name' THEN name END ASC,
+                        CASE WHEN ? = 'description' THEN description END ASC
+                    LIMIT ? OFFSET ?;
+                """;
 
         PreparedStatement statement = conn.prepareStatement(query);
         var offset = (page - 1) * size;
@@ -45,9 +46,9 @@ public class RoleDAO extends DBContext implements Dao {
 
     public Long getPageCount(String search) throws SQLException {
         String query = """
-            SELECT COUNT(*) FROM role
-            WHERE (name LIKE ? OR description LIKE ?)
-        """;
+                    SELECT COUNT(*) FROM role
+                    WHERE (name LIKE ? OR description LIKE ?)
+                """;
 
         PreparedStatement statement = conn.prepareStatement(query);
         this.prepare(statement, search, search);
@@ -62,10 +63,10 @@ public class RoleDAO extends DBContext implements Dao {
 
     public Role getById(Long id) throws SQLException {
         String sql = """
-            SELECT role_id, name, description
-            FROM role
-            WHERE role_id = ?
-        """;
+                    SELECT role_id, name, description
+                    FROM role
+                    WHERE role_id = ?
+                """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, id);
@@ -85,9 +86,9 @@ public class RoleDAO extends DBContext implements Dao {
 
     public boolean create(Role role) throws SQLException {
         String sql = """
-            INSERT INTO role (name, description)
-            VALUES (?, ?)
-        """;
+                    INSERT INTO role (name, description)
+                    VALUES (?, ?)
+                """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, role.getName());
@@ -108,10 +109,10 @@ public class RoleDAO extends DBContext implements Dao {
 
     public boolean update(Role role) throws SQLException {
         String sql = """
-            UPDATE role
-            SET name = ?, description = ?
-            WHERE role_id = ?
-        """;
+                    UPDATE role
+                    SET name = ?, description = ?
+                    WHERE role_id = ?
+                """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, role.getName());
@@ -132,9 +133,9 @@ public class RoleDAO extends DBContext implements Dao {
 
         // 3. Delete the role itself
         String sql = """
-            DELETE FROM role
-            WHERE role_id = ?
-        """;
+                    DELETE FROM role
+                    WHERE role_id = ?
+                """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, id);
@@ -158,9 +159,9 @@ public class RoleDAO extends DBContext implements Dao {
 
     public boolean nameExists(String name, Long excludeId) throws SQLException {
         String sql = """
-            SELECT COUNT(*) FROM role
-            WHERE name = ? AND (? IS NULL OR role_id != ?)
-        """;
+                    SELECT COUNT(*) FROM role
+                    WHERE name = ? AND (? IS NULL OR role_id != ?)
+                """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, name);
@@ -178,10 +179,10 @@ public class RoleDAO extends DBContext implements Dao {
 
     public List<Long> getPermissionsByRoleId(Long roleId) throws SQLException {
         String sql = """
-            SELECT permission_id
-            FROM role_permission
-            WHERE role_id = ?
-        """;
+                    SELECT permission_id
+                    FROM role_permission
+                    WHERE role_id = ?
+                """;
 
         List<Long> permissionIds = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -198,11 +199,11 @@ public class RoleDAO extends DBContext implements Dao {
 
     public List<model.Permission> getPermissionsDetailByRoleId(Long roleId) throws SQLException {
         String sql = """
-            SELECT p.*
-            FROM permission p
-            JOIN role_permission rp ON p.permission_id = rp.permission_id
-            WHERE rp.role_id = ?
-        """;
+                    SELECT p.*
+                    FROM permission p
+                    JOIN role_permission rp ON p.permission_id = rp.permission_id
+                    WHERE rp.role_id = ?
+                """;
 
         List<model.Permission> list = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -222,9 +223,9 @@ public class RoleDAO extends DBContext implements Dao {
 
     public boolean deleteRolePermissions(Long roleId) throws SQLException {
         String sql = """
-            DELETE FROM role_permission
-            WHERE role_id = ?
-        """;
+                    DELETE FROM role_permission
+                    WHERE role_id = ?
+                """;
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, roleId);
@@ -250,11 +251,12 @@ public class RoleDAO extends DBContext implements Dao {
             }
         }
     }
+
     public List<Role> getAll() throws SQLException {
         List<Role> list = new ArrayList<>();
         String query = "SELECT * FROM role ORDER BY name ASC";
         try (PreparedStatement ps = conn.prepareStatement(query);
-             ResultSet rs = ps.executeQuery()) {
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 Role role = new Role();
                 role.setRoleId(rs.getLong("role_id"));

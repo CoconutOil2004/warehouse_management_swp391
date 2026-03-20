@@ -1,13 +1,13 @@
 package dao;
 
-import context.DBContext;
-import model.Category;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
+
+import context.DBContext;
+import model.Category;
 
 public class CategoryDAO extends DBContext {
 
@@ -15,8 +15,8 @@ public class CategoryDAO extends DBContext {
         List<Category> list = new ArrayList<>();
         String sql = "SELECT category_id, name, COALESCE(code, CONCAT('C', category_id)) AS code, COALESCE(size_type, 'NUMBER') AS size_type, parent_id FROM category ORDER BY name";
         try (Connection con = DBContext.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+                PreparedStatement ps = con.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 Category c = mapCategory(rs);
                 list.add(c);
@@ -25,8 +25,8 @@ public class CategoryDAO extends DBContext {
             // Fallback if code/size_type columns do not exist
             sql = "SELECT category_id, name, parent_id FROM category ORDER BY name";
             try (Connection con = DBContext.getConnection();
-                 PreparedStatement ps = con.prepareStatement(sql);
-                 ResultSet rs = ps.executeQuery()) {
+                    PreparedStatement ps = con.prepareStatement(sql);
+                    ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     Category c = new Category();
                     c.setCategoryId(rs.getLong("category_id"));
@@ -42,18 +42,20 @@ public class CategoryDAO extends DBContext {
     }
 
     public Category getById(Long categoryId) throws Exception {
-        if (categoryId == null) return null;
+        if (categoryId == null)
+            return null;
         String sql = "SELECT category_id, name, COALESCE(code, CONCAT('C', category_id)) AS code, COALESCE(size_type, 'NUMBER') AS size_type, parent_id FROM category WHERE category_id = ?";
         try (Connection con = DBContext.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+                PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setLong(1, categoryId);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapCategory(rs);
+                if (rs.next())
+                    return mapCategory(rs);
             }
         } catch (Exception e) {
             sql = "SELECT category_id, name, parent_id FROM category WHERE category_id = ?";
             try (Connection con = DBContext.getConnection();
-                 PreparedStatement ps = con.prepareStatement(sql)) {
+                    PreparedStatement ps = con.prepareStatement(sql)) {
                 ps.setLong(1, categoryId);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
@@ -78,8 +80,10 @@ public class CategoryDAO extends DBContext {
         c.setCode(rs.getString("code"));
         c.setSizeType(rs.getString("size_type"));
         c.setParentId(rs.getObject("parent_id") != null ? rs.getLong("parent_id") : null);
-        if (c.getCode() == null) c.setCode("C" + c.getCategoryId());
-        if (c.getSizeType() == null) c.setSizeType("NUMBER");
+        if (c.getCode() == null)
+            c.setCode("C" + c.getCategoryId());
+        if (c.getSizeType() == null)
+            c.setSizeType("NUMBER");
         return c;
     }
 }

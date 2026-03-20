@@ -4,9 +4,16 @@
  */
 package util;
 
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
 import java.util.Properties;
+
+import jakarta.mail.Authenticator;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 
 /**
  *
@@ -26,6 +33,7 @@ public class SendEmail {
             return null;
         }
 
+        @SuppressWarnings("unused")
         Properties props = new Properties();
         props.put("mail.smtp.host", "smtp.gmail.com");
         props.put("mail.smtp.port", "587");

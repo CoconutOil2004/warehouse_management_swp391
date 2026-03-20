@@ -1,7 +1,15 @@
 package controller;
 
-import dao.PackingDAO;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import dao.GoodsDeliveryNoteDAO;
+import dao.PackingDAO;
 import dao.UserDAO;
 import dto.GDNDetailDTO;
 import dto.GDNLineDTO;
@@ -12,13 +20,6 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.User;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @WebServlet(name = "PackingController", urlPatterns = { "/packing" })
 public class PackingController extends HttpServlet {
@@ -30,7 +31,8 @@ public class PackingController extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
 
         String action = request.getParameter("action");
-        if (action == null) action = "list";
+        if (action == null)
+            action = "list";
 
         try {
             switch (action) {
@@ -68,14 +70,12 @@ public class PackingController extends HttpServlet {
 
         PackingDAO packingDao = new PackingDAO();
         PackingDTO existing = packingDao.getByGdnId(gdnId);
-        
+
         if (existing != null) {
             response.sendRedirect(request.getContextPath() + "/packing?action=form&gdnId=" + gdnId);
             return;
         }
 
-        Long packId = packingDao.createPackingForGDN(gdnId);
-        
         request.getSession().setAttribute("message", "Packing record created successfully!");
         response.sendRedirect(request.getContextPath() + "/packing?action=form&gdnId=" + gdnId);
     }
@@ -271,7 +271,8 @@ public class PackingController extends HttpServlet {
         long gdnId = parseLong(request.getParameter("gdnId"), -1);
         long assignedTo = parseLong(request.getParameter("assignedTo"), -1);
         if (packId <= 0 || gdnId <= 0 || assignedTo <= 0) {
-            response.sendRedirect(request.getContextPath() + "/packing?action=assign&gdnId=" + gdnId + "&error=invalid");
+            response.sendRedirect(
+                    request.getContextPath() + "/packing?action=assign&gdnId=" + gdnId + "&error=invalid");
             return;
         }
 
@@ -282,13 +283,16 @@ public class PackingController extends HttpServlet {
     }
 
     private boolean canAccessPacking(User user, PackingDTO packing) {
-        if (user == null) return false;
+        if (user == null)
+            return false;
         String roles = user.getRoleNames() != null ? user.getRoleNames() : "";
         // Managers/admin can access all
-        if (roles.contains("ADMIN") || roles.contains("WAREHOUSE_MANAGER")) return true;
+        if (roles.contains("ADMIN") || roles.contains("WAREHOUSE_MANAGER"))
+            return true;
         // Warehouse staff must be assigned (packed_by) to access
         if (roles.contains("WAREHOUSE_STAFF")) {
-            if (packing == null) return false;
+            if (packing == null)
+                return false;
             Long assignedTo = packing.getPackedBy();
             return assignedTo != null && assignedTo.equals(user.getUserId());
         }
@@ -304,9 +308,12 @@ public class PackingController extends HttpServlet {
         String weightUnit = request.getParameter("weightUnit");
         String notes = request.getParameter("notes");
 
-        if (packageLabel != null) packageLabel = packageLabel.trim();
-        if (packageType != null) packageType = packageType.trim();
-        if (notes != null) notes = notes.trim();
+        if (packageLabel != null)
+            packageLabel = packageLabel.trim();
+        if (packageType != null)
+            packageType = packageType.trim();
+        if (notes != null)
+            notes = notes.trim();
 
         BigDecimal weight = parseBigDecimal(weightStr, null);
 
@@ -324,7 +331,8 @@ public class PackingController extends HttpServlet {
         }
         Long packedBy = user != null ? user.getUserId() : null;
 
-        packingDao.updatePacking(packId, "PENDING", packedBy, packageLabel, packageType, weight, weightUnit, notes, null, null);
+        packingDao.updatePacking(packId, "PENDING", packedBy, packageLabel, packageType, weight, weightUnit, notes,
+                null, null);
 
         response.sendRedirect(request.getContextPath() + "/packing?action=form&gdnId=" + gdnId);
     }
@@ -340,9 +348,12 @@ public class PackingController extends HttpServlet {
         String totalPackagesStr = request.getParameter("totalPackages");
         String currentPackageStr = request.getParameter("currentPackage");
 
-        if (packageLabel != null) packageLabel = packageLabel.trim();
-        if (packageType != null) packageType = packageType.trim();
-        if (notes != null) notes = notes.trim();
+        if (packageLabel != null)
+            packageLabel = packageLabel.trim();
+        if (packageType != null)
+            packageType = packageType.trim();
+        if (notes != null)
+            notes = notes.trim();
 
         BigDecimal weight = parseBigDecimal(weightStr, null);
         Integer totalPackages = parseInt(totalPackagesStr, 1);
@@ -362,7 +373,8 @@ public class PackingController extends HttpServlet {
         }
         Long packedBy = user != null ? user.getUserId() : null;
 
-        packingDao.updatePacking(packId, "IN_PROGRESS", packedBy, packageLabel, packageType, weight, weightUnit, notes, totalPackages, currentPackage);
+        packingDao.updatePacking(packId, "IN_PROGRESS", packedBy, packageLabel, packageType, weight, weightUnit, notes,
+                totalPackages, currentPackage);
 
         response.sendRedirect(request.getContextPath() + "/packing?action=station&gdnId=" + gdnId);
     }
@@ -376,9 +388,12 @@ public class PackingController extends HttpServlet {
         String weightUnit = request.getParameter("weightUnit");
         String notes = request.getParameter("notes");
 
-        if (packageLabel != null) packageLabel = packageLabel.trim();
-        if (packageType != null) packageType = packageType.trim();
-        if (notes != null) notes = notes.trim();
+        if (packageLabel != null)
+            packageLabel = packageLabel.trim();
+        if (packageType != null)
+            packageType = packageType.trim();
+        if (notes != null)
+            notes = notes.trim();
 
         BigDecimal weight = parseBigDecimal(weightStr, null);
 
@@ -399,7 +414,8 @@ public class PackingController extends HttpServlet {
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
 
         // 1) Mark packing DONE (also stamps packed_at)
-        packingDao.updatePacking(packId, "DONE", packedBy, packageLabel, packageType, weight, weightUnit, notes, null, null);
+        packingDao.updatePacking(packId, "DONE", packedBy, packageLabel, packageType, weight, weightUnit, notes, null,
+                null);
 
         // 2) Sync all GDN lines packed qty = picked qty (legacy behavior)
         GDNDetailDTO gdn = gdnDao.getGDNDetailById(gdnId);
@@ -408,8 +424,7 @@ public class PackingController extends HttpServlet {
             for (GDNLineDTO line : gdn.getLines()) {
                 lineQtyPacked.put(
                         line.getGdnLineId(),
-                        line.getQtyPicked() != null ? line.getQtyPicked() : BigDecimal.ZERO
-                );
+                        line.getQtyPicked() != null ? line.getQtyPicked() : BigDecimal.ZERO);
             }
             packingDao.updateGDNLinesPacked(gdnId, lineQtyPacked);
         }
@@ -421,10 +436,6 @@ public class PackingController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/packing?action=list&message=Packing+completed+successfully");
     }
 
-    
-
-    
-
     private long parseLong(String raw, long def) {
         try {
             return (raw == null || raw.isBlank()) ? def : Long.parseLong(raw.trim());
@@ -434,7 +445,8 @@ public class PackingController extends HttpServlet {
     }
 
     private BigDecimal parseBigDecimal(String raw, BigDecimal def) {
-        if (raw == null || raw.isBlank()) return def;
+        if (raw == null || raw.isBlank())
+            return def;
         try {
             return new BigDecimal(raw.trim());
         } catch (NumberFormatException e) {

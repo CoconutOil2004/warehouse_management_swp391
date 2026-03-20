@@ -1,35 +1,37 @@
 package controller;
 
-import com.microsoft.sqlserver.jdbc.SQLServerException;
-import service.ProductService;
-import service.ProductVariantService;
-import service.PurchaseOrderImportService;
-import service.PurchaseOrderService;
-import service.SupplierService;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import dto.POLineCreateDTO;
 import dto.ProductVariantDTO;
 import dto.PurchaseOrderHeaderDTO;
 import dto.PurchaseOrderLineDTO;
 import dto.PurchaseOrderListDTO;
-import jakarta.servlet.*;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
-import util.ViewPath;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
+import service.GoodsReceiptService;
+import service.ProductService;
+import service.ProductVariantService;
+import service.PurchaseOrderImportService;
+import service.PurchaseOrderService;
+import service.SupplierService;
 import util.RequestUtil;
 import util.ToastUtil;
-import service.GoodsReceiptService;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.sql.Date;
-import java.util.HashMap;
-import java.util.Map;
-import jakarta.servlet.annotation.MultipartConfig;
+import util.ViewPath;
 
 @MultipartConfig(fileSizeThreshold = 1024 * 1024, maxFileSize = 10485760, maxRequestSize = 20971520)
-@WebServlet(name = "PurchaseOrderController", urlPatterns = {"/purchase-orders"})
+@WebServlet(name = "PurchaseOrderController", urlPatterns = { "/purchase-orders" })
 public class PurchaseOrderController extends HttpServlet {
 
     private static final int DEFAULT_PAGE = 1;
@@ -110,14 +112,14 @@ public class PurchaseOrderController extends HttpServlet {
         }
 
         ProductVariantService vService = new ProductVariantService();
-        //lấy danh sách variant theo productid
+        // lấy danh sách variant theo productid
         List<ProductVariantDTO> list = vService.listByProductId(productId);
-        //khai báo json
+        // khai báo json
         response.setContentType("application/json;charset=UTF-8");
         response.setCharacterEncoding("UTF-8");
 
         StringBuilder sb = new StringBuilder();
-        //tạo json thủ công
+        // tạo json thủ công
         sb.append("[");
         for (int i = 0; i < list.size(); i++) {
             dto.ProductVariantDTO v = list.get(i);
@@ -138,7 +140,7 @@ public class PurchaseOrderController extends HttpServlet {
 
     private void forwardList(HttpServletRequest request, HttpServletResponse response) throws Exception {
         int page = RequestUtil.parseInt(request.getParameter("page"), DEFAULT_PAGE);
-        //size = số dòng hiển thị mỗi trang
+        // size = số dòng hiển thị mỗi trang
         int size = RequestUtil.parseInt(request.getParameter("size"), DEFAULT_SIZE);
         if (page < 1) {
             page = 1;
@@ -161,11 +163,11 @@ public class PurchaseOrderController extends HttpServlet {
         if (totalPages < 1) {
             totalPages = 1;
         }
-        //tránh user nhập tay
+        // tránh user nhập tay
         if (page > totalPages) {
             page = totalPages;
         }
-        //offset = số lượng bản ghi cần bỏ qua trước khi lấy dữ liệu
+        // offset = số lượng bản ghi cần bỏ qua trước khi lấy dữ liệu
         int offset = (page - 1) * size;
         List<PurchaseOrderListDTO> pos = poService.searchPurchaseOrders(keyword, status, expectedFrom, expectedTo, size,
                 offset);
@@ -217,8 +219,7 @@ public class PurchaseOrderController extends HttpServlet {
             if (userId == null) {
                 userId = 1L;
             }
-            PurchaseOrderImportService.ImportResult result
-                    = poImportService.importFromExcel(filePart, userId);
+            PurchaseOrderImportService.ImportResult result = poImportService.importFromExcel(filePart, userId);
 
             if (result.hasErrors()) {
                 StringBuilder errMsg = new StringBuilder("Import failed due to the following errors: <ul>");
@@ -415,12 +416,13 @@ public class PurchaseOrderController extends HttpServlet {
 
         List<PurchaseOrderLineDTO> lines = poService.getPurchaseOrderDetailLines(poId);
 
-        request.setAttribute("po", po);                 // JSP edit dùng "po"
-        request.setAttribute("lines", lines);           // JSP edit dùng "lines"
+        request.setAttribute("po", po); // JSP edit dùng "po"
+        request.setAttribute("lines", lines); // JSP edit dùng "lines"
         request.setAttribute("suppliers", sService.getActiveSuppliers());
         request.setAttribute("products", pService.getProducts());
 
-        // Nếu chưa muốn load variants sẵn (vì đã có AJAX /purchase-orders?action=variants)
+        // Nếu chưa muốn load variants sẵn (vì đã có AJAX
+        // /purchase-orders?action=variants)
         // thì không cần set "variants"
         request.getRequestDispatcher(ViewPath.PO_FORM_EDIT).forward(request, response);
     }
@@ -455,7 +457,7 @@ public class PurchaseOrderController extends HttpServlet {
             try {
                 expectedDate = Date.valueOf(expected); // yyyy-MM-dd
                 // không được hôm nay hoặc quá khứ => phải > today
-                //toLocateDate() bỏ giờ lấy ngày
+                // toLocateDate() bỏ giờ lấy ngày
                 if (!expectedDate.toLocalDate().isAfter(java.time.LocalDate.now())) {
                     fieldErrors.put("expectedDeliveryDate", "Expected Delivery Date must be after today");
                 }
@@ -489,7 +491,7 @@ public class PurchaseOrderController extends HttpServlet {
 
         for (int i = 0; i < 500; i++) {
             String vid = request.getParameter("lines[" + i + "].variantId");
-            String qtyStr = request.getParameter("lines[" + i + "].qty");         // giống create
+            String qtyStr = request.getParameter("lines[" + i + "].qty"); // giống create
             String unitStr = request.getParameter("lines[" + i + "].unitPrice");
 
             // row trống -> bỏ
@@ -524,7 +526,8 @@ public class PurchaseOrderController extends HttpServlet {
                 }
 
                 PurchaseOrderLineDTO line = new PurchaseOrderLineDTO();
-                // Lấy ID của dòng hàng cũ (nếu có) để DAO thực hiện update thay vì delete-insert
+                // Lấy ID của dòng hàng cũ (nếu có) để DAO thực hiện update thay vì
+                // delete-insert
                 String poLineIdStr = request.getParameter("lines[" + i + "].poLineId");
                 if (poLineIdStr != null && !poLineIdStr.isBlank()) {
                     line.setPoLineId(Long.parseLong(poLineIdStr));
@@ -544,7 +547,7 @@ public class PurchaseOrderController extends HttpServlet {
             fieldErrors.putIfAbsent("lines", "At least one line is required");
         }
 
-        // oldLines để giữ form khi lỗi 
+        // oldLines để giữ form khi lỗi
         List<Map<String, String>> oldLines = new ArrayList<>();
         for (int i = 0; i < 500; i++) {
             String productId = request.getParameter("lines[" + i + "].productId");
@@ -552,8 +555,7 @@ public class PurchaseOrderController extends HttpServlet {
             String qty = request.getParameter("lines[" + i + "].qty");
             String unitPrice = request.getParameter("lines[" + i + "].unitPrice");
 
-            boolean allBlank
-                    = (productId == null || productId.isBlank())
+            boolean allBlank = (productId == null || productId.isBlank())
                     && (variantId == null || variantId.isBlank())
                     && (qty == null || qty.isBlank())
                     && (unitPrice == null || unitPrice.isBlank());
