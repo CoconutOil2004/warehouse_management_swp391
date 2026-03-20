@@ -126,7 +126,8 @@ public class GoodsReceiptController extends HttpServlet {
         // Pass RBAC flags to JSP
         model.User user = (model.User) request.getSession().getAttribute("USER");
         String roles = user != null ? user.getRoleNames() : "";
-        boolean canMutation = roles != null && (roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
+        boolean canMutation = roles != null
+                && (roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
         request.setAttribute("canMutation", canMutation);
 
         request.getRequestDispatcher(ViewPath.GRN_LIST).forward(request, response);
@@ -183,7 +184,8 @@ public class GoodsReceiptController extends HttpServlet {
         // Pass RBAC flags to JSP
         model.User user = (model.User) request.getSession().getAttribute("USER");
         String roles = user != null ? user.getRoleNames() : "";
-        boolean canMutation = roles != null && (roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
+        boolean canMutation = roles != null
+                && (roles.contains("WAREHOUSE_MANAGER") || roles.contains("WAREHOUSE_STAFF"));
         boolean isManager = roles != null && roles.contains("WAREHOUSE_MANAGER");
         request.setAttribute("canMutation", canMutation);
         request.setAttribute("isManager", isManager);
@@ -300,9 +302,12 @@ public class GoodsReceiptController extends HttpServlet {
             String qDamagedStr = request.getParameter("totalDamaged");
             String qExtraStr = request.getParameter("totalExtra");
 
-            if (qGoodStr != null && !qGoodStr.isEmpty()) totalGood = new BigDecimal(qGoodStr);
-            if (qDamagedStr != null && !qDamagedStr.isEmpty()) totalDamaged = new BigDecimal(qDamagedStr);
-            if (qExtraStr != null && !qExtraStr.isEmpty()) totalExtra = new BigDecimal(qExtraStr);
+            if (qGoodStr != null && !qGoodStr.isEmpty())
+                totalGood = new BigDecimal(qGoodStr);
+            if (qDamagedStr != null && !qDamagedStr.isEmpty())
+                totalDamaged = new BigDecimal(qDamagedStr);
+            if (qExtraStr != null && !qExtraStr.isEmpty())
+                totalExtra = new BigDecimal(qExtraStr);
         }
 
         if (warehouseId == null) {
@@ -311,7 +316,7 @@ public class GoodsReceiptController extends HttpServlet {
         }
 
         List<Zone> zones = zoneDao.getZonesByWarehouseId(warehouseId);
-        
+
         BigDecimal stoAvail = BigDecimal.ZERO;
         BigDecimal damAvail = BigDecimal.ZERO;
         BigDecimal excAvail = BigDecimal.ZERO;
@@ -319,13 +324,16 @@ public class GoodsReceiptController extends HttpServlet {
         for (Zone z : zones) {
             if ("STORAGE".equals(z.getZoneType())) {
                 BigDecimal cap = slotDao.getTotalAvailableCapacityByZoneId(z.getZoneId());
-                if (cap != null) stoAvail = stoAvail.add(cap);
+                if (cap != null)
+                    stoAvail = stoAvail.add(cap);
             } else if ("DAMAGE".equals(z.getZoneType())) {
                 BigDecimal cap = slotDao.getTotalAvailableCapacityByZoneId(z.getZoneId());
-                if (cap != null) damAvail = damAvail.add(cap);
+                if (cap != null)
+                    damAvail = damAvail.add(cap);
             } else if ("EXCESS".equals(z.getZoneType())) {
                 BigDecimal cap = slotDao.getTotalAvailableCapacityByZoneId(z.getZoneId());
-                if (cap != null) excAvail = excAvail.add(cap);
+                if (cap != null)
+                    excAvail = excAvail.add(cap);
             }
         }
 
@@ -340,9 +348,12 @@ public class GoodsReceiptController extends HttpServlet {
         sb.append("\"success\":true,");
         sb.append("\"sufficient\":").append(sufficient).append(",");
         sb.append("\"details\":{");
-        sb.append("\"good\":{\"required\":").append(totalGood).append(",\"available\":").append(stoAvail).append(",\"isSufficient\":").append(goodOk).append("},");
-        sb.append("\"damaged\":{\"required\":").append(totalDamaged).append(",\"available\":").append(damAvail).append(",\"isSufficient\":").append(damOk).append("},");
-        sb.append("\"excess\":{\"required\":").append(totalExtra).append(",\"available\":").append(excAvail).append(",\"isSufficient\":").append(excOk).append("}");
+        sb.append("\"good\":{\"required\":").append(totalGood).append(",\"available\":").append(stoAvail)
+                .append(",\"isSufficient\":").append(goodOk).append("},");
+        sb.append("\"damaged\":{\"required\":").append(totalDamaged).append(",\"available\":").append(damAvail)
+                .append(",\"isSufficient\":").append(damOk).append("},");
+        sb.append("\"excess\":{\"required\":").append(totalExtra).append(",\"available\":").append(excAvail)
+                .append(",\"isSufficient\":").append(excOk).append("}");
         sb.append("}");
         sb.append("}");
 
@@ -527,6 +538,12 @@ public class GoodsReceiptController extends HttpServlet {
                             "Mỗi dòng hàng phải có ít nhất một giá trị Số lượng (Good/Damaged/Missing/Extra good/Extra damaged) lớn hơn 0.");
                 }
 
+                if ((eg.compareTo(BigDecimal.ZERO) > 0 || ed.compareTo(BigDecimal.ZERO) > 0)
+                        && (g.add(d).compareTo(line.getQtyExpected()) < 0)) {
+                    fieldErrors.put("lines", "Item " + line.getSku() + ": 'Extra' quantity can only be used after the ordered quantity (" + line.getQtyExpected() + ") is fully fulfilled in Good/Damaged columns.");
+                    continue;
+                }
+
                 line.setQtyGood(g);
                 line.setQtyReceived(g.add(d).add(eg).add(ed)); // Total physical items received (excludes missing)
                 line.setQtyDamaged(d);
@@ -642,7 +659,8 @@ public class GoodsReceiptController extends HttpServlet {
         }
         grn.setWarehouseId(warehouseId);
 
-        // Validate PO exists and status = CREATED when creating new GRN (or when changing PO)
+        // Validate PO exists and status = CREATED when creating new GRN (or when
+        // changing PO)
         PurchaseOrderDAO poDaoForValidation = new PurchaseOrderDAO();
         PurchaseOrderHeaderDTO poHeader = poDaoForValidation.getPurchaseOrderHeader(poId);
         if (poHeader == null) {
@@ -659,7 +677,9 @@ public class GoodsReceiptController extends HttpServlet {
         }
         // Cho phép tạo phiếu nhập từ PO trạng thái CREATED hoặc IMPORTED (PO từ Excel)
         if (!"CREATED".equals(poHeader.getStatus()) && !"IMPORTED".equals(poHeader.getStatus())) {
-            fieldErrors.put("poId", "Chỉ được tạo/sửa phiếu nhập từ Purchase Order có trạng thái CREATED hoặc IMPORTED. PO hiện tại: " + poHeader.getStatus());
+            fieldErrors.put("poId",
+                    "Chỉ được tạo/sửa phiếu nhập từ Purchase Order có trạng thái CREATED hoặc IMPORTED. PO hiện tại: "
+                            + poHeader.getStatus());
             request.setAttribute("fieldErrors", fieldErrors);
             request.setAttribute("grnId", existingId);
             request.setAttribute("oldGrnNumber", grnNumber);
@@ -684,8 +704,12 @@ public class GoodsReceiptController extends HttpServlet {
             request.getSession().setAttribute("message", "Goods Receipt created successfully.");
         }
 
-        // Sau khi lưu thành công, chuyển đến màn hình Putaway
-        response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + resultGrnId);
+        String nextStep = request.getParameter("nextStep");
+        if ("layout".equals(nextStep)) {
+            response.sendRedirect(request.getContextPath() + "/warehouse-layout");
+        } else {
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + resultGrnId);
+        }
     }
 
     private void handlePutaway(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -717,7 +741,7 @@ public class GoodsReceiptController extends HttpServlet {
 
         // Tìm các Zone theo zoneType để lấy Slot gợi ý
         List<Zone> zones = zoneDao.getZonesByWarehouseId(grn.getWarehouseId());
-        
+
         List<Object> storageSlots = new java.util.ArrayList<>();
         List<Object> damageSlots = new java.util.ArrayList<>();
         List<Object> excessSlots = new java.util.ArrayList<>();
@@ -731,7 +755,7 @@ public class GoodsReceiptController extends HttpServlet {
                 excessSlots.addAll(slotDao.getSlotsWithInventoryByZoneId(z.getZoneId(), grn.getWarehouseId()));
             }
         }
-        
+
         request.setAttribute("storageSlots", storageSlots);
         request.setAttribute("damageSlots", damageSlots);
         request.setAttribute("excessSlots", excessSlots);
@@ -742,7 +766,6 @@ public class GoodsReceiptController extends HttpServlet {
 
         request.getRequestDispatcher(ViewPath.GRN_PUTAWAY).forward(request, response);
     }
-
 
     private void handleConfirmPutaway(HttpServletRequest request, HttpServletResponse response) throws Exception {
         model.User user = (model.User) request.getSession().getAttribute("USER");
@@ -765,7 +788,8 @@ public class GoodsReceiptController extends HttpServlet {
         // Prevent double-confirm putaway (idempotency guard)
         if (grnDao.isPutawayComplete(grnId)) {
             request.getSession().setAttribute("message", "Putaway was already confirmed for this GRN.");
-            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + grnId + "&putaway=already_confirmed");
+            response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + grnId
+                    + "&putaway=already_confirmed");
             return;
         }
         Long warehouseId = grn.getWarehouseId();
@@ -869,7 +893,8 @@ public class GoodsReceiptController extends HttpServlet {
             java.util.Map<Long, BigDecimal> sumExcess = new java.util.HashMap<>();
             for (model.PutAwayLine pl : putawayLines) {
                 if (!slotDao.isSlotInWarehouse(pl.getToSlotId(), warehouseId)) {
-                    response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=Slot+not+in+warehouse");
+                    response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId
+                            + "&error=Slot+not+in+warehouse");
                     return;
                 }
                 String zt = slotDao.getZoneTypeBySlotId(pl.getToSlotId());
@@ -959,10 +984,11 @@ public class GoodsReceiptController extends HttpServlet {
                 if (grn != null && ("PENDING".equals(grn.getStatus()) || "DRAFT".equals(grn.getStatus()))) {
                     // Check if putaway is complete before approving
                     if ("APPROVED".equals(status) && !grnDao.isPutawayComplete(id)) {
-                        response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + id + "&error=putaway_incomplete");
+                        response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + id
+                                + "&error=putaway_incomplete");
                         return;
                     }
-                    
+
                     boolean success = grnDao.updateStatus(id, status, approverId);
 
                     if (success && "APPROVED".equals(status)) {
@@ -1014,7 +1040,8 @@ public class GoodsReceiptController extends HttpServlet {
                     }
 
                     if (success) {
-                        String msg = "APPROVED".equals(status) ? "Goods Receipt approved successfully." : "Goods Receipt rejected successfully.";
+                        String msg = "APPROVED".equals(status) ? "Goods Receipt approved successfully."
+                                : "Goods Receipt rejected successfully.";
                         request.getSession().setAttribute("message", msg);
                         response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + id);
                     } else {

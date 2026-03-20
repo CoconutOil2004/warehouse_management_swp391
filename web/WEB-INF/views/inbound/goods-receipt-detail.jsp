@@ -248,7 +248,8 @@
                                     </a>
                                     <c:if test="${grn.status == 'PENDING' && not isPutawayComplete}">
                                         <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>Please complete Putaway before Approving
+                                            <i class="fas fa-exclamation-triangle me-1"></i>Please complete Putaway
+                                            before Approving
                                         </span>
                                     </c:if>
                                 </div>
@@ -262,8 +263,8 @@
                                                 <c:if test="${isPutawayComplete}">
                                                     <button type="button"
                                                         class="btn btn-success shadow-sm d-flex align-items-center justify-content-center"
-                                                        style="height: 38px; padding: 0 16px;"
-                                                        data-bs-toggle="modal" data-bs-target="#approveGrnModal${grn.grnId}">
+                                                        style="height: 38px; padding: 0 16px;" data-bs-toggle="modal"
+                                                        data-bs-target="#approveGrnModal${grn.grnId}">
                                                         <i class="fas fa-check me-2"></i>Approve
                                                     </button>
 
@@ -273,13 +274,15 @@
                                                             Approve Goods Receipt <strong>${grn.grnNumber}</strong>?
                                                         </jsp:attribute>
                                                         <jsp:attribute name="action">
-                                                            <button type="button" class="btn btn-success" data-bs-dismiss="modal"
+                                                            <button type="button" class="btn btn-success"
+                                                                data-bs-dismiss="modal"
                                                                 onclick="document.getElementById('approveGrnForm${grn.grnId}').submit()">
                                                                 Approve
                                                             </button>
                                                         </jsp:attribute>
                                                     </t:alert>
-                                                    <form id="approveGrnForm${grn.grnId}" action="${pageContext.request.contextPath}/goods-receipt"
+                                                    <form id="approveGrnForm${grn.grnId}"
+                                                        action="${pageContext.request.contextPath}/goods-receipt"
                                                         method="post" class="d-none">
                                                         <input type="hidden" name="action" value="approve">
                                                         <input type="hidden" name="id" value="${grn.grnId}">
@@ -297,8 +300,8 @@
                                                 <!-- Reject Button -->
                                                 <button type="button"
                                                     class="btn btn-outline-danger shadow-sm d-flex align-items-center justify-content-center"
-                                                    style="height: 38px; padding: 0 16px;"
-                                                    data-bs-toggle="modal" data-bs-target="#rejectGrnModal${grn.grnId}">
+                                                    style="height: 38px; padding: 0 16px;" data-bs-toggle="modal"
+                                                    data-bs-target="#rejectGrnModal${grn.grnId}">
                                                     <i class="fas fa-times me-2"></i>Reject
                                                 </button>
 
@@ -308,13 +311,15 @@
                                                         Reject Goods Receipt <strong>${grn.grnNumber}</strong>?
                                                     </jsp:attribute>
                                                     <jsp:attribute name="action">
-                                                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                                                        <button type="button" class="btn btn-danger"
+                                                            data-bs-dismiss="modal"
                                                             onclick="document.getElementById('rejectGrnForm${grn.grnId}').submit()">
                                                             Reject
                                                         </button>
                                                     </jsp:attribute>
                                                 </t:alert>
-                                                <form id="rejectGrnForm${grn.grnId}" action="${pageContext.request.contextPath}/goods-receipt"
+                                                <form id="rejectGrnForm${grn.grnId}"
+                                                    action="${pageContext.request.contextPath}/goods-receipt"
                                                     method="post" class="d-none">
                                                     <input type="hidden" name="action" value="reject">
                                                     <input type="hidden" name="id" value="${grn.grnId}">
@@ -334,8 +339,8 @@
                                                 <!-- Delete Button -->
                                                 <button type="button"
                                                     class="btn btn-danger shadow-sm d-flex align-items-center justify-content-center"
-                                                    style="height: 38px; padding: 0 16px;"
-                                                    data-bs-toggle="modal" data-bs-target="#deleteGrnModal${grn.grnId}">
+                                                    style="height: 38px; padding: 0 16px;" data-bs-toggle="modal"
+                                                    data-bs-target="#deleteGrnModal${grn.grnId}">
                                                     <i class="fas fa-trash-alt me-2"></i>Delete
                                                 </button>
 
@@ -346,13 +351,15 @@
                                                         <strong>${grn.grnNumber}</strong>? This action cannot be undone.
                                                     </jsp:attribute>
                                                     <jsp:attribute name="action">
-                                                        <button type="button" class="btn btn-danger" data-bs-dismiss="modal"
+                                                        <button type="button" class="btn btn-danger"
+                                                            data-bs-dismiss="modal"
                                                             onclick="document.getElementById('deleteGrnForm${grn.grnId}').submit()">
                                                             Delete
                                                         </button>
                                                     </jsp:attribute>
                                                 </t:alert>
-                                                <form id="deleteGrnForm${grn.grnId}" action="${pageContext.request.contextPath}/goods-receipt"
+                                                <form id="deleteGrnForm${grn.grnId}"
+                                                    action="${pageContext.request.contextPath}/goods-receipt"
                                                     method="post" class="d-none">
                                                     <input type="hidden" name="action" value="delete">
                                                     <input type="hidden" name="id" value="${grn.grnId}">

@@ -15,8 +15,8 @@ import java.util.Properties;
 public class SendEmail {
 
     // Lấy thông tin từ biến môi trường
-    private static final String EMAIL_SENDER = "anhlhche181707@fpt.edu.vn";
-    private static final String EMAIL_PASSWORD = "nqsa fncw alit lsro";
+    private static final String EMAIL_SENDER = "xuanquels@gmail.com";
+    private static final String EMAIL_PASSWORD = "Opnep1204";
 
     // Tạo phiên gửi email
     private static Session getSession() {

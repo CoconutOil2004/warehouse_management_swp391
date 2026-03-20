@@ -603,7 +603,7 @@ public class GoodsReceiptDAO extends DBContext {
 
     public boolean isPutawayComplete(Long grnId) throws SQLException {
         // Putaway must cover all physically received items: GOOD + DAMAGED + EXCESS
-        String sqlExpected = "SELECT SUM(qty_good + qty_damaged + qty_extra_good + qty_extra_damaged) FROM goods_receipt_line WHERE grn_id = ?";
+        String sqlExpected = "SELECT SUM(COALESCE(qty_good,0) + COALESCE(qty_damaged,0) + COALESCE(qty_extra_good,0) + COALESCE(qty_extra_damaged,0)) FROM goods_receipt_line WHERE grn_id = ?";
         String sqlActual = "SELECT SUM(pl.qty_putaway) FROM putaway_line pl JOIN putaway_order po ON pl.putaway_id = po.putaway_id WHERE po.grn_id = ?";
 
         java.math.BigDecimal expected = java.math.BigDecimal.ZERO;
@@ -615,7 +615,8 @@ public class GoodsReceiptDAO extends DBContext {
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         expected = rs.getBigDecimal(1);
-                        if (expected == null) expected = java.math.BigDecimal.ZERO;
+                        if (expected == null)
+                            expected = java.math.BigDecimal.ZERO;
                     }
                 }
             }
@@ -624,7 +625,8 @@ public class GoodsReceiptDAO extends DBContext {
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         actual = rs.getBigDecimal(1);
-                        if (actual == null) actual = java.math.BigDecimal.ZERO;
+                        if (actual == null)
+                            actual = java.math.BigDecimal.ZERO;
                     }
                 }
             }
@@ -638,7 +640,8 @@ public class GoodsReceiptDAO extends DBContext {
      * putaway is not complete yet, PO must not be editable to avoid mismatch.
      */
     public boolean hasIncompletePutawayForPo(Long poId) throws SQLException {
-        if (poId == null) return false;
+        if (poId == null)
+            return false;
         String sql = """
                 SELECT 1
                 FROM goods_receipt gr
@@ -660,7 +663,7 @@ public class GoodsReceiptDAO extends DBContext {
                 LIMIT 1
                 """;
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, poId);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
