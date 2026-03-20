@@ -1,10 +1,10 @@
 package dao;
 
-import context.DBContext;
-import model.InventoryTxn;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.Timestamp;
+
+import context.DBContext;
+import model.InventoryTxn;
 
 public class InventoryTxnDAO extends DBContext {
 

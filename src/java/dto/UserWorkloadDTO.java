@@ -12,9 +12,8 @@ import lombok.Setter;
 public class UserWorkloadDTO {
     private Long userId;
     private String fullName;
-    private Integer activeTasks;    // Number of tasks with status ASSIGNED or IN_PROGRESS
-    private Integer activeLines;    // Total number of pick lines across all active tasks
-    private String workloadLevel;   // LOW, MEDIUM, HIGH (for badge color)
+    private Integer activeTasks; // Number of tasks with status ASSIGNED or IN_PROGRESS
+    private Integer activeLines; // Total number of pick lines across all active tasks
 
     public UserWorkloadDTO() {
         this.activeTasks = 0;

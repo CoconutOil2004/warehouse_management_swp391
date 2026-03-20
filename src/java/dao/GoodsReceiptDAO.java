@@ -1,13 +1,19 @@
 package dao;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+
 import context.DBContext;
+import dto.ProductVariantDTO;
 import model.GoodsReceipt;
 import model.GoodsReceiptLine;
 import model.PutAwayLine;
-import dto.ProductVariantDTO;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class GoodsReceiptDAO extends DBContext {
 
@@ -170,8 +176,10 @@ public class GoodsReceiptDAO extends DBContext {
                     ps.setBigDecimal(6, line.getQtyGood());
                     ps.setBigDecimal(7, line.getQtyMissing());
                     ps.setBigDecimal(8, line.getQtyDamaged());
-                    ps.setBigDecimal(9, line.getQtyExtraGood() != null ? line.getQtyExtraGood() : java.math.BigDecimal.ZERO);
-                    ps.setBigDecimal(10, line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : java.math.BigDecimal.ZERO);
+                    ps.setBigDecimal(9,
+                            line.getQtyExtraGood() != null ? line.getQtyExtraGood() : java.math.BigDecimal.ZERO);
+                    ps.setBigDecimal(10,
+                            line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : java.math.BigDecimal.ZERO);
                     ps.setString(11, line.getNote());
                     ps.addBatch();
                 }
@@ -445,8 +453,10 @@ public class GoodsReceiptDAO extends DBContext {
                     ps.setBigDecimal(6, line.getQtyGood());
                     ps.setBigDecimal(7, line.getQtyMissing());
                     ps.setBigDecimal(8, line.getQtyDamaged());
-                    ps.setBigDecimal(9, line.getQtyExtraGood() != null ? line.getQtyExtraGood() : java.math.BigDecimal.ZERO);
-                    ps.setBigDecimal(10, line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : java.math.BigDecimal.ZERO);
+                    ps.setBigDecimal(9,
+                            line.getQtyExtraGood() != null ? line.getQtyExtraGood() : java.math.BigDecimal.ZERO);
+                    ps.setBigDecimal(10,
+                            line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : java.math.BigDecimal.ZERO);
                     ps.setString(11, line.getNote());
                     ps.addBatch();
                 }

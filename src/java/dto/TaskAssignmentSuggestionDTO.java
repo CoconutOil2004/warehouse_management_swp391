@@ -13,15 +13,15 @@ public class TaskAssignmentSuggestionDTO {
     private Long pickTaskId;
     private Long suggestedUserId;
     private String suggestedUserName;
-    private Integer taskLineCount;      // Number of lines in this task
-    private Integer currentWorkload;    // Current workload of suggested user (in lines)
-    private String reason;              // Why this suggestion was made
+    private Integer taskLineCount; // Number of lines in this task
+    private Integer currentWorkload; // Current workload of suggested user (in lines)
+    private String reason; // Why this suggestion was made
 
     public TaskAssignmentSuggestionDTO() {
     }
 
     public TaskAssignmentSuggestionDTO(Long pickTaskId, Long suggestedUserId, String suggestedUserName,
-                                       Integer taskLineCount, Integer currentWorkload, String reason) {
+            Integer taskLineCount, Integer currentWorkload, String reason) {
         this.pickTaskId = pickTaskId;
         this.suggestedUserId = suggestedUserId;
         this.suggestedUserName = suggestedUserName;

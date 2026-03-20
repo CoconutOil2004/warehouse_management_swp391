@@ -1,15 +1,15 @@
 package dao;
 
-import context.DBContext;
-import model.Slot;
-import dto.SlotDetailDTO;
-import dao.InventoryBalanceDAO;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
+
+import context.DBContext;
+import dto.SlotDetailDTO;
+import model.Slot;
 
 public class SlotDAO extends DBContext {
 
@@ -278,7 +278,8 @@ public class SlotDAO extends DBContext {
 
             BigDecimal maxCap = dto.getMaxCapacity();
             if (maxCap != null) {
-                dto.setAvailableCapacity(maxCap.subtract(usedCapacity));//AvailableCapacity = MaxCapacity - UsedCapacity
+                dto.setAvailableCapacity(maxCap.subtract(usedCapacity));// AvailableCapacity = MaxCapacity -
+                                                                        // UsedCapacity
             } else {
                 dto.setAvailableCapacity(BigDecimal.ZERO);
             }
@@ -370,10 +371,11 @@ public class SlotDAO extends DBContext {
         }
         return null;
     }
-    
+
     /** Check if slot belongs to the given warehouse (slot -> zone -> warehouse). */
     public boolean isSlotInWarehouse(Long slotId, Long warehouseId) throws Exception {
-        if (slotId == null || warehouseId == null) return false;
+        if (slotId == null || warehouseId == null)
+            return false;
         String sql = """
                     SELECT 1 FROM slot s
                     JOIN zone z ON s.zone_id = z.zone_id
@@ -391,21 +393,21 @@ public class SlotDAO extends DBContext {
 
     public boolean updateMaxCapacity(Long slotId, BigDecimal maxCapacity) throws Exception {
         String sql = """
-            UPDATE slot
-            SET max_capacity = ?
-            WHERE slot_id = ?
-        """;
-        
+                    UPDATE slot
+                    SET max_capacity = ?
+                    WHERE slot_id = ?
+                """;
+
         try (Connection con = DBContext.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-            
+                PreparedStatement ps = con.prepareStatement(sql)) {
+
             if (maxCapacity != null) {
                 ps.setBigDecimal(1, maxCapacity);
             } else {
                 ps.setNull(1, java.sql.Types.DECIMAL);
             }
             ps.setLong(2, slotId);
-            
+
             int rowsAffected = ps.executeUpdate();
             return rowsAffected > 0;
         }
@@ -413,18 +415,18 @@ public class SlotDAO extends DBContext {
 
     public BigDecimal getTotalAvailableCapacityByZoneId(Long zoneId) throws Exception {
         String sql = """
-            SELECT SUM(COALESCE(s.max_capacity, 0) - COALESCE(ib.used, 0)) as total_available
-            FROM slot s
-            LEFT JOIN (
-                SELECT slot_id, SUM(qty_on_hand) as used
-                FROM inventory_balance
-                GROUP BY slot_id
-            ) ib ON s.slot_id = ib.slot_id
-            WHERE s.zone_id = ? AND s.status = 'ACTIVE'
-        """;
+                    SELECT SUM(COALESCE(s.max_capacity, 0) - COALESCE(ib.used, 0)) as total_available
+                    FROM slot s
+                    LEFT JOIN (
+                        SELECT slot_id, SUM(qty_on_hand) as used
+                        FROM inventory_balance
+                        GROUP BY slot_id
+                    ) ib ON s.slot_id = ib.slot_id
+                    WHERE s.zone_id = ? AND s.status = 'ACTIVE'
+                """;
 
         try (Connection con = DBContext.getConnection();
-             PreparedStatement ps = con.prepareStatement(sql)) {
+                PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setLong(1, zoneId);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
