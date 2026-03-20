@@ -98,7 +98,7 @@
                     </a>
                 </c:if>
                 
-                <c:if test="${not empty packing && packing.status != 'DONE' && packing.status != 'CONFIRMED'}">
+                <c:if test="${not empty packing && packing.status != 'DONE'}">
                     <form action="${pageContext.request.contextPath}/packing" method="post">
                         <input type="hidden" name="action" value="save"/>
                         <input type="hidden" name="packId" value="${packing.packId}"/>
@@ -147,8 +147,9 @@
                             </a>
                         </div>
                     </form>
+
                 </c:if>
-                <c:if test="${packing.status == 'DONE' || packing.status == 'CONFIRMED'}">
+                <c:if test="${packing.status == 'DONE'}">
                     <div class="alert alert-success mb-3">
                         <i class="fas fa-check-circle me-2"></i> Packing completed successfully!
                     </div>
@@ -173,10 +174,17 @@
                         </div>
                     </c:if>
                     <div class="mt-3">
-                        <a href="${pageContext.request.contextPath}/shipment?action=create&gdnId=${gdn.gdnId}&soNumber=${gdn.soNumber}" 
-                           class="btn btn-success">
-                            <i class="fas fa-truck me-1"></i> Create Shipment
-                        </a>
+                        <c:if test="${gdn.status == 'SHIPPING'}">
+                            <a href="${pageContext.request.contextPath}/shipment?action=create&gdnId=${gdn.gdnId}&soNumber=${gdn.soNumber}" 
+                               class="btn btn-success">
+                                <i class="fas fa-truck me-1"></i> Create Shipment
+                            </a>
+                        </c:if>
+                        <c:if test="${gdn.status != 'SHIPPING'}">
+                            <div class="text-muted small">
+                                Shipment can be created when GDN is in SHIPPING status.
+                            </div>
+                        </c:if>
                     </div>
                 </c:if>
             </div>

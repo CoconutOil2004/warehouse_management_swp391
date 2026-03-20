@@ -52,7 +52,7 @@
                                 <option value="CREATED" ${gdn.status == 'CREATED' ? 'selected' : ''}>CREATED</option>
                                 <option value="PICKING" ${gdn.status == 'PICKING' ? 'selected' : ''}>PICKING</option>
                                 <option value="PACKING" ${gdn.status == 'PACKING' ? 'selected' : ''}>PACKING</option>
-                                <option value="CONFIRMED" ${gdn.status == 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
+                                <option value="SHIPPING" ${gdn.status == 'SHIPPING' ? 'selected' : ''}>SHIPPING</option>
                                 <option value="CANCELLED" ${gdn.status == 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
                                 <option value="DONE" ${gdn.status == 'DONE' ? 'selected' : ''}>DONE</option>
                             </select>

@@ -1,5 +1,6 @@
 package controller;
 
+import com.microsoft.sqlserver.jdbc.SQLServerException;
 import service.ProductService;
 import service.ProductVariantService;
 import service.PurchaseOrderImportService;
@@ -16,17 +17,16 @@ import jakarta.servlet.http.*;
 import util.ViewPath;
 import util.RequestUtil;
 import util.ToastUtil;
+import service.GoodsReceiptService;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.sql.Date;
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
 import jakarta.servlet.annotation.MultipartConfig;
-import java.io.InputStream;
 
 @MultipartConfig(fileSizeThreshold = 1024 * 1024, maxFileSize = 10485760, maxRequestSize = 20971520)
 @WebServlet(name = "PurchaseOrderController", urlPatterns = {"/purchase-orders"})
@@ -38,6 +38,7 @@ public class PurchaseOrderController extends HttpServlet {
     private final ProductService pService = new ProductService();
     private final PurchaseOrderService poService = new PurchaseOrderService();
     private final PurchaseOrderImportService poImportService = new PurchaseOrderImportService();
+    private final GoodsReceiptService grnService = new GoodsReceiptService();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -385,10 +386,30 @@ public class PurchaseOrderController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/purchase-orders");
             return;
         }
+
         PurchaseOrderHeaderDTO po = poService.getPurchaseOrderHeader(poId);
         if (po == null) {
             ToastUtil.setToast(request, "error", "Purchase Order not found.");
             response.sendRedirect(request.getContextPath() + "/purchase-orders");
+            return;
+        }
+        // Block editing PO when status is CLOSED or IMPORTED
+        if ("CLOSED".equalsIgnoreCase(po.getStatus()) || "IMPORTED".equalsIgnoreCase(po.getStatus())) {
+            ToastUtil.setToast(request, "error", "Unabel to update PO with status " + po.getStatus() + ".");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+            return;
+        }
+        // Block editing PO once any GRN exists (regardless of putaway)
+        if (poService.hasAnyGrn(poId)) {
+            ToastUtil.setToast(request, "error", "Unable to update Purchase Order because GRN is already available.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+            return;
+        }
+        // Block editing PO if there is an incomplete putaway GRN for this PO
+        if (grnService.hasIncompletePutawayForPo(poId)) {
+            ToastUtil.setToast(request, "error",
+                    "Unable to update Purchase Order because GRN is already available.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
             return;
         }
 
@@ -422,7 +443,6 @@ public class PurchaseOrderController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/purchase-orders");
             return;
         }
-
         String poNumber = request.getParameter("poNumber");
         String supplierStr = request.getParameter("supplierId");
         long supplierId = (supplierStr == null || supplierStr.isBlank()) ? 0L : Long.parseLong(supplierStr);
@@ -616,13 +636,28 @@ public class PurchaseOrderController extends HttpServlet {
             response.sendRedirect(redirectUrl);
             return;
         }
+        // Business rule: PO cannot be deleted once a GRN exists (regardless of putaway)
+        if (poService.hasAnyGrn(poId)) {
+            ToastUtil.setToast(request, "error",
+                    "Unable to delete PO because GRN is already available.");
+            response.sendRedirect(redirectUrl);
+            return;
+        }
 
-        boolean ok = poService.deletePurchaseOrder(poId);
-        if (ok) {
-            String poNumber = (po != null && po.getPoNumber() != null) ? po.getPoNumber() : ("#" + poId);
-            ToastUtil.setToast(request, "success", "Delete Purchase Order successfully: " + poNumber);
-        } else {
-            ToastUtil.setToast(request, "error", "Purchase Order not found.");
+        try {
+            boolean ok = poService.deletePurchaseOrder(poId);
+            if (ok) {
+                String poNumber = (po != null && po.getPoNumber() != null) ? po.getPoNumber() : ("#" + poId);
+                ToastUtil.setToast(request, "success", "Delete Purchase Order successfully: " + poNumber);
+            } else {
+                ToastUtil.setToast(request, "error", "Purchase Order not found.");
+            }
+        } catch (java.sql.SQLIntegrityConstraintViolationException ex) {
+            ToastUtil.setToast(request, "error",
+                    "Unable to update Purchase Order because GRN is already available.");
+        } catch (java.sql.SQLException ex) {
+            ToastUtil.setToast(request, "error",
+                    "Cannot delete PO. ERROR IN DB: " + ex.getMessage());
         }
 
         response.sendRedirect(redirectUrl);

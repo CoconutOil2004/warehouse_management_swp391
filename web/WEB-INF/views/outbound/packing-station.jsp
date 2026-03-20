@@ -208,7 +208,7 @@
                     </div>
                 </div>
 
-                <c:if test="${not empty packing && (packing.status == 'DONE' || packing.status == 'CONFIRMED')}">
+                <c:if test="${not empty packing && packing.status == 'DONE' && gdn.status == 'SHIPPING'}">
                     <div class="alert alert-success">
                         <i class="fas fa-check-circle me-2"></i>
                         Packing completed for ${gdn.gdnNumber}. 
@@ -229,7 +229,7 @@
             <div class="package-panel">
                 <h5 class="mb-3"><i class="fas fa-box me-2"></i>Package Info</h5>
                 
-                <c:if test="${not empty packing && packing.status != 'DONE' && packing.status != 'CONFIRMED'}">
+                <c:if test="${not empty packing && packing.status != 'DONE'}">
                     <form action="${pageContext.request.contextPath}/packing" method="post">
                         <input type="hidden" name="action" value="saveStation"/>
                         <input type="hidden" name="packId" value="${packing.packId}"/>
@@ -340,7 +340,7 @@
                     </c:if>
                 </c:if>
 
-                <c:if test="${packing.status == 'DONE' || packing.status == 'CONFIRMED'}">
+                <c:if test="${packing.status == 'DONE'}">
                     <div class="alert alert-success mb-3">
                         <i class="fas fa-check-circle me-2"></i> Packing Completed
                     </div>
@@ -368,10 +368,12 @@
                         <label class="form-label text-muted small">Packed By</label>
                         <p class="mb-0">${packing.packedByName}</p>
                     </div>
-                    <a href="${pageContext.request.contextPath}/shipment?action=create&gdnId=${gdn.gdnId}&soNumber=${gdn.soNumber}" 
-                       class="btn btn-primary w-100">
-                        <i class="fas fa-truck me-1"></i> Create Shipment
-                    </a>
+                    <c:if test="${gdn.status == 'SHIPPING'}">
+                        <a href="${pageContext.request.contextPath}/shipment?action=create&gdnId=${gdn.gdnId}&soNumber=${gdn.soNumber}" 
+                           class="btn btn-primary w-100">
+                            <i class="fas fa-truck me-1"></i> Create Shipment
+                        </a>
+                    </c:if>
                 </c:if>
             </div>
         </div>

@@ -19,7 +19,7 @@
                 </div>
                 <div class="alert alert-info mb-4">
                     <i class="fas fa-info-circle me-2"></i>
-                    <strong>GDNs ready for packing:</strong> These are GDNs where pick tasks are completed and status is PACKING or CONFIRMED.
+                    <strong>GDNs ready for packing:</strong> These are GDNs where pick tasks are completed and status is PACKING.
                     Click "Start" or "Packing Station" to begin packing.
                 </div>
             </c:when>
@@ -129,6 +129,12 @@
                                                class="btn btn-secondary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
+                                            <c:if test="${p.packedBy == null}">
+                                                <a href="${pageContext.request.contextPath}/packing?action=assign&gdnId=${p.gdnId}"
+                                                   class="btn btn-outline-success" title="Assign">
+                                                    <i class="fas fa-user-check"></i>
+                                                </a>
+                                            </c:if>
                                         </c:when>
                                         <c:otherwise>
                                             <a href="${pageContext.request.contextPath}/packing?action=form&gdnId=${p.gdnId}" 
