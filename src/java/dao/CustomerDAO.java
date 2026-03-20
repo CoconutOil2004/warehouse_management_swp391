@@ -227,10 +227,10 @@ public class CustomerDAO extends DBContext implements Dao<Customer> {
              ResultSet rs = ps.executeQuery()) {
             if (rs.next()) {
                 String lastCode = rs.getString("code");
-                int num = Integer.parseInt(lastCode.substring(3));
-                return String.format("CUS%03d", num + 1);
+                int num = Integer.parseInt(lastCode.substring(4));
+                return String.format("CUS%04d", num + 1);
             }
         }
-        return "CUS001";
+        return "CUS0001";
     }
 }
