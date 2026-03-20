@@ -36,7 +36,8 @@ import java.math.BigDecimal;
 public class GoodsReceiptController extends HttpServlet {
 
     /**
-     * Shortage vs PO: ordered − (good + damaged on line + extra good). Extra damaged does not cover the order.
+     * Shortage vs PO: ordered − (good + damaged on line + extra good). Extra
+     * damaged does not cover the order.
      */
     private static BigDecimal computeQtyMissing(BigDecimal expected, BigDecimal qtyGood, BigDecimal qtyDamaged,
             BigDecimal qtyExtraGood) {
@@ -290,7 +291,8 @@ public class GoodsReceiptController extends HttpServlet {
                     BigDecimal d = line.getQtyDamaged() != null ? line.getQtyDamaged() : BigDecimal.ZERO;
                     BigDecimal ed = line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : BigDecimal.ZERO;
                     totalDamaged = totalDamaged.add(d).add(ed);
-                    totalExtra = totalExtra.add(line.getQtyExtraGood() != null ? line.getQtyExtraGood() : BigDecimal.ZERO);
+                    totalExtra = totalExtra
+                            .add(line.getQtyExtraGood() != null ? line.getQtyExtraGood() : BigDecimal.ZERO);
                 }
             }
         } else {
@@ -540,7 +542,9 @@ public class GoodsReceiptController extends HttpServlet {
 
                 if ((eg.compareTo(BigDecimal.ZERO) > 0 || ed.compareTo(BigDecimal.ZERO) > 0)
                         && (g.add(d).compareTo(line.getQtyExpected()) < 0)) {
-                    fieldErrors.put("lines", "Item " + line.getSku() + ": 'Extra' quantity can only be used after the ordered quantity (" + line.getQtyExpected() + ") is fully fulfilled in Good/Damaged columns.");
+                    fieldErrors.put("lines",
+                            "Item " + line.getSku() + ": 'Extra' quantity can only be used after the ordered quantity ("
+                                    + line.getQtyExpected() + ") is fully fulfilled in Good/Damaged columns.");
                     continue;
                 }
 
@@ -594,7 +598,8 @@ public class GoodsReceiptController extends HttpServlet {
                             request.getParameter("lines[" + allSubmittedLines.indexOf(m) + "].qtyExpected") != null
                                     ? request.getParameter("lines[" + allSubmittedLines.indexOf(m) + "].qtyExpected")
                                     : "0"));
-                    BigDecimal dg = new BigDecimal(m.get("qtyGood") != null && !m.get("qtyGood").isBlank() ? m.get("qtyGood") : "0");
+                    BigDecimal dg = new BigDecimal(
+                            m.get("qtyGood") != null && !m.get("qtyGood").isBlank() ? m.get("qtyGood") : "0");
                     String dDam = m.get("qtyDamaged");
                     BigDecimal dd = new BigDecimal(dDam != null && !dDam.isBlank() ? dDam : "0");
                     String egStr = m.get("qtyExtraGood");
@@ -820,7 +825,8 @@ public class GoodsReceiptController extends HttpServlet {
                         if (qty.compareTo(BigDecimal.ZERO) > 0) {
                             long sid = Long.parseLong(sStr);
                             if (!"STORAGE".equals(slotDao.getZoneTypeBySlotId(sid))) {
-                                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=invalid_slot_zone");
+                                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id="
+                                        + grnId + "&error=invalid_slot_zone");
                                 return;
                             }
                             model.PutAwayLine pl = new model.PutAwayLine();
@@ -846,7 +852,8 @@ public class GoodsReceiptController extends HttpServlet {
                         if (qty.compareTo(BigDecimal.ZERO) > 0) {
                             long sid = Long.parseLong(sStr);
                             if (!"DAMAGE".equals(slotDao.getZoneTypeBySlotId(sid))) {
-                                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=invalid_slot_zone");
+                                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id="
+                                        + grnId + "&error=invalid_slot_zone");
                                 return;
                             }
                             model.PutAwayLine pl = new model.PutAwayLine();
@@ -872,7 +879,8 @@ public class GoodsReceiptController extends HttpServlet {
                         if (qty.compareTo(BigDecimal.ZERO) > 0) {
                             long sid = Long.parseLong(sStr);
                             if (!"EXCESS".equals(slotDao.getZoneTypeBySlotId(sid))) {
-                                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=invalid_slot_zone");
+                                response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id="
+                                        + grnId + "&error=invalid_slot_zone");
                                 return;
                             }
                             model.PutAwayLine pl = new model.PutAwayLine();
@@ -886,7 +894,8 @@ public class GoodsReceiptController extends HttpServlet {
             }
         }
 
-        // Validate: warehouse + per-line caps by destination zone (STORAGE <= good, DAMAGE <= damaged+extra damaged, EXCESS <= extra good)
+        // Validate: warehouse + per-line caps by destination zone (STORAGE <= good,
+        // DAMAGE <= damaged+extra damaged, EXCESS <= extra good)
         if (!putawayLines.isEmpty()) {
             java.util.Map<Long, BigDecimal> sumStorage = new java.util.HashMap<>();
             java.util.Map<Long, BigDecimal> sumDamage = new java.util.HashMap<>();
@@ -911,7 +920,8 @@ public class GoodsReceiptController extends HttpServlet {
                 BigDecimal qtyGood = line.getQtyGood() != null ? line.getQtyGood() : BigDecimal.ZERO;
                 BigDecimal qtyDamaged = line.getQtyDamaged() != null ? line.getQtyDamaged() : BigDecimal.ZERO;
                 BigDecimal qtyExtraGood = line.getQtyExtraGood() != null ? line.getQtyExtraGood() : BigDecimal.ZERO;
-                BigDecimal qtyExtraDamaged = line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : BigDecimal.ZERO;
+                BigDecimal qtyExtraDamaged = line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged()
+                        : BigDecimal.ZERO;
                 BigDecimal maxSto = qtyGood;
                 BigDecimal maxDam = qtyDamaged.add(qtyExtraDamaged);
                 BigDecimal maxExc = qtyExtraGood;
@@ -919,7 +929,8 @@ public class GoodsReceiptController extends HttpServlet {
                 if (sumStorage.getOrDefault(lid, BigDecimal.ZERO).compareTo(maxSto) > 0
                         || sumDamage.getOrDefault(lid, BigDecimal.ZERO).compareTo(maxDam) > 0
                         || sumExcess.getOrDefault(lid, BigDecimal.ZERO).compareTo(maxExc) > 0) {
-                    response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId + "&error=Putaway+qty+exceeds+received+qty+for+line");
+                    response.sendRedirect(request.getContextPath() + "/goods-receipt?action=putaway&id=" + grnId
+                            + "&error=Putaway+qty+exceeds+received+qty+for+line");
                     return;
                 }
             }
