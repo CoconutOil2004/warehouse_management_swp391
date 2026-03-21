@@ -7,11 +7,11 @@
 <t:layout title="Packing Session Detail: #${sessionDTO.packingSessionId}">
     <jsp:attribute name="actions">
         <div class="d-flex">
-            <t:link url="/packing?action=list" color="secondary" variant="outline" icon="bi-arrow-left">
+            <t:link url="${pageContext.request.contextPath}/packing?action=list" color="secondary" variant="outline" icon="bi-arrow-left">
                 Back to List
             </t:link>
             <c:if test="${sessionDTO.status != 'DONE'}">
-                <t:link url="/goods-delivery-note?action=detail&id=${sessionDTO.gdnId}" color="primary" variant="solid" icon="bi-info-circle" cssClass="ml-2">
+                <t:link url="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${sessionDTO.gdnId}" color="primary" variant="solid" icon="bi-info-circle" cssClass="ml-2">
                     GDN Detail
                 </t:link>
             </c:if>
