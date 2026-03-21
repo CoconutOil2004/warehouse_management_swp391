@@ -229,7 +229,7 @@
                                     </c:if>
                                     <c:forEach var="p" items="${packTasks}">
                                         <tr class="text-center">
-                                            <td class="text-start small fw-bold">#${p.pickingTaskId != null ? p.pickingTaskId : p.packingTaskId}</td>
+                                            <td class="text-start small fw-bold">#${p.packingTaskId}</td>
                                             <td class="text-start small">
                                                 <c:out value="${p.assignedToName != null ? p.assignedToName : 'Unassigned'}" />
                                             </td>
@@ -358,7 +358,7 @@
 
             <c:if test="${gdn.status == 'PACKING'}">
                 <div class="d-flex gap-2 flex-wrap align-items-center">
-                    <a href="${pageContext.request.contextPath}/packing?action=create&gdnId=${gdn.gdnId}"
+                    <a href="${pageContext.request.contextPath}/packing?action=create&step=2&gdnId=${gdn.gdnId}"
                        class="btn btn-warning shadow-sm d-flex align-items-center justify-content-center px-4">
                         <i class="fas fa-box-open me-2"></i>Configure Packing
                     </a>

@@ -372,6 +372,7 @@ public class PickTaskController extends HttpServlet {
         }
 
         if (waveId > 0) {
+            pickTaskDao.checkAndAutoReleaseWave(waveId);
             request
             .getSession()
             .setAttribute(
@@ -451,6 +452,8 @@ public class PickTaskController extends HttpServlet {
             }
         }
 
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
+
         request
         .getSession()
         .setAttribute(
@@ -511,6 +514,8 @@ public class PickTaskController extends HttpServlet {
             }
         }
 
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
+
         request
         .getSession()
         .setAttribute(
@@ -545,6 +550,8 @@ public class PickTaskController extends HttpServlet {
                 gdnDao.updateGDNStatus(task.getGdnId(), "ONGOING");
             }
         }
+
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
 
         request
         .getSession()
@@ -696,6 +703,8 @@ public class PickTaskController extends HttpServlet {
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         pickTaskDao.assignLines(lineIds, assignedTo, assignedBy);
 
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
+
         request.getSession().setAttribute("message", "Đã gán " + lineIds.size() + " dòng cho nhân viên");
         response.sendRedirect(
         request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
@@ -771,6 +780,8 @@ public class PickTaskController extends HttpServlet {
             }
         }
 
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
+
         request
         .getSession()
         .setAttribute(
@@ -799,6 +810,8 @@ public class PickTaskController extends HttpServlet {
 
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         pickTaskDao.autoAssignLines(waveId, assignedBy);
+
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
 
         request.getSession().setAttribute("message", "Auto-assign hoàn thành!");
         response.sendRedirect(
