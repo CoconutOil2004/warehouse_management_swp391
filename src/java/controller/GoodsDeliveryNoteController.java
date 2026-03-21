@@ -1,13 +1,17 @@
 package controller;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import dao.GoodsDeliveryNoteDAO;
+import dao.PickTaskDAO;
 import dao.PickWaveDAO;
 import dao.SaleOrderDAO;
 import dao.WarehouseDAO;
-import dao.UserDAO;
-import dao.PickTaskDAO;
-import dto.GDNListDTO;
 import dto.GDNDetailDTO;
+import dto.GDNListDTO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -16,11 +20,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.User;
 import model.Warehouse;
-import util.ViewPath;
-import java.io.IOException;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 @WebServlet(name = "GoodsDeliveryNoteController", urlPatterns = { "/goods-delivery-note" })
 public class GoodsDeliveryNoteController extends HttpServlet {
@@ -44,7 +43,8 @@ public class GoodsDeliveryNoteController extends HttpServlet {
                 case "list" -> handleList(request, response);
                 case "create" -> handleCreateForm(request, response);
                 case "detail" -> handleDetail(request, response);
-                case "edit" -> response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + request.getParameter("id"));
+                case "edit" -> response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id="
+                        + request.getParameter("id"));
                 case "getSoDetails" -> handleGetSoDetails(request, response);
                 default -> response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list");
             }
@@ -56,7 +56,7 @@ public class GoodsDeliveryNoteController extends HttpServlet {
 
     private void handleList(HttpServletRequest request, HttpServletResponse response) throws Exception {
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
-        
+
         String gdnNumber = request.getParameter("gdnNumber");
         String soNumber = request.getParameter("soNumber");
         String status = request.getParameter("status");
@@ -82,7 +82,7 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         request.setAttribute("status", status);
 
         request.getRequestDispatcher("WEB-INF/views/outbound/goods-delivery-note-list.jsp")
-               .forward(request, response);
+                .forward(request, response);
     }
 
     private void handleCreateForm(HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -92,23 +92,23 @@ public class GoodsDeliveryNoteController extends HttpServlet {
 
         // SOs with status CREATED that do NOT have a GDN yet (one SO = one GDN only)
         List<dto.SaleOrderListDTO> allCreated = soDao.searchSalesOrders(
-            null, "CREATED", null, null, 500, 0);
+                null, "CREATED", null, null, 500, 0);
         java.util.Set<Long> soIdsWithGdn = new java.util.HashSet<>(gdnDao.getSoIdsThatHaveGdn());
         List<dto.SaleOrderListDTO> salesOrders = allCreated.stream()
-            .filter(so -> !soIdsWithGdn.contains(so.getSoId()))
-            .collect(java.util.stream.Collectors.toList());
+                .filter(so -> !soIdsWithGdn.contains(so.getSoId()))
+                .collect(java.util.stream.Collectors.toList());
 
         request.setAttribute("salesOrders", salesOrders);
         request.setAttribute("warehouses", warehouseDao.getAll());
 
         request.getRequestDispatcher("WEB-INF/views/outbound/goods-delivery-note-create.jsp")
-               .forward(request, response);
+                .forward(request, response);
     }
 
     private void handleDetail(HttpServletRequest request, HttpServletResponse response) throws Exception {
         GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
         Long gdnId = parseLong(request.getParameter("id"), -1);
-        
+
         if (gdnId <= 0) {
             response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list");
             return;
@@ -124,43 +124,27 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         dao.PackingDAO packingDao = new dao.PackingDAO();
         dao.ShipmentDAO shipmentDao = new dao.ShipmentDAO();
+        
+        // Find packing session for this GDN
+        dto.PackingSessionDTO packingSession = packingDao.getPackingSessionByGdnId(gdnId);
+        List<dto.PackingTaskDTO> packingTasks = new java.util.ArrayList<>();
+        if (packingSession != null) {
+             packingTasks = packingDao.getTasksBySessionId(packingSession.getPackingSessionId());
+        }
+
         request.setAttribute("gdn", gdn);
         request.setAttribute("wave", waveDao.getWaveByGdnId(gdnId));
         request.setAttribute("pickTasks", pickTaskDao.getTasksByGdnId(gdnId));
-        request.setAttribute("packTasks", packingDao.listByGdnId(gdnId));
+        request.setAttribute("packTasks", packingTasks);
         request.setAttribute("shipments", shipmentDao.getByGdnId(gdnId));
         request.getRequestDispatcher("WEB-INF/views/outbound/goods-delivery-note-detail.jsp")
-               .forward(request, response);
-    }
-
-    private void handleEditForm(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
-        Long gdnId = parseLong(request.getParameter("id"), -1);
-        
-        if (gdnId <= 0) {
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list");
-            return;
-        }
-
-        GDNDetailDTO gdn = gdnDao.getGDNDetailById(gdnId);
-        if (gdn == null) {
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list");
-            return;
-        }
-        if ("SHIPPING".equals(gdn.getStatus()) || "CANCELLED".equals(gdn.getStatus()) || "DONE".equals(gdn.getStatus())) {
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+edit+GDN+in+SHIPPING,+DONE+or+CANCELLED+status");
-            return;
-        }
-
-        request.setAttribute("gdn", gdn);
-        request.getRequestDispatcher("WEB-INF/views/outbound/goods-delivery-note-edit.jsp")
-               .forward(request, response);
+                .forward(request, response);
     }
 
     private void handleGetSoDetails(HttpServletRequest request, HttpServletResponse response) throws Exception {
         SaleOrderDAO soDao = new SaleOrderDAO();
         String soNumber = request.getParameter("soNumber");
-        
+
         if (soNumber == null || soNumber.isBlank()) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
@@ -182,18 +166,21 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         sb.append("\"soId\":").append(so.getSoId()).append(",");
         sb.append("\"soNumber\":\"").append(escapeJson(so.getSoNumber())).append("\",");
         sb.append("\"customerId\":").append(so.getCustomerId() != null ? so.getCustomerId() : "null").append(",");
-        sb.append("\"requestedShipDate\":\"").append(so.getRequestedShipDate() != null ? so.getRequestedShipDate().toString() : "").append("\",");
+        sb.append("\"requestedShipDate\":\"")
+                .append(so.getRequestedShipDate() != null ? so.getRequestedShipDate().toString() : "").append("\",");
         sb.append("\"shipToAddress\":\"").append(escapeJson(so.getShipToAddress())).append("\",");
         sb.append("\"lines\":[");
         for (int i = 0; i < lines.size(); i++) {
             dto.SaleOrderLineDTO l = lines.get(i);
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             java.math.BigDecimal qtyAvailable = java.math.BigDecimal.ZERO;
             try {
                 if (warehouseId != null && l.getVariantId() != null) {
                     qtyAvailable = invBalDao.getTotalAvailableQty(warehouseId, l.getVariantId());
                 }
-            } catch (Exception ignored) { }
+            } catch (Exception ignored) {
+            }
             sb.append("{");
             sb.append("\"soLineId\":").append(l.getSoLineId()).append(",");
             sb.append("\"variantId\":").append(l.getVariantId()).append(",");
@@ -322,8 +309,10 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=list");
             return;
         }
-        if ("SHIPPING".equals(gdnCurrent.getStatus()) || "CANCELLED".equals(gdnCurrent.getStatus()) || "DONE".equals(gdnCurrent.getStatus())) {
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+edit+GDN+in+SHIPPING,+DONE+or+CANCELLED+status");
+        if ("SHIPPING".equals(gdnCurrent.getStatus()) || "CANCELLED".equals(gdnCurrent.getStatus())
+                || "DONE".equals(gdnCurrent.getStatus())) {
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId
+                    + "&error=Cannot+edit+GDN+in+SHIPPING,+DONE+or+CANCELLED+status");
             return;
         }
 
@@ -351,16 +340,22 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             return;
         }
 
-        // 2) If switching to SHIPPING manually: still enforce Qty Picked/Packed = Qty Required for all lines
+        // 2) If switching to SHIPPING manually: still enforce Qty Picked/Packed = Qty
+        // Required for all lines
         if ("SHIPPING".equals(status)) {
             dto.GDNDetailDTO gdnAfterUpdate = gdnDao.getGDNDetailById(gdnId);
             if (gdnAfterUpdate != null && gdnAfterUpdate.getLines() != null) {
                 for (dto.GDNLineDTO line : gdnAfterUpdate.getLines()) {
-                    java.math.BigDecimal req = line.getQtyRequired() != null ? line.getQtyRequired() : java.math.BigDecimal.ZERO;
-                    java.math.BigDecimal picked = line.getQtyPicked() != null ? line.getQtyPicked() : java.math.BigDecimal.ZERO;
-                    java.math.BigDecimal packed = line.getQtyPacked() != null ? line.getQtyPacked() : java.math.BigDecimal.ZERO;
+                    java.math.BigDecimal req = line.getQtyRequired() != null ? line.getQtyRequired()
+                            : java.math.BigDecimal.ZERO;
+                    java.math.BigDecimal picked = line.getQtyPicked() != null ? line.getQtyPicked()
+                            : java.math.BigDecimal.ZERO;
+                    java.math.BigDecimal packed = line.getQtyPacked() != null ? line.getQtyPacked()
+                            : java.math.BigDecimal.ZERO;
                     if (picked.compareTo(req) != 0 || packed.compareTo(req) != 0) {
-                        response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Cannot+set+SHIPPING%3A+Qty+Picked+and+Qty+Packed+must+equal+Qty+Required+for+all+lines");
+                        response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id="
+                                + gdnId
+                                + "&error=Cannot+set+SHIPPING%3A+Qty+Picked+and+Qty+Packed+must+equal+Qty+Required+for+all+lines");
                         return;
                     }
                 }
@@ -371,8 +366,10 @@ public class GoodsDeliveryNoteController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
             return;
         } else if (newStatus != null && !newStatus.isBlank() && !"CREATED".equals(newStatus)) {
-            // For safety, do not allow switching to other statuses (PICKING, PACKING, DONE) manually here.
-            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId + "&error=Status+can+only+be+changed+to+CANCELLED+or+SHIPPING+manually");
+            // For safety, do not allow switching to other statuses (PICKING, PACKING, DONE)
+            // manually here.
+            response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId
+                    + "&error=Status+can+only+be+changed+to+CANCELLED+or+SHIPPING+manually");
             return;
         }
 
@@ -380,18 +377,10 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/goods-delivery-note?action=detail&id=" + gdnId);
     }
 
-    private java.math.BigDecimal parseBigDecimal(String raw, java.math.BigDecimal def) {
-        if (raw == null || raw.isBlank()) return def;
-        try {
-            return new java.math.BigDecimal(raw.trim());
-        } catch (NumberFormatException e) {
-            return def;
-        }
-    }
-
     private void handleAssign(HttpServletRequest request, HttpServletResponse response) throws Exception {
         // This will be handled by PickTaskController
-        response.sendRedirect(request.getContextPath() + "/pick-task?action=assign&gdnId=" + request.getParameter("gdnId"));
+        response.sendRedirect(
+                request.getContextPath() + "/pick-task?action=assign&gdnId=" + request.getParameter("gdnId"));
     }
 
     private Long getWarehouseId(HttpServletRequest request) throws Exception {
@@ -405,13 +394,13 @@ public class GoodsDeliveryNoteController extends HttpServlet {
                 }
             }
         }
-        
+
         WarehouseDAO warehouseDao = new WarehouseDAO();
         List<model.Warehouse> warehouses = warehouseDao.getAll();
         if (warehouses != null && !warehouses.isEmpty()) {
             return warehouses.get(0).getWarehouseId();
         }
-        
+
         return null;
     }
 
@@ -426,7 +415,8 @@ public class GoodsDeliveryNoteController extends HttpServlet {
     /** Parse size param; allow only 5, 10, 20, 50 for pagination dropdown. */
     private int parseSize(String raw, int def) {
         int v = parseInt(raw, def);
-        if (v == 5 || v == 10 || v == 20 || v == 50) return v;
+        if (v == 5 || v == 10 || v == 20 || v == 50)
+            return v;
         return def;
     }
 
@@ -439,16 +429,18 @@ public class GoodsDeliveryNoteController extends HttpServlet {
     }
 
     private String escapeJson(String str) {
-        if (str == null) return "";
+        if (str == null)
+            return "";
         return str.replace("\\", "\\\\")
-                  .replace("\"", "\\\"")
-                  .replace("\n", "\\n")
-                  .replace("\r", "\\r")
-                  .replace("\t", "\\t");
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 
     private void setToast(HttpSession session, String message, String type) {
-        if (session == null) return;
+        if (session == null)
+            return;
         session.setAttribute("message", message);
         session.setAttribute("type", type);
     }

@@ -18,7 +18,18 @@ public class GoodsReceiptLine {
     private BigDecimal qtyGood;
     private BigDecimal qtyMissing;
     private BigDecimal qtyDamaged;
-    private BigDecimal qtyExtra;
+    private BigDecimal qtyExtraGood;
+    private BigDecimal qtyExtraDamaged;
     private BigDecimal unitPrice;
     private String note;
+
+    public BigDecimal getDamagePutawayQty() {
+        BigDecimal d = qtyDamaged != null ? qtyDamaged : BigDecimal.ZERO;
+        BigDecimal ed = qtyExtraDamaged != null ? qtyExtraDamaged : BigDecimal.ZERO;
+        return d.add(ed);
+    }
+
+    public BigDecimal getExcessPutawayQty() {
+        return qtyExtraGood != null ? qtyExtraGood : BigDecimal.ZERO;
+    }
 }

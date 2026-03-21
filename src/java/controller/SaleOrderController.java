@@ -4,18 +4,19 @@
  */
 package controller;
 
+import java.io.IOException;
+import java.sql.Date;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import dao.CustomerDAO;
 import dto.ProductVariantDTO;
 import dto.SOLineCreateDTO;
 import dto.SaleOrderHeaderDTO;
 import dto.SaleOrderLineDTO;
 import dto.SaleOrderListDTO;
-import service.ProductVariantService;
-import service.SaleOrderImportService;
-import service.SaleOrderService;
-import util.RequestUtil;
-import util.ToastUtil;
-import util.ViewPath;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -24,17 +25,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.sql.Date;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import model.User;
+import service.ProductVariantService;
+import service.SaleOrderImportService;
+import service.SaleOrderService;
+import util.RequestUtil;
+import util.ToastUtil;
+import util.ViewPath;
 
 @MultipartConfig(fileSizeThreshold = 1024 * 1024, maxFileSize = 10485760, maxRequestSize = 20971520)
-@WebServlet(name = "SaleOrderController", urlPatterns = {"/sales-orders"})
+@WebServlet(name = "SaleOrderController", urlPatterns = { "/sales-orders" })
 public class SaleOrderController extends HttpServlet {
 
     private static final int DEFAULT_PAGE = 1;
@@ -118,7 +118,8 @@ public class SaleOrderController extends HttpServlet {
         sb.append("[");
         for (int i = 0; i < list.size(); i++) {
             ProductVariantDTO v = list.get(i);
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             sb.append("{")
                     .append("\"variantId\":").append(v.getVariantId()).append(",")
                     .append("\"variantSku\":\"").append(esc(v.getVariantSku())).append("\",")
@@ -132,7 +133,8 @@ public class SaleOrderController extends HttpServlet {
     }
 
     private String esc(String s) {
-        if (s == null) return "";
+        if (s == null)
+            return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
@@ -232,8 +234,7 @@ public class SaleOrderController extends HttpServlet {
             }
             long userId = sessionUser.getUserId();
 
-            SaleOrderImportService.ImportResult result
-                    = soImportService.importFromExcel(filePart, userId);
+            SaleOrderImportService.ImportResult result = soImportService.importFromExcel(filePart, userId);
 
             if (result.hasErrors()) {
                 StringBuilder errMsg = new StringBuilder("Import failed due to the following errors: <ul>");
@@ -356,8 +357,7 @@ public class SaleOrderController extends HttpServlet {
             String qty = request.getParameter("lines[" + i + "].qty");
             String unitPrice = request.getParameter("lines[" + i + "].unitPrice");
 
-            boolean allBlank
-                    = (productId == null || productId.isBlank())
+            boolean allBlank = (productId == null || productId.isBlank())
                     && (variantId == null || variantId.isBlank())
                     && (qty == null || qty.isBlank())
                     && (unitPrice == null || unitPrice.isBlank());
@@ -561,8 +561,7 @@ public class SaleOrderController extends HttpServlet {
             String qty = request.getParameter("lines[" + i + "].qty");
             String unitPrice = request.getParameter("lines[" + i + "].unitPrice");
 
-            boolean allBlank
-                    = (productId == null || productId.isBlank())
+            boolean allBlank = (productId == null || productId.isBlank())
                     && (variantId == null || variantId.isBlank())
                     && (qty == null || qty.isBlank())
                     && (unitPrice == null || unitPrice.isBlank());

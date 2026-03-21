@@ -1,13 +1,19 @@
 package dao;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+
 import context.DBContext;
+import dto.ProductVariantDTO;
 import model.GoodsReceipt;
 import model.GoodsReceiptLine;
 import model.PutAwayLine;
-import dto.ProductVariantDTO;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class GoodsReceiptDAO extends DBContext {
 
@@ -136,8 +142,8 @@ public class GoodsReceiptDAO extends DBContext {
                     VALUES (?, ?, ?, 'PENDING', ?, NOW(), ?)
                 """;
         String sqlLine = """
-                    INSERT INTO goods_receipt_line (grn_id, po_line_id, variant_id, qty_expected, qty_received, qty_good, qty_missing, qty_damaged, qty_extra, note)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO goods_receipt_line (grn_id, po_line_id, variant_id, qty_expected, qty_received, qty_good, qty_missing, qty_damaged, qty_extra_good, qty_extra_damaged, note)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = getConnection()) {
@@ -170,8 +176,11 @@ public class GoodsReceiptDAO extends DBContext {
                     ps.setBigDecimal(6, line.getQtyGood());
                     ps.setBigDecimal(7, line.getQtyMissing());
                     ps.setBigDecimal(8, line.getQtyDamaged());
-                    ps.setBigDecimal(9, line.getQtyExtra());
-                    ps.setString(10, line.getNote());
+                    ps.setBigDecimal(9,
+                            line.getQtyExtraGood() != null ? line.getQtyExtraGood() : java.math.BigDecimal.ZERO);
+                    ps.setBigDecimal(10,
+                            line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : java.math.BigDecimal.ZERO);
+                    ps.setString(11, line.getNote());
                     ps.addBatch();
                 }
                 ps.executeBatch();
@@ -227,13 +236,20 @@ public class GoodsReceiptDAO extends DBContext {
         return list;
     }
 
-    public boolean updateStatus(Long grnId, String status, Long userId) throws SQLException {
-        String sql = "UPDATE goods_receipt SET status = ?, approved_by = ?, approved_at = NOW() WHERE grn_id = ?";
+    public boolean updateStatus(Long grnId, String status, Long userId, String note) throws SQLException {
+        boolean hasNote = (note != null && !note.isBlank());
+        String sql = "UPDATE goods_receipt SET status = ?, approved_by = ?, approved_at = NOW()"
+                + (hasNote ? ", note = ?" : "")
+                + " WHERE grn_id = ?";
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, status);
-            ps.setLong(2, userId);
-            ps.setLong(3, grnId);
+            int idx = 1;
+            ps.setString(idx++, status);
+            ps.setLong(idx++, userId);
+            if (hasNote) {
+                ps.setString(idx++, note);
+            }
+            ps.setLong(idx++, grnId);
             return ps.executeUpdate() > 0;
         }
     }
@@ -282,7 +298,8 @@ public class GoodsReceiptDAO extends DBContext {
         l.setQtyGood(rs.getBigDecimal("qty_good"));
         l.setQtyMissing(rs.getBigDecimal("qty_missing"));
         l.setQtyDamaged(rs.getBigDecimal("qty_damaged"));
-        l.setQtyExtra(rs.getBigDecimal("qty_extra"));
+        l.setQtyExtraGood(rs.getBigDecimal("qty_extra_good"));
+        l.setQtyExtraDamaged(rs.getBigDecimal("qty_extra_damaged"));
         try {
             l.setUnitPrice(rs.getBigDecimal("unit_price"));
         } catch (Exception e) {
@@ -402,8 +419,8 @@ public class GoodsReceiptDAO extends DBContext {
                 """;
         String sqlDeleteLines = "DELETE FROM goods_receipt_line WHERE grn_id = ?";
         String sqlInsertLine = """
-                    INSERT INTO goods_receipt_line (grn_id, po_line_id, variant_id, qty_expected, qty_received, qty_good, qty_missing, qty_damaged, qty_extra, note)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO goods_receipt_line (grn_id, po_line_id, variant_id, qty_expected, qty_received, qty_good, qty_missing, qty_damaged, qty_extra_good, qty_extra_damaged, note)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = getConnection()) {
@@ -443,8 +460,11 @@ public class GoodsReceiptDAO extends DBContext {
                     ps.setBigDecimal(6, line.getQtyGood());
                     ps.setBigDecimal(7, line.getQtyMissing());
                     ps.setBigDecimal(8, line.getQtyDamaged());
-                    ps.setBigDecimal(9, line.getQtyExtra());
-                    ps.setString(10, line.getNote());
+                    ps.setBigDecimal(9,
+                            line.getQtyExtraGood() != null ? line.getQtyExtraGood() : java.math.BigDecimal.ZERO);
+                    ps.setBigDecimal(10,
+                            line.getQtyExtraDamaged() != null ? line.getQtyExtraDamaged() : java.math.BigDecimal.ZERO);
+                    ps.setString(11, line.getNote());
                     ps.addBatch();
                 }
                 ps.executeBatch();
@@ -600,7 +620,7 @@ public class GoodsReceiptDAO extends DBContext {
 
     public boolean isPutawayComplete(Long grnId) throws SQLException {
         // Putaway must cover all physically received items: GOOD + DAMAGED + EXCESS
-        String sqlExpected = "SELECT SUM(qty_good + qty_damaged + qty_extra) FROM goods_receipt_line WHERE grn_id = ?";
+        String sqlExpected = "SELECT SUM(COALESCE(qty_good,0) + COALESCE(qty_damaged,0) + COALESCE(qty_extra_good,0) + COALESCE(qty_extra_damaged,0)) FROM goods_receipt_line WHERE grn_id = ?";
         String sqlActual = "SELECT SUM(pl.qty_putaway) FROM putaway_line pl JOIN putaway_order po ON pl.putaway_id = po.putaway_id WHERE po.grn_id = ?";
 
         java.math.BigDecimal expected = java.math.BigDecimal.ZERO;
@@ -612,7 +632,8 @@ public class GoodsReceiptDAO extends DBContext {
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         expected = rs.getBigDecimal(1);
-                        if (expected == null) expected = java.math.BigDecimal.ZERO;
+                        if (expected == null)
+                            expected = java.math.BigDecimal.ZERO;
                     }
                 }
             }
@@ -621,7 +642,8 @@ public class GoodsReceiptDAO extends DBContext {
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         actual = rs.getBigDecimal(1);
-                        if (actual == null) actual = java.math.BigDecimal.ZERO;
+                        if (actual == null)
+                            actual = java.math.BigDecimal.ZERO;
                     }
                 }
             }
@@ -635,12 +657,13 @@ public class GoodsReceiptDAO extends DBContext {
      * putaway is not complete yet, PO must not be editable to avoid mismatch.
      */
     public boolean hasIncompletePutawayForPo(Long poId) throws SQLException {
-        if (poId == null) return false;
+        if (poId == null)
+            return false;
         String sql = """
                 SELECT 1
                 FROM goods_receipt gr
                 JOIN (
-                    SELECT grn_id, COALESCE(SUM(qty_good + qty_damaged + qty_extra), 0) AS expected
+                    SELECT grn_id, COALESCE(SUM(qty_good + qty_damaged + qty_extra_good + qty_extra_damaged), 0) AS expected
                     FROM goods_receipt_line
                     GROUP BY grn_id
                 ) e ON e.grn_id = gr.grn_id
@@ -657,7 +680,7 @@ public class GoodsReceiptDAO extends DBContext {
                 LIMIT 1
                 """;
         try (Connection conn = getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, poId);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();

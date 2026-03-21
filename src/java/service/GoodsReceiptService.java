@@ -13,4 +13,3 @@ public class GoodsReceiptService {
         return grnDao.hasIncompletePutawayForPo(poId);
     }
 }
-

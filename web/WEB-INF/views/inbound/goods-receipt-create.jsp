@@ -56,6 +56,7 @@
                                                         </div>
                                                         <input type="hidden" name="poId" id="poIdHidden"
                                                             value="${oldPoId != null ? oldPoId : ''}" required>
+                                                        <input type="hidden" name="nextStep" id="nextStep" value="putaway">
                                                         <div id="poDropdownList"
                                                             class="dropdown-menu w-100 shadow-sm overflow-auto"
                                                             style="max-height: 400px; display: none; z-index: 1050;">
@@ -134,8 +135,9 @@
                                                             <th style="width: 100px;">Ordered</th>
                                                             <th style="width: 130px; border-left: 2px solid #dee2e6;">Good (Actual)</th>
                                                             <th style="width: 130px;">Damaged (Actual)</th>
-                                                            <th style="width: 90px; border-left: 2px solid #dee2e6;">Excess</th>
-                                                            <th style="width: 90px;">Missing</th>
+                                                            <th style="width: 120px; border-left: 2px solid #dee2e6;">Extra (good)</th>
+                                                            <th style="width: 120px;">Extra (dmg)</th>
+                                                            <th style="width: 120px;">Missing</th>
                                                             <th>Note</th>
                                                         </tr>
                                                     </thead>
@@ -247,6 +249,16 @@
                         background-color: #f5faff !important;
                         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1) !important;
                     }
+
+                    .bg-extra-damaged {
+                        background-color: #fce4ec !important;
+                        border-color: #f8bbd9 !important;
+                    }
+
+                    .bg-extra-damaged:focus {
+                        background-color: #fff8fa !important;
+                        box-shadow: 0 0 0 0.25rem rgba(233, 30, 99, 0.12) !important;
+                    }
                 </style>
 
                 <%-- Variants data: dùng data-attributes thay vì JSON để tránh quote-escaping --%>
@@ -277,31 +289,48 @@
                             const qExp = parseFloat(qExpInput.value) || 0;
                             const qGoodPhys = parseFloat(row.querySelector('.phys-good').value) || 0;
                             const qDamagedPhys = parseFloat(row.querySelector('.phys-damaged').value) || 0;
-                            const qExcessPhys = parseFloat(row.querySelector('.phys-excess')?.value) || 0;
+                            const qExtraGoodPhys = parseFloat(row.querySelector('.phys-extra-good')?.value) || 0;
+                            const qExtraDamagedPhys = parseFloat(row.querySelector('.phys-extra-damaged')?.value) || 0;
                             
-                            // Rule: missing is computed from expected vs (good + damaged),
-                            // excess is user-input as additional quantity above PO.
-                            const receivedAgainstPo = qGoodPhys + qDamagedPhys;
+                            // Shortage vs PO: good + damaged (on line) + extra good; extra damaged does not cover ordered qty
+                            const receivedAgainstPo = qGoodPhys + qDamagedPhys + qExtraGoodPhys;
+                            const onPoGoodDamaged = qGoodPhys + qDamagedPhys;
                             const finalGood = qGoodPhys;
                             const finalDamaged = qDamagedPhys;
-                            const finalExcess = qExcessPhys;
                             const finalMissing = Math.max(0, qExp - receivedAgainstPo);
                             
                             row.querySelector('.server-good').value = finalGood;
                             row.querySelector('.server-damaged').value = finalDamaged;
-                            row.querySelector('.server-extra').value = finalExcess;
+                            row.querySelector('.server-extra-good').value = qExtraGoodPhys;
+                            row.querySelector('.server-extra-damaged').value = qExtraDamagedPhys;
                             row.querySelector('.server-missing').value = finalMissing;
                             
-                            const displayExtra = row.querySelector('.display-extra');
-                            if (displayExtra) displayExtra.value = finalExcess;
                             row.querySelector('.display-missing').value = finalMissing;
-                            
-                            if (receivedAgainstPo > 0 || finalMissing > 0 || finalExcess > 0) {
-                                let errorRow = row.nextElementSibling;
-                                if (errorRow && errorRow.querySelector('.error-message')) {
-                                    const errorDiv = errorRow.querySelector('.error-message');
+
+                            const errorRow = row.nextElementSibling;
+                            const errorDiv = errorRow && errorRow.querySelector('.error-message');
+                            if (errorDiv) {
+                                if (onPoGoodDamaged > qExp) {
+                                    errorDiv.style.display = 'block';
+                                    errorDiv.textContent = 'Good + Damaged (thực tế) không được vượt số đặt (' + qExp + '). Phần vượt nhập vào Extra.';
+                                    row.querySelector('.phys-good')?.classList.add('is-invalid-field');
+                                    row.querySelector('.phys-damaged')?.classList.add('is-invalid-field');
+                                    row.querySelector('.phys-extra-good')?.classList.remove('is-invalid-field');
+                                    row.querySelector('.phys-extra-damaged')?.classList.remove('is-invalid-field');
+                                } else if ((qExtraGoodPhys > 0 || qExtraDamagedPhys > 0) && (onPoGoodDamaged < qExp)) {
+                                    errorDiv.style.display = 'block';
+                                    errorDiv.textContent = 'Please fulfill the ordered quantity (' + qExp + ') in Good/Damaged columns before using the Extra columns.';
+                                    row.querySelector('.phys-extra-good')?.classList.add('is-invalid-field');
+                                    row.querySelector('.phys-extra-damaged')?.classList.add('is-invalid-field');
+                                    row.querySelector('.phys-good')?.classList.remove('is-invalid-field');
+                                    row.querySelector('.phys-damaged')?.classList.remove('is-invalid-field');
+                                } else {
                                     errorDiv.style.display = 'none';
                                     errorDiv.textContent = '';
+                                    row.querySelector('.phys-good')?.classList.remove('is-invalid-field');
+                                    row.querySelector('.phys-damaged')?.classList.remove('is-invalid-field');
+                                    row.querySelector('.phys-extra-good')?.classList.remove('is-invalid-field');
+                                    row.querySelector('.phys-extra-damaged')?.classList.remove('is-invalid-field');
                                 }
                             }
                         }
@@ -331,29 +360,36 @@
 </td>
 <td style="width: 130px; border-left: 2px solid #dee2e6;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-good phys-good" 
-           value="\${data && data.fromOld ? Math.floor(data.qtyGood) : 0}" 
+           value="\${data && data.qtyGood ? Math.floor(data.qtyGood) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
-           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Actual Good received">
-    <input type="hidden" class="server-good" name="lines[\${idx}].qtyGood" value="\${data ? Math.floor(data.qtyGood) : 0}">
+           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Good condition counted vs ordered qty (with damaged on line)">
+    <input type="hidden" class="server-good" name="lines[\${idx}].qtyGood" value="\${data && data.qtyGood ? Math.floor(data.qtyGood) : 0}">
 </td>
 <td style="width: 130px;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-damaged phys-damaged" 
-           value="\${data && data.fromOld ? Math.floor(data.qtyDamaged) : 0}" 
+           value="\${data && data.qtyDamaged ? Math.floor(data.qtyDamaged) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Actual Damaged received">
-    <input type="hidden" class="server-damaged" name="lines[\${idx}].qtyDamaged" value="\${data ? Math.floor(data.qtyDamaged) : 0}">
+    <input type="hidden" class="server-damaged" name="lines[\${idx}].qtyDamaged" value="\${data && data.qtyDamaged ? Math.floor(data.qtyDamaged) : 0}">
 </td>
-<td style="width: 90px; border-left: 2px solid #dee2e6;">
-    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-excess phys-excess display-extra" 
-           value="\${data && data.fromOld ? Math.floor(data.qtyExtra) : 0}" 
+<td style="width: 120px; border-left: 2px solid #dee2e6;">
+    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-excess phys-extra-good" 
+           value="\${data && data.qtyExtraGood ? Math.floor(data.qtyExtraGood) : 0}" 
            oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
-           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Excess items (above PO)">
-    <input type="hidden" class="server-extra" name="lines[\${idx}].qtyExtra" value="\${data ? Math.floor(data.qtyExtra) : 0}">
+           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Extra good: counts vs ordered for shortage; putaway → EXCESS zone">
+    <input type="hidden" class="server-extra-good" name="lines[\${idx}].qtyExtraGood" value="\${data && data.qtyExtraGood ? Math.floor(data.qtyExtraGood) : 0}">
 </td>
-<td style="width: 90px;">
+<td style="width: 120px;">
+    <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-extra-damaged phys-extra-damaged" 
+           value="\${data && data.qtyExtraDamaged ? Math.floor(data.qtyExtraDamaged) : 0}" 
+           oninput="this.value = Math.abs(Math.floor(this.value)); updateBalance(this.closest('.line-row'));"
+           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';" title="Surplus damaged units (DAMAGE zone)">
+    <input type="hidden" class="server-extra-damaged" name="lines[\${idx}].qtyExtraDamaged" value="\${data && data.qtyExtraDamaged ? Math.floor(data.qtyExtraDamaged) : 0}">
+</td>
+<td style="width: 120px;">
     <input type="number" class="form-control form-control-sm text-center bg-missing display-missing" 
-           value="\${data ? Math.floor(data.qtyMissing) : 0}" readonly title="Missing items (below PO)">
-    <input type="hidden" class="server-missing" name="lines[\${idx}].qtyMissing" value="\${data ? Math.floor(data.qtyMissing) : 0}">
+           value="\${data && data.qtyMissing ? Math.floor(data.qtyMissing) : 0}" readonly title="Missing vs PO = Ordered − (Good + Damaged + Extra good)">
+    <input type="hidden" class="server-missing" name="lines[\${idx}].qtyMissing" value="\${data && data.qtyMissing ? Math.floor(data.qtyMissing) : 0}">
 </td>
 <td>
     <input type="text" class="form-control form-control-sm" name="lines[\${idx}].note" placeholder="Remark" value="\${data ? data.note : ''}">
@@ -363,7 +399,7 @@
 
                             const trError = document.createElement("tr");
                             trError.innerHTML = `
-<td colspan="7" class="border-0 py-0 ps-3">
+<td colspan="9" class="border-0 py-0 ps-3">
     <div class="error-message mb-2" id="error_\${idx}"></div>
 </td>
 `;
@@ -491,7 +527,7 @@
                                                 variantId: l.variantId,
                                                 unitPrice: l.unitPrice,
                                                 qtyExpected: l.orderedQty,
-                                                qtyGood: 0, qtyDamaged: 0, qtyExtra: 0, qtyMissing: l.orderedQty,
+                                                qtyGood: 0, qtyDamaged: 0, qtyExtraGood: 0, qtyExtraDamaged: 0, qtyMissing: l.orderedQty,
                                                 note: '', fromOld: false
                                             });
                                         });
@@ -511,6 +547,33 @@
                                         return;
                                     }
 
+                                    rows.forEach(row => updateBalance(row));
+                                    for (let r = 0; r < rows.length; r++) {
+                                        const row = rows[r];
+                                        const qExp = parseFloat(row.querySelector('.qty-expected')?.value) || 0;
+                                        const g = parseFloat(row.querySelector('.phys-good')?.value) || 0;
+                                        const d = parseFloat(row.querySelector('.phys-damaged')?.value) || 0;
+                                        if (g + d > qExp) {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Số lượng không hợp lệ',
+                                                text: 'Good + Damaged (thực tế) không được vượt số đặt. Phần vượt hãy nhập vào Extra (good) hoặc Extra (dmg).'
+                                            });
+                                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            return;
+                                        }
+
+                                        if ((eg > 0 || ed > 0) && (g + d < qExp)) {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Invalid Entry Logic',
+                                                text: 'You cannot enter extra quantities when the ordered quantity (' + qExp + ') has not been fully accounted for in Good/Damaged columns.'
+                                            });
+                                            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            return;
+                                        }
+                                    }
+
                                     const warehouseId = document.getElementById('warehouseIdHidden').value;
                                     if (warehouseId) {
                                         // Tính tổng số lượng từ các dòng
@@ -518,7 +581,8 @@
                                         rows.forEach(row => {
                                             totalGood    += parseFloat(row.querySelector('.server-good').value)    || 0;
                                             totalDamaged += parseFloat(row.querySelector('.server-damaged').value) || 0;
-                                            totalExtra   += parseFloat(row.querySelector('.server-extra').value)   || 0;
+                                            totalDamaged += parseFloat(row.querySelector('.server-extra-damaged').value) || 0;
+                                            totalExtra   += parseFloat(row.querySelector('.server-extra-good').value)   || 0;
                                         });
 
                                         try {
@@ -550,12 +614,20 @@
                                                         title: 'Insufficient Warehouse Capacity!',
                                                         html: html,
                                                         icon: 'warning',
-                                                        confirmButtonText: '<i class="fas fa-th me-1"></i> Go to Warehouse Layout',
-                                                        confirmButtonColor: '#0d6efd'
-                                                    }).then(() => {
-                                                        window.location.href = `${pageContext.request.contextPath}/warehouse-layout`;
+                                                        showCancelButton: true,
+                                                        confirmButtonText: '<i class="fas fa-th me-1"></i> Save & Go to Layout',
+                                                        cancelButtonText: 'Cancel',
+                                                        confirmButtonColor: '#0d6efd',
+                                                        cancelButtonColor: '#6e7881'
+                                                    }).then((result) => {
+                                                        if (result.isConfirmed) {
+                                                            document.getElementById('nextStep').value = 'layout';
+                                                            const sup = document.getElementById('supplierSelect');
+                                                            if (sup) sup.disabled = false;
+                                                            document.getElementById('grnForm').submit();
+                                                        }
                                                     });
-                                                    return; // Stop submission
+                                                    return; // STOP automatic submission below, we use the Swal confirmation instead
                                                 }
                                             }
                                             // resp không ok (400, 500,...) hoặc đủ chỗ → submit bình thường
