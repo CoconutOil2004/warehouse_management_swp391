@@ -270,7 +270,7 @@ public class SaleOrderController extends HttpServlet {
         String requestedShipStr = request.getParameter("requestedShipDate");
         Date requestedShipDate = null;
         if (requestedShipStr == null || requestedShipStr.isBlank()) {
-            fieldErrors.put("expectedDeliveryDate", "Expected Delivery Date is required");
+            fieldErrors.put("requestedShipDates", "Request Delivery Date is required");
         } else {
             try {
                 requestedShipDate = Date.valueOf(requestedShipStr); // yyyy-MM-dd
