@@ -52,11 +52,11 @@
                     <div class="col-md-4">
                         <label class="form-label">Requested Ship Date</label>
                         <input type="date"
-                               class="form-control ${not empty fieldErrors.requestedShipDate ? 'is-invalid' : ''}"
+                               class="form-control ${not empty fieldErrors.requestedShipDates ? 'is-invalid' : ''}"
                                name="requestedShipDate"
                                value="${oldRequestedShipDate}">
-                        <c:if test="${not empty fieldErrors.requestedShipDate}">
-                            <div class="invalid-feedback d-block">${fieldErrors.requestedShipDate}</div>
+                        <c:if test="${not empty fieldErrors.requestedShipDates}">
+                            <div class="invalid-feedback d-block">${fieldErrors.requestedShipDates}</div>
                         </c:if>
                     </div>
 

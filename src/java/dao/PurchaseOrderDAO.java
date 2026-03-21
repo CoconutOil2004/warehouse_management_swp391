@@ -495,8 +495,27 @@ public boolean hasAnyGrn(long poId) throws SQLException {
             }
         }
     }
+
+    /**
+     * True when a GRN exists for this PO that still blocks editing (excludes REJECTED).
+     */
+    public boolean hasGrnBlockingPoEdit(long poId) throws SQLException {
+        String sql = "SELECT 1 FROM goods_receipt WHERE po_id = ? AND status <> 'REJECTED' LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, poId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
     private boolean isPoLineReferenced(long poLineId) throws SQLException {
-        String sql = "SELECT 1 FROM goods_receipt_line WHERE po_line_id = ? LIMIT 1";
+        String sql = """
+                SELECT 1 FROM goods_receipt_line grl
+                INNER JOIN goods_receipt gr ON gr.grn_id = grl.grn_id
+                WHERE grl.po_line_id = ? AND gr.status <> 'REJECTED'
+                LIMIT 1
+                """;
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, poLineId);
             try (ResultSet rs = ps.executeQuery()) {

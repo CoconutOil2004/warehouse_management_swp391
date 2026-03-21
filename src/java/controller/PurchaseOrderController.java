@@ -400,8 +400,8 @@ public class PurchaseOrderController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
             return;
         }
-        // Block editing PO once any GRN exists (regardless of putaway)
-        if (poService.hasAnyGrn(poId)) {
+        // Block editing when a non-rejected GRN exists (REJECTED GRN still allows PO update)
+        if (poService.hasGrnBlockingPoEdit(poId)) {
             ToastUtil.setToast(request, "error", "Unable to update Purchase Order because GRN is already available.");
             response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
             return;
@@ -443,6 +443,17 @@ public class PurchaseOrderController extends HttpServlet {
         if (current == null) {
             ToastUtil.setToast(request, "error", "Purchase Order not found.");
             response.sendRedirect(request.getContextPath() + "/purchase-orders");
+            return;
+        }
+        if (poService.hasGrnBlockingPoEdit(poId)) {
+            ToastUtil.setToast(request, "error", "Unable to update Purchase Order because GRN is already available.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
+            return;
+        }
+        if (grnService.hasIncompletePutawayForPo(poId)) {
+            ToastUtil.setToast(request, "error",
+                    "Unable to update Purchase Order because GRN is already available.");
+            response.sendRedirect(request.getContextPath() + "/purchase-orders?action=detail&id=" + poId);
             return;
         }
         String poNumber = request.getParameter("poNumber");
