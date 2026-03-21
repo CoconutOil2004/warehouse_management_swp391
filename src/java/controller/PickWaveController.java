@@ -36,7 +36,6 @@ public class PickWaveController extends HttpServlet {
                 case "create" -> handleCreateForm(request, response);
                 case "add-gdn" -> handleAddGdn(request, response);
                 case "remove-gdn" -> handleRemoveGdn(request, response);
-                case "release" -> handleRelease(request, response);
                 case "cancel" -> handleCancel(request, response);
                 default -> response.sendRedirect(
                     request.getContextPath() + "/pick-wave?action=list"
@@ -208,17 +207,6 @@ public class PickWaveController extends HttpServlet {
                 Logger.getLogger(PickWaveController.class.getName()).log(
                 Level.SEVERE,
                 "Error in doPost (create action)",
-                e
-                );
-                throw new ServletException(e);
-            }
-        } else if ("release".equals(action)) {
-            try {
-                handleRelease(request, response);
-            } catch (Exception e) {
-                Logger.getLogger(PickWaveController.class.getName()).log(
-                Level.SEVERE,
-                "Error in doPost (release action)",
                 e
                 );
                 throw new ServletException(e);
@@ -578,58 +566,6 @@ public class PickWaveController extends HttpServlet {
             request.getContextPath() + "/pick-wave?action=detail&id=" + waveId
             );
         }
-    }
-
-    /**
-     * Release a wave - creates tasks and changes status to RELEASED.
-     */
-    private void handleRelease(
-    HttpServletRequest request,
-    HttpServletResponse response
-    ) throws Exception {
-        User user = (User) request.getSession().getAttribute("USER");
-        if (user == null) {
-            response.sendRedirect(request.getContextPath() + "/authen?action=login");
-            return;
-        }
-        
-        String roles = user.getRoleNames() != null ? user.getRoleNames() : "";
-        if (!roles.contains("ADMIN") && !roles.contains("WAREHOUSE_MANAGER")) {
-            response.sendRedirect(
-            request.getContextPath() + "/pick-wave?action=list"
-            );
-            return;
-        }
-
-        Long waveId = parseLong(request.getParameter("id"), -1);
-        if (waveId <= 0) {
-            response.sendRedirect(
-            request.getContextPath() + "/pick-wave?action=list"
-            );
-            return;
-        }
-
-        PickWaveDAO waveDao = new PickWaveDAO();
-        
-        try {
-            boolean success = waveDao.releaseWave(waveId);
-            if (success) {
-                request.getSession().setAttribute("message", "Wave released successfully!");
-            } else {
-                request.getSession().setAttribute("error", "Cannot release wave: Insufficient inventory.");
-            }
-        } catch (Exception e) {
-            Logger.getLogger(PickWaveController.class.getName()).log(
-                Level.SEVERE,
-                "Error releasing wave",
-                e
-            );
-            request.getSession().setAttribute("error", "Error releasing wave: " + e.getMessage());
-        }
-
-        response.sendRedirect(
-            request.getContextPath() + "/pick-wave?action=detail&id=" + waveId
-        );
     }
 
     /**
