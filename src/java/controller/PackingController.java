@@ -344,9 +344,9 @@ public class PackingController extends HttpServlet {
         }
 
         long taskId = parseLong(request.getParameter("taskId"), -1);
-        int packedPacks = parseInt(request.getParameter("packedPacks"), 0);
+        int newlyPacked = parseInt(request.getParameter("newlyPacked"), 0);
 
-        if (taskId > 0) {
+        if (taskId > 0 && newlyPacked > 0) {
             PackingDAO packingDao = new PackingDAO();
 
             // Get session info before update (to check status)
@@ -373,8 +373,12 @@ public class PackingController extends HttpServlet {
             }
 
             if (sessionId != null) {
-                // Update task
-                packingDao.updateTaskProgress(taskId, packedPacks);
+                // Update task incrementally and validate
+                if (!packingDao.updateTaskProgress(taskId, newlyPacked)) {
+                    response.sendRedirect(request.getContextPath() + "/packing?action=myTasks&error=Invalid update! Total packed cannot exceed assigned target.");
+                    return;
+                }
+                
                 packingDao.markSessionInProgress(sessionId);
 
                 // Recalculate total packed qty for this GDN line
@@ -425,7 +429,8 @@ public class PackingController extends HttpServlet {
             }
         }
 
-        response.sendRedirect(request.getContextPath() + "/packing?action=myTasks&message=Task updated");
+        response.sendRedirect(request.getContextPath() + "/packing?action=myTasks&message=Task updated successfully");
+
     }
 
     // ================= HELPERS =================

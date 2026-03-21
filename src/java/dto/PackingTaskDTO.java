@@ -25,6 +25,7 @@ public class PackingTaskDTO {
     private String variantSku;
     private String productName;
     private Integer itemsPerPack;
+    private java.math.BigDecimal qtyPicked;
 
     public String getUpdatedAtDisplay() {
         return updatedAt == null ? "" : updatedAt.format(DISPLAY_FORMAT);
