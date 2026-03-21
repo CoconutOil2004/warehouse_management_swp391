@@ -1121,6 +1121,30 @@ public class PickTaskDAO extends DBContext {
     }
 
     /**
+     * Auto-release a wave when all task lines are fully assigned.
+     * Called after every assign operation. If no unassigned lines remain
+     * and the wave is still in CREATED status, transitions it to RELEASED.
+     *
+     * @param waveId The wave ID to check and potentially release
+     * @throws Exception
+     */
+    public void checkAndAutoReleaseWave(Long waveId) throws Exception {
+        if (waveId == null) return;
+
+        // Only auto-release if wave is still in CREATED status
+        PickWaveDAO waveDao = new PickWaveDAO();
+        String currentStatus = waveDao.getWaveStatus(waveId);
+        if (!PickWaveDAO.STATUS_CREATED.equals(currentStatus)) {
+            return;
+        }
+
+        // Auto-release when all lines are assigned
+        if (countUnassignedLinesByWave(waveId) == 0) {
+            waveDao.updateWaveStatus(waveId, PickWaveDAO.STATUS_RELEASED);
+        }
+    }
+
+    /**
      * Get lines assigned to a specific user (for PDA/Mobile view).
      */
     public List<PickTaskLineDTO> getMyAssignedLines(Long userId)

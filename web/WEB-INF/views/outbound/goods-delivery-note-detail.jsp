@@ -202,10 +202,10 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="card shadow-sm border-0 mb-3">
+                <div class="card shadow-sm border-0 mb-3 h-100">
                     <div class="card-header bg-secondary text-white py-3">
                         <h5 class="card-title mb-0 d-flex align-items-center">
-                            <i class="fas fa-box me-2"></i>Pack Tasks
+                            <i class="fas fa-box me-2"></i>Packing Tasks
                         </h5>
                     </div>
                     <div class="card-body p-0">
@@ -213,36 +213,35 @@
                             <table class="table table-hover align-middle mb-0">
                                 <thead class="table-light text-secondary text-uppercase small">
                                     <tr class="text-center">
-                                        <th class="text-start">Pack ID</th>
+                                        <th class="text-start">Task</th>
+                                        <th class="text-start">Assignee</th>
+                                        <th>Progress</th>
                                         <th>Status</th>
-                                        <th class="text-start">Packed by / at</th>
-                                        <th class="text-start">Label</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <c:if test="${empty packTasks}">
                                         <tr>
-                                            <td colspan="4" class="text-center text-muted py-3">
-                                                No pack tasks for this GDN yet.
+                                            <td colspan="4" class="text-center text-muted py-4">
+                                                <i class="fas fa-info-circle me-1"></i> No packing tasks for this GDN.
                                             </td>
                                         </tr>
                                     </c:if>
                                     <c:forEach var="p" items="${packTasks}">
                                         <tr class="text-center">
-                                            <td class="text-start">#${p.packId}</td>
+                                            <td class="text-start small fw-bold">#${p.packingTaskId}</td>
+                                            <td class="text-start small">
+                                                <c:out value="${p.assignedToName != null ? p.assignedToName : 'Unassigned'}" />
+                                            </td>
                                             <td>
-                                                <span class="badge ${p.status == 'DONE' ? 'bg-success' : 'bg-warning text-dark'}">
-                                                    ${p.status}
+                                                <span class="badge rounded-pill bg-light text-dark border">
+                                                    ${p.packedPacks}/${p.assignedPacks}
                                                 </span>
                                             </td>
-                                            <td class="text-start">
-                                                <c:out value="${p.packedByName != null ? p.packedByName : '-'}" />
-                                                <c:if test="${not empty p.packedAt}">
-                                                    / <c:out value="${p.packedAt}" />
-                                                </c:if>
-                                            </td>
-                                            <td class="text-start">
-                                                <c:out value="${p.packageLabel != null ? p.packageLabel : '-'}" />
+                                            <td>
+                                                <span class="badge rounded-pill ${p.status == 'DONE' ? 'bg-success' : (p.status == 'IN_PROGRESS' ? 'bg-info text-dark' : 'bg-secondary')}">
+                                                    ${p.status}
+                                                </span>
                                             </td>
                                         </tr>
                                     </c:forEach>
@@ -359,14 +358,13 @@
 
             <c:if test="${gdn.status == 'PACKING'}">
                 <div class="d-flex gap-2 flex-wrap align-items-center">
-                    <a href="${pageContext.request.contextPath}/packing?action=form&gdnId=${gdn.gdnId}"
-                       class="btn btn-warning shadow-sm d-flex align-items-center justify-content-center"
-                       style="min-width: 180px; height: 38px; padding: 0 1rem;">
-                        <i class="fas fa-box me-2"></i>Go to Packing
+                    <a href="${pageContext.request.contextPath}/packing?action=create&step=2&gdnId=${gdn.gdnId}"
+                       class="btn btn-warning shadow-sm d-flex align-items-center justify-content-center px-4">
+                        <i class="fas fa-box-open me-2"></i>Configure Packing
                     </a>
-                    <a href="${pageContext.request.contextPath}/packing?action=station&gdnId=${gdn.gdnId}"
+                    <a href="${pageContext.request.contextPath}/packing?action=list"
                        class="btn btn-outline-primary shadow-sm">
-                        <i class="fas fa-boxes me-1"></i> Packing Station
+                        <i class="fas fa-list me-1"></i> Packing Sessions
                     </a>
                 </div>
             </c:if>
