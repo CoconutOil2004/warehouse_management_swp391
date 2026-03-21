@@ -54,4 +54,9 @@ public class PurchaseOrderService {
     public boolean hasAnyGrn(long poId) throws Exception {
         return poDao.hasAnyGrn(poId);
     }
+
+    /** GRN with status REJECTED does not block PO edit/update. */
+    public boolean hasGrnBlockingPoEdit(long poId) throws Exception {
+        return poDao.hasGrnBlockingPoEdit(poId);
+    }
 }
