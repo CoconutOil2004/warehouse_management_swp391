@@ -128,9 +128,24 @@ public class WarehouseLayoutController extends HttpServlet {
     }
     
     /**
-     * Get default warehouse ID from session user or first active warehouse
+     * Resolve warehouse: explicit {@code warehouseId} request param (if valid),
+     * then session user's warehouse, then first warehouse in list.
      */
     private Long getDefaultWarehouseId(HttpServletRequest request) throws SQLException {
+        String param = request.getParameter("warehouseId");
+        if (param != null && !param.isBlank()) {
+            try {
+                long wid = Long.parseLong(param.trim());
+                if (wid > 0) {
+                    WarehouseDAO warehouseDAO = new WarehouseDAO();
+                    if (warehouseDAO.getDetail(wid) != null) {
+                        return wid;
+                    }
+                }
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
         // Try to get from session user
         HttpSession session = request.getSession(false);
         if (session != null) {
@@ -191,7 +206,7 @@ public class WarehouseLayoutController extends HttpServlet {
         try {
             zoneDAO.createZone(warehouseId, code, name, zoneType);
             request.getSession().setAttribute("message", "Zone created successfully.");
-            response.sendRedirect(request.getContextPath() + "/warehouse-layout");
+            response.sendRedirect(request.getContextPath() + "/warehouse-layout?warehouseId=" + warehouseId);
         } catch (Exception e) {
             // Hiển thị lỗi và quay lại form
             request.setAttribute("error", e.getMessage());
@@ -242,13 +257,18 @@ public class WarehouseLayoutController extends HttpServlet {
         }
         
         SlotDAO slotDAO = new SlotDAO();
+        Long layoutWarehouseId = zone.getWarehouseId();
+        if (layoutWarehouseId == null) {
+            throw new Exception("Zone has no warehouse");
+        }
         try {
             slotDAO.createSlotsBatch(zoneId, rows, cols, codePrefix);
             request.getSession().setAttribute("message", "Slots created successfully.");
-            response.sendRedirect(request.getContextPath() + "/warehouse-layout");
+            response.sendRedirect(request.getContextPath() + "/warehouse-layout?warehouseId=" + layoutWarehouseId);
         } catch (Exception e) {
             String errorMessage = e.getMessage();
-            response.sendRedirect(request.getContextPath() + "/warehouse-layout?error=" + java.net.URLEncoder.encode(errorMessage, "UTF-8"));
+            response.sendRedirect(request.getContextPath() + "/warehouse-layout?warehouseId=" + layoutWarehouseId
+                    + "&error=" + java.net.URLEncoder.encode(errorMessage, "UTF-8"));
         }
     }
 
