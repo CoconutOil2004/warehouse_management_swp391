@@ -999,7 +999,14 @@ public class GoodsReceiptController extends HttpServlet {
                         return;
                     }
 
-                    boolean success = grnDao.updateStatus(id, status, approverId);
+                    String reason = request.getParameter("rejectReason");
+                    if ("REJECTED".equals(status) && (reason == null || reason.isBlank())) {
+                        response.sendRedirect(request.getContextPath() + "/goods-receipt?action=detail&id=" + id
+                                + "&error=missing_reason");
+                        return;
+                    }
+
+                    boolean success = grnDao.updateStatus(id, status, approverId, reason);
 
                     if (success && "APPROVED".equals(status)) {
                         // 1. UPDATE INVENTORY (BALANCE, SUMMARY, TXN)
