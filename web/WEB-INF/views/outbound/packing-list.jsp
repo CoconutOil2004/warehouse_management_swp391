@@ -2,165 +2,274 @@
 <%@taglib tagdir="/WEB-INF/tags/" prefix="t" %>
 <%@taglib uri="jakarta.tags.core" prefix="c" %>
 <%@taglib uri="jakarta.tags.fmt" prefix="fmt" %>
-<t:layout title="Packing">
-    <div class="container-fluid">
-        <c:choose>
-            <c:when test="${isReadyView}">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="mb-0"><i class="fas fa-box me-2"></i>Packing Queue</h4>
-                    <div class="d-flex gap-2">
-                        <a href="${pageContext.request.contextPath}/packing?action=list" class="btn btn-outline-secondary">
-                            <i class="fas fa-list me-1"></i> All Packings
-                        </a>
-                        <a href="${pageContext.request.contextPath}/goods-delivery-note?action=list" class="btn btn-outline-secondary">
-                            <i class="fas fa-file-alt me-1"></i> GDN List
-                        </a>
-                    </div>
-                </div>
-                <div class="alert alert-info mb-4">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>GDNs ready for packing:</strong> These are GDNs where pick tasks are completed and status is PACKING.
-                    Click "Start" or "Packing Station" to begin packing.
-                </div>
-            </c:when>
-            <c:otherwise>
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="mb-0"><i class="fas fa-box me-2"></i>Packing Management</h4>
-                    <div class="d-flex gap-2">
-                        <a href="${pageContext.request.contextPath}/packing?action=ready" class="btn btn-warning">
-                            <i class="fas fa-clipboard-list me-1"></i> Packing Queue
-                        </a>
-                        <a href="${pageContext.request.contextPath}/goods-delivery-note?action=list" class="btn btn-outline-secondary">
-                            <i class="fas fa-file-alt me-1"></i> GDN List
-                        </a>
-                    </div>
-                </div>
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-body">
-                        <form hx-get="${pageContext.request.contextPath}/packing" hx-target="#wrapper" hx-select="#wrapper" hx-swap="outerHTML" hx-push-url="true" method="get" class="row g-3">
-                            <input type="hidden" name="action" value="list"/>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">Status</label>
-                                <select class="form-select" name="status">
-                                    <option value="">-- All --</option>
-                                    <option value="PENDING" ${param.status == 'PENDING' ? 'selected' : ''}>PENDING</option>
-                                    <option value="IN_PROGRESS" ${param.status == 'IN_PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
-                                    <option value="DONE" ${param.status == 'DONE' ? 'selected' : ''}>DONE</option>
-                                </select>
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search me-1"></i> Filter</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </c:otherwise>
-        </c:choose>
+<%@taglib uri="jakarta.tags.functions" prefix="fn" %>
 
-        <div class="table-responsive shadow-sm rounded">
-            <table class="table table-bordered table-hover align-middle mb-0">
-                <thead class="table-dark">
-                    <tr class="text-center">
-                        <th>Pack ID</th>
-                        <th>GDN Number</th>
-                        <th>Package Type</th>
-                        <th>Weight</th>
-                        <th>Status</th>
-                        <th>Packed by / at</th>
-                        <th>Label</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <c:forEach var="p" items="${packings}">
-                        <tr>
-                            <td class="text-center">${p.packId != null ? p.packId : '-'}</td>
-                            <td>
-                                <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${p.gdnId}" class="text-decoration-none">
-                                    ${p.gdnNumber}
-                                </a>
-                            </td>
-                            <td class="text-center">
-                                <c:if test="${not empty p.packageType}">
-                                    <span class="badge bg-secondary">
-                                        <i class="fas ${p.packageType == 'BOX' ? 'fa-box-open' : 
-                                                          p.packageType == 'ENVELOPE' ? 'fa-envelope-open-text' : 
-                                                          p.packageType == 'BAG' ? 'fa-shopping-bag' : 
-                                                          p.packageType == 'PALLET' ? 'fa-pallet' : 'fa-box'} me-1"></i>
-                                        ${p.packageType}
-                                    </span>
-                                </c:if>
-                                <c:if test="${empty p.packageType}">
-                                    <span class="text-muted">-</span>
-                                </c:if>
-                            </td>
-                            <td class="text-center">
-                                <c:if test="${not empty p.weight}">
-                                    ${p.weight} ${p.weightUnit}
-                                </c:if>
-                                <c:if test="${empty p.weight}">
-                                    <span class="text-muted">-</span>
-                                </c:if>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge ${
-                                    p.status == 'DONE' ? 'bg-success' :
-                                    p.status == 'IN_PROGRESS' ? 'bg-info' :
-                                    'bg-warning text-dark'}">
-                                    ${p.status}
-                                </span>
-                            </td>
-                            <td class="text-center">
-                                ${p.packedByName != null ? p.packedByName : '-'}
-                                <c:if test="${not empty p.packedAt}">
-                                    / <c:out value="${p.packedAt}"/>
-                                </c:if>
-                            </td>
-                            <td>${p.packageLabel != null ? p.packageLabel : '-'}</td>
-                            <td class="text-center">
-                                <div class="btn-group btn-group-sm">
-                                    <c:choose>
-                                        <c:when test="${not empty p.packId}">
-                                            <a href="${pageContext.request.contextPath}/packing?action=station&gdnId=${p.gdnId}" 
-                                               class="btn btn-primary" title="Packing Station">
-                                                <i class="fas fa-boxes"></i>
-                                            </a>
-                                            <a href="${pageContext.request.contextPath}/packing?action=form&gdnId=${p.gdnId}" 
-                                               class="btn btn-secondary" title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <c:if test="${p.packedBy == null}">
-                                                <a href="${pageContext.request.contextPath}/packing?action=assign&gdnId=${p.gdnId}"
-                                                   class="btn btn-outline-success" title="Assign">
-                                                    <i class="fas fa-user-check"></i>
-                                                </a>
-                                            </c:if>
-                                        </c:when>
-                                        <c:otherwise>
-                                            <a href="${pageContext.request.contextPath}/packing?action=form&gdnId=${p.gdnId}" 
-                                               class="btn btn-warning" title="Start Packing">
-                                                <i class="fas fa-box-open"></i> Start
-                                            </a>
-                                        </c:otherwise>
-                                    </c:choose>
-                                </div>
-                            </td>
-                        </tr>
-                    </c:forEach>
-                    <c:if test="${empty packings}">
-                        <tr><td colspan="8" class="text-center py-4 text-muted">
-                            <c:choose>
-                                <c:when test="${isReadyView}">
-                                    <i class="fas fa-inbox me-2"></i>No GDNs ready for packing. Complete pick tasks first.
-                                </c:when>
-                                <c:otherwise>
-                                    <i class="fas fa-inbox me-2"></i>No packing records found.
-                                </c:otherwise>
-                            </c:choose>
-                        </td></tr>
-                    </c:if>
-                </tbody>
-            </table>
+<t:layout title="Packing Management">
+    <jsp:attribute name="actions">
+        <div class="d-flex gap-2">
+            <c:if test="${fn:contains(sessionScope.USER.roleNames, 'ADMIN') || fn:contains(sessionScope.USER.roleNames, 'WAREHOUSE_MANAGER')}">
+                <a href="${pageContext.request.contextPath}/packing?action=create&step=1" class="btn btn-primary btn-icon-split shadow-sm">
+                    <span class="icon d-flex align-items-center">
+                        <i class="bi bi-plus-lg"></i>
+                    </span>
+                    <span class="text">Create Packing</span>
+                </a>
+            </c:if>
+            <c:if test="${fn:contains(sessionScope.USER.roleNames, 'WAREHOUSE_STAFF')}">
+                <a href="${pageContext.request.contextPath}/packing?action=myTasks" class="btn btn-info btn-icon-split shadow-sm ml-2">
+                    <span class="icon d-flex align-items-center">
+                        <i class="fas fa-tasks"></i>
+                    </span>
+                    <span class="text">My Tasks</span>
+                </a>
+            </c:if>
         </div>
-    </div>
+    </jsp:attribute>
+
+    <jsp:body>
+        <div class="row">
+            <!-- PENDING Card -->
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pending Sessions</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                    <c:set var="pendingCount" value="0"/>
+                                    <c:forEach var="s" items="${sessions}">
+                                        <c:if test="${s.status == 'PENDING'}"><c:set var="pendingCount" value="${pendingCount + 1}"/></c:if>
+                                    </c:forEach>
+                                    ${pendingCount}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IN PROGRESS Card -->
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">In Progress</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                    <c:set var="progressCount" value="0"/>
+                                    <c:forEach var="s" items="${sessions}">
+                                        <c:if test="${s.status == 'IN_PROGRESS'}"><c:set var="progressCount" value="${progressCount + 1}"/></c:if>
+                                    </c:forEach>
+                                    ${progressCount}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-tasks fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DONE Card -->
+            <div class="col-xl-4 col-md-6 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Completed (Total)</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                    <c:set var="doneCount" value="0"/>
+                                    <c:forEach var="s" items="${sessions}">
+                                        <c:if test="${s.status == 'DONE'}"><c:set var="doneCount" value="${doneCount + 1}"/></c:if>
+                                    </c:forEach>
+                                    ${doneCount}
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <c:if test="${not empty param.message}">
+            <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                <span class="icon mr-2 text-success"><i class="fas fa-check-circle"></i></span>
+                ${param.message}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </c:if>
+
+        <c:if test="${not empty param.error}">
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 mb-4" role="alert">
+                <span class="icon mr-2 text-danger"><i class="fas fa-exclamation-triangle"></i></span>
+                <strong>Error:</strong> ${param.error}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </c:if>
+
+        <div class="card shadow border-0 mb-4">
+            <div class="card-header py-3 bg-white d-flex align-items-center">
+                <div class="icon-circle bg-light mr-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; border-radius: 10px;">
+                    <i class="fas fa-filter text-primary"></i>
+                </div>
+                <h6 class="m-0 font-weight-bold text-gray-800">Filter Packing Sessions</h6>
+            </div>
+            <div class="card-body bg-gray-50 py-4">
+                <form method="get" class="d-flex flex-column flex-sm-row align-items-end gap-3 m-0">
+                    <input type="hidden" name="action" value="list"/>
+                    <div class="w-100">
+                        <label class="small font-weight-bold text-uppercase text-muted mb-2 d-block">Search by Status</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text bg-white border-right-0 text-muted small px-3">
+                                    <i class="fas fa-tasks"></i>
+                                </span>
+                            </div>
+                            <select class="form-control border-left-0 bg-white font-weight-bold text-gray-800" name="status">
+                                <option value="">-- All Sessions --</option>
+                                <option value="PENDING" ${status == 'PENDING' ? 'selected' : ''}>PENDING</option>
+                                <option value="IN_PROGRESS" ${status == 'IN_PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
+                                <option value="DONE" ${status == 'DONE' ? 'selected' : ''}>DONE</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 w-sm-auto text-nowrap">
+                        <i class="bi bi-search mr-1"></i> 
+                        <span>Filter</span>
+                    </button>
+                    
+                    <a href="${pageContext.request.contextPath}/packing?action=list" class="btn btn-secondary w-100 w-sm-auto text-nowrap">
+                        <i class="bi bi-arrow-clockwise mr-1"></i> 
+                        <span>Reset</span>
+                    </a>
+                    
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 bg-white">
+                <h6 class="m-0 font-weight-bold text-primary">Session List</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="min-width: 800px;">
+                        <thead class="bg-light text-muted small text-uppercase font-weight-bold">
+                            <tr>
+                                <th class="px-4">Session ID</th>
+                                <th>GDN Detail</th>
+                                <th>Client / SO</th>
+                                <th>Creator</th>
+                                <th>Timeline</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <c:forEach var="s" items="${sessions}">
+                                <tr>
+                                    <td class="px-4 font-weight-bold text-gray-800">#${s.packingSessionId}</td>
+                                    <td>
+                                        <div class="fw-bold fs-5 mb-0">
+                                            <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${s.gdnId}" class="text-primary font-weight-bold text-decoration-none">
+                                                ${s.gdnNumber}
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="text-gray-800 font-weight-bold">${s.customerName}</div>
+                                        <div class="small text-muted">SO: ${s.soNumber}</div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm bg-light rounded-circle text-center d-flex align-items-center justify-content-center mr-2" style="width: 30px; height: 30px;">
+                                                <i class="fas fa-user small"></i>
+                                            </div>
+                                            <span class="small">${s.createdByName}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="small"><i class="far fa-calendar-alt mr-1"></i> <strong>Start:</strong> ${s.createdAtDisplay}</div>
+                                        <div class="small text-muted"><i class="far fa-calendar-check mr-1"></i> <strong>End:</strong> ${s.completedAtDisplay != '' ? s.completedAtDisplay : '-'}</div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge badge-pill ${
+                                            s.status == 'DONE' ? 'badge-success' :
+                                            s.status == 'IN_PROGRESS' ? 'badge-info' :
+                                            'badge-warning'} py-2 px-3">
+                                            <c:choose>
+                                                <c:when test="${s.status == 'DONE'}"><i class="fas fa-check-circle mr-1"></i></c:when>
+                                                <c:when test="${s.status == 'IN_PROGRESS'}"><i class="fas fa-tasks mr-1"></i></c:when>
+                                                <c:otherwise><i class="far fa-clock mr-1"></i></c:otherwise>
+                                            </c:choose>
+                                            ${s.status}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${s.gdnId}" class="btn btn-sm btn-icon-split btn-outline-primary shadow-sm" title="View details">
+                                            <span class="icon"><i class="fas fa-search"></i></span>
+                                            <span class="text small">Detail</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </c:forEach>
+                            <c:if test="${empty sessions}">
+                                <tr>
+                                    <td colspan="7" class="text-center py-5">
+                                        <img src="https://illustrations.popsy.co/amber/no-data.svg" alt="No data" style="width: 150px; opacity: 0.6;">
+                                        <p class="mt-3 text-muted">No packing sessions found in this status.</p>
+                                    </td>
+                                </tr>
+                            </c:if>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white text-muted small py-3">
+                <i class="fas fa-info-circle mr-1"></i> Total found: <strong>${fn:length(sessions)}</strong> sessions
+            </div>
+        </div>
+    </jsp:body>
 </t:layout>
+
+<style>
+    /* Premium Look Adjustments */
+    .border-left-primary { border-left: .25rem solid #4e73df!important; }
+    .border-left-success { border-left: .25rem solid #1cc88a!important; }
+    .border-left-info { border-left: .25rem solid #36b9cc!important; }
+    .border-left-warning { border-left: .25rem solid #f6c23e!important; }
+    
+    .table thead th {
+        background-color: #f8f9fc;
+        border-bottom: 2px solid #e3e6f0;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: #fcfcfd;
+    }
+    
+    .badge-pill {
+        border-radius: 50rem;
+    }
+    
+    .btn-icon-split .text {
+        font-weight: 600;
+    }
+    
+    .avatar-sm {
+        color: #4e73df;
+    }
+</style>
+
