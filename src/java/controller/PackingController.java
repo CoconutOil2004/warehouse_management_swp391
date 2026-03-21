@@ -5,6 +5,7 @@ import dao.PackingDAO;
 import dao.UserDAO;
 import dto.GDNDetailDTO;
 import dto.GDNLineDTO;
+import dto.PackingLineConfigDTO;
 import dto.PackingSessionDTO;
 import dto.PackingTaskDTO;
 import jakarta.servlet.ServletException;
@@ -45,6 +46,7 @@ public class PackingController extends HttpServlet {
                 case "create" -> handleCreateWizard(request, response);
                 case "getGdnDetail" -> handleGetGdnDetail(request, response);
                 case "myTasks" -> handleMyTasks(request, response);
+                case "detail" -> handleDetail(request, response);
                 default ->
                     response.sendRedirect(request.getContextPath() + "/packing?action=list");
             }
@@ -210,6 +212,35 @@ public class PackingController extends HttpServlet {
         List<PackingTaskDTO> myTasks = dao.getTasksByUserId(user.getUserId());
         request.setAttribute("tasks", myTasks);
         request.getRequestDispatcher("/WEB-INF/views/outbound/my-packing-tasks.jsp").forward(request, response);
+    }
+
+    private void handleDetail(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        User user = (User) request.getSession().getAttribute("USER");
+        if (user == null || (!hasRole(user, "ADMIN") && !hasRole(user, "WAREHOUSE_MANAGER"))) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=list");
+            return;
+        }
+
+        long sessionId = parseLong(request.getParameter("id"), -1);
+        if (sessionId <= 0) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=list&error=invalid_session");
+            return;
+        }
+
+        PackingDAO dao = new PackingDAO();
+        PackingSessionDTO session = dao.getPackingSessionById(sessionId);
+        if (session == null) {
+            response.sendRedirect(request.getContextPath() + "/packing?action=list&error=session_not_found");
+            return;
+        }
+
+        List<PackingLineConfigDTO> lines = dao.getLineConfigsBySessionId(sessionId);
+        List<PackingTaskDTO> tasks = dao.getTasksBySessionId(sessionId);
+
+        request.setAttribute("sessionDTO", session);
+        request.setAttribute("lines", lines);
+        request.setAttribute("tasks", tasks);
+        request.getRequestDispatcher("/WEB-INF/views/outbound/packing-detail.jsp").forward(request, response);
     }
 
     // ================= POST HANDLERS =================

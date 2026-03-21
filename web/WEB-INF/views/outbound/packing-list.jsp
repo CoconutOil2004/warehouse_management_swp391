@@ -218,7 +218,7 @@
                                         </span>
                                     </td>
                                     <td class="text-center">
-                                        <a href="${pageContext.request.contextPath}/goods-delivery-note?action=detail&id=${s.gdnId}" class="btn btn-sm btn-icon-split btn-outline-primary shadow-sm" title="View details">
+                                        <a href="${pageContext.request.contextPath}/packing?action=detail&id=${s.packingSessionId}" class="btn btn-sm btn-icon-split btn-outline-primary shadow-sm" title="View details">
                                             <span class="icon"><i class="fas fa-search"></i></span>
                                             <span class="text small">Detail</span>
                                         </a>
