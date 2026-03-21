@@ -238,7 +238,7 @@ public class PackingDAO extends DBContext {
     public List<PackingTaskDTO> getTasksBySessionId(Long sessionId) throws Exception {
         String sql = """
                 SELECT pt.*, u.full_name AS assigned_to_name, gdn.gdn_number, 
-                       pv.variant_sku, p.name AS product_name, plc.items_per_pack
+                       pv.variant_sku, p.name AS product_name, plc.items_per_pack, gdl.qty_picked
                 FROM packing_task pt
                 JOIN packing_line_config plc ON pt.packing_line_config_id = plc.packing_line_config_id
                 JOIN goods_delivery_line gdl ON plc.gdn_line_id = gdl.gdn_line_id
@@ -258,7 +258,7 @@ public class PackingDAO extends DBContext {
     public List<PackingTaskDTO> getTasksByUserId(Long userId) throws Exception {
         String sql = """
                 SELECT pt.*, u.full_name AS assigned_to_name, gdn.gdn_number, 
-                       pv.variant_sku, p.name AS product_name, plc.items_per_pack
+                       pv.variant_sku, p.name AS product_name, plc.items_per_pack, gdl.qty_picked
                 FROM packing_task pt
                 JOIN packing_line_config plc ON pt.packing_line_config_id = plc.packing_line_config_id
                 JOIN goods_delivery_line gdl ON plc.gdn_line_id = gdl.gdn_line_id
@@ -298,6 +298,7 @@ public class PackingDAO extends DBContext {
                     dto.setVariantSku(rs.getString("variant_sku"));
                     dto.setProductName(rs.getString("product_name"));
                     dto.setItemsPerPack(rs.getInt("items_per_pack"));
+                    dto.setQtyPicked(rs.getBigDecimal("qty_picked"));
                     
                     list.add(dto);
                 }
@@ -307,25 +308,42 @@ public class PackingDAO extends DBContext {
     }
 
     /**
-     * Update Task Progress
+     * Update Task Progress (Incremental)
+     * @return true if successful, false if it exceeds assigned_packs
      */
-    public void updateTaskProgress(Long taskId, int packedPacks) throws Exception {
+    public boolean updateTaskProgress(Long taskId, int newlyPacked) throws Exception {
+        // First check if it exceeds
+        String checkSql = "SELECT packed_packs, assigned_packs FROM packing_task WHERE packing_task_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement psCheck = conn.prepareStatement(checkSql)) {
+            psCheck.setLong(1, taskId);
+            try (ResultSet rs = psCheck.executeQuery()) {
+                if (rs.next()) {
+                    int current = rs.getInt("packed_packs");
+                    int assigned = rs.getInt("assigned_packs");
+                    if (current + newlyPacked > assigned) {
+                        return false;
+                    }
+                }
+            }
+        }
+
         String sql = """
                 UPDATE packing_task 
-                SET packed_packs = ?, 
+                SET packed_packs = packed_packs + ?, 
                     updated_at = NOW(),
-                    status = CASE WHEN ? >= assigned_packs THEN 'DONE' 
-                                  WHEN ? > 0 THEN 'IN_PROGRESS'
+                    status = CASE WHEN (packed_packs + ?) >= assigned_packs THEN 'DONE' 
+                                  WHEN (packed_packs + ?) > 0 THEN 'IN_PROGRESS'
                                   ELSE 'PENDING' END
                 WHERE packing_task_id = ?
                 """;
         try (Connection conn = getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, packedPacks);
-            ps.setInt(2, packedPacks);
-            ps.setInt(3, packedPacks);
+            ps.setInt(1, newlyPacked);
+            ps.setInt(2, newlyPacked);
+            ps.setInt(3, newlyPacked);
             ps.setLong(4, taskId);
-            ps.executeUpdate();
+            return ps.executeUpdate() > 0;
         }
     }
     
