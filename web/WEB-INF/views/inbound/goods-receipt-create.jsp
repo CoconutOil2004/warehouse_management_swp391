@@ -553,6 +553,8 @@
                                         const qExp = parseFloat(row.querySelector('.qty-expected')?.value) || 0;
                                         const g = parseFloat(row.querySelector('.phys-good')?.value) || 0;
                                         const d = parseFloat(row.querySelector('.phys-damaged')?.value) || 0;
+                                        const eg = parseFloat(row.querySelector('.phys-extra-good')?.value) || 0;
+                                        const ed = parseFloat(row.querySelector('.phys-extra-damaged')?.value) || 0;
                                         if (g + d > qExp) {
                                             Swal.fire({
                                                 icon: 'error',
