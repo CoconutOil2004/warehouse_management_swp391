@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import model.Customer;
 import util.ViewPath;
+import java.util.regex.Pattern;
 
 @WebServlet(name = "CustomerController", urlPatterns = {"/admin/customer", "/admin/customer/*"})
 public class CustomerController extends HttpServlet {
@@ -18,6 +19,8 @@ public class CustomerController extends HttpServlet {
     private static final Long DEFAULT_PAGE = 1L;
     private static final Long DEFAULT_SIZE = 10L;
     private static final int MAX_ADDRESS_LENGTH = 255;
+    private static final String EMAIL_PATTERN = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+    private static final String PHONE_PATTERN = "^[0-9\\+\\-\\(\\)\\s]{10,15}$";
 
     private final CustomerDAO customerDao = new CustomerDAO();
 
@@ -82,6 +85,12 @@ public class CustomerController extends HttpServlet {
             Long total = customerDao.getPageCount(search);
             Long pages = (total + size - 1) / size;
             var customers = customerDao.getList(search, sort, page, size);
+
+            boolean hasSearch = searchRaw != null && !searchRaw.isBlank();
+            if (hasSearch && total != null && total == 0) {
+                request.setAttribute("emptySearchMessage",
+                        "No matching customer found for your search.");
+            }
 
             request.setAttribute("page", page);
             request.setAttribute("size", size);
@@ -172,6 +181,41 @@ public class CustomerController extends HttpServlet {
                 return;
             }
 
+            if (email.isEmpty()) {
+                setToast(request.getSession(true), "Email is required", "error");
+                request.setAttribute("customer", c);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                setToast(request.getSession(true), "Email format is invalid. Please enter a valid email address.", "error");
+                request.setAttribute("customer", c);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                return;
+            }
+
+            if (phone.isEmpty()) {
+                setToast(request.getSession(true), "Phone is required", "error");
+                request.setAttribute("customer", c);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                return;
+            }
+
+            if (!isValidPhone(phone)) {
+                setToast(request.getSession(true), "Phone format is invalid. Please enter a valid phone number (10-15 digits).", "error");
+                request.setAttribute("customer", c);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                return;
+            }
+
+            if (customerDao.phoneExists(phone, null)) {
+                setToast(request.getSession(true), "Phone number already exists", "error");
+                request.setAttribute("customer", c);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                return;
+            }
+
             if (address.length() > MAX_ADDRESS_LENGTH) {
                 setToast(request.getSession(true),
                         "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
@@ -223,6 +267,46 @@ public class CustomerController extends HttpServlet {
             if (code.isEmpty() || name.isEmpty()) {
                 Customer old = customerDao.getDetail(id);
                 setToast(request.getSession(true), "Code and Name are required", "error");
+                request.setAttribute("customer", old);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
+                return;
+            }
+
+            if (email.isEmpty()) {
+                Customer old = customerDao.getDetail(id);
+                setToast(request.getSession(true), "Email is required", "error");
+                request.setAttribute("customer", old);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                Customer old = customerDao.getDetail(id);
+                setToast(request.getSession(true), "Email format is invalid. Please enter a valid email address.", "error");
+                request.setAttribute("customer", old);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
+                return;
+            }
+
+            if (phone.isEmpty()) {
+                Customer old = customerDao.getDetail(id);
+                setToast(request.getSession(true), "Phone is required", "error");
+                request.setAttribute("customer", old);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
+                return;
+            }
+
+            if (!isValidPhone(phone)) {
+                Customer old = customerDao.getDetail(id);
+                setToast(request.getSession(true), "Phone format is invalid. Please enter a valid phone number (10-15 digits).", "error");
+                request.setAttribute("customer", old);
+                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
+                return;
+            }
+
+            if (customerDao.phoneExists(phone, id)) {
+                Customer old = customerDao.getDetail(id);
+                setToast(request.getSession(true), "Phone number already exists", "error");
                 request.setAttribute("customer", old);
                 request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
                 return;
@@ -295,6 +379,14 @@ public class CustomerController extends HttpServlet {
     private void setToast(HttpSession session, String message, String type) {
         session.setAttribute("message", message);
         session.setAttribute("type", type);
+    }
+
+    private boolean isValidEmail(String email) {
+        return Pattern.matches(EMAIL_PATTERN, email);
+    }
+
+    private boolean isValidPhone(String phone) {
+        return Pattern.matches(PHONE_PATTERN, phone);
     }
     
 }

@@ -206,6 +206,21 @@ public class SupplierDAO extends DBContext implements Dao<Supplier> {
         return false;
     }
 
+    public boolean phoneExists(String phone, Long excludeId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM supplier WHERE phone = ? AND (? IS NULL OR supplier_id != ?)";
+        try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, phone);
+            ps.setObject(2, excludeId);
+            ps.setObject(3, excludeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
+
     private Supplier mapResultSetToSupplier(ResultSet rs) throws SQLException {
         Supplier s = new Supplier();
         s.setSupplierId(rs.getLong("supplier_id"));

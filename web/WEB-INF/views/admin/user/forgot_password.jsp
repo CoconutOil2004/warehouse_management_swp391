@@ -267,7 +267,10 @@
                             <div class="form-group">
                                 <div class="input-field">
                                     <i class="fas fa-envelope"></i>
-                                    <input type="email" name="email" id="email" placeholder="Enter your registered email address"
+                                    <input type="email" name="email" id="email" placeholder="Enter your email address"
+                                        value="${email}"
+                                        pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"
+                                        title="Valid email format: name@domain.com"
                                         required>
                                 </div>
                             </div>

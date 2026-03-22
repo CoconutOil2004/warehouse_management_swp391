@@ -151,6 +151,12 @@ public class WarehouseController extends HttpServlet {
         request.setAttribute("search", searchRaw);
         request.setAttribute("sort", sort);
 
+        boolean hasSearch = searchRaw != null && !searchRaw.isBlank();
+        if (hasSearch && total == 0) {
+            request.setAttribute("emptySearchMessage",
+                    "No matching warehouses found for your search.");
+        }
+
         request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/list.jsp").forward(request, response);
     }
 
