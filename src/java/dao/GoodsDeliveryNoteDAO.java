@@ -1,12 +1,19 @@
 package dao;
 
-import context.DBContext;
-import dto.GDNListDTO;
-import dto.GDNDetailDTO;
-import dto.GDNLineDTO;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+
+import context.DBContext;
+import dto.GDNDetailDTO;
+import dto.GDNLineDTO;
+import dto.GDNListDTO;
 
 public class GoodsDeliveryNoteDAO extends DBContext {
 
@@ -357,14 +364,14 @@ public class GoodsDeliveryNoteDAO extends DBContext {
             java.math.BigDecimal qtyPacked) throws Exception {
         String sql = """
                 UPDATE goods_delivery_line
-                SET qty_picked = ?, qty_packed = ?
+                SET qty_picked = COALESCE(?, qty_picked), qty_packed = COALESCE(?, qty_packed)
                 WHERE gdn_line_id = ?
             """;
 
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setBigDecimal(1, qtyPicked);
-            ps.setBigDecimal(2, qtyPacked);
+            ps.setBigDecimal(1, qtyPicked != null ? qtyPicked : java.math.BigDecimal.ZERO);
+            ps.setBigDecimal(2, qtyPacked != null ? qtyPacked : java.math.BigDecimal.ZERO);
             ps.setLong(3, gdnLineId);
             return ps.executeUpdate() > 0;
         }

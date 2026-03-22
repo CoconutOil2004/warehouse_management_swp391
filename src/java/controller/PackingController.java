@@ -398,7 +398,7 @@ public class PackingController extends HttpServlet {
                 GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
 
                 // Fetch current line info to cap at qty_picked
-                String lineSql = "SELECT qty_picked FROM goods_delivery_line WHERE gdn_line_id = ?";
+                String lineSql = "SELECT COALESCE(qty_picked, 0) AS qty_picked FROM goods_delivery_line WHERE gdn_line_id = ?";
                 BigDecimal qtyPicked = BigDecimal.ZERO;
                 try (java.sql.Connection conn = PackingDAO.getConnection(); java.sql.PreparedStatement ps = conn.prepareStatement(lineSql)) {
                     ps.setLong(1, gdnLineId);
