@@ -124,10 +124,18 @@ public class GoodsDeliveryNoteController extends HttpServlet {
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         dao.PackingDAO packingDao = new dao.PackingDAO();
         dao.ShipmentDAO shipmentDao = new dao.ShipmentDAO();
+        
+        // Find packing session for this GDN
+        dto.PackingSessionDTO packingSession = packingDao.getPackingSessionByGdnId(gdnId);
+        List<dto.PackingTaskDTO> packingTasks = new java.util.ArrayList<>();
+        if (packingSession != null) {
+             packingTasks = packingDao.getTasksBySessionId(packingSession.getPackingSessionId());
+        }
+
         request.setAttribute("gdn", gdn);
         request.setAttribute("wave", waveDao.getWaveByGdnId(gdnId));
         request.setAttribute("pickTasks", pickTaskDao.getTasksByGdnId(gdnId));
-        request.setAttribute("packTasks", packingDao.listByGdnId(gdnId));
+        request.setAttribute("packTasks", packingTasks);
         request.setAttribute("shipments", shipmentDao.getByGdnId(gdnId));
         request.getRequestDispatcher("WEB-INF/views/outbound/goods-delivery-note-detail.jsp")
                 .forward(request, response);

@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import dao.CustomerDAO;
 import dto.ProductVariantDTO;
 import dto.SOLineCreateDTO;
@@ -34,7 +33,7 @@ import util.ToastUtil;
 import util.ViewPath;
 
 @MultipartConfig(fileSizeThreshold = 1024 * 1024, maxFileSize = 10485760, maxRequestSize = 20971520)
-@WebServlet(name = "SaleOrderController", urlPatterns = { "/sales-orders" })
+@WebServlet(name = "SaleOrderController", urlPatterns = {"/sales-orders"})
 public class SaleOrderController extends HttpServlet {
 
     private static final int DEFAULT_PAGE = 1;
@@ -60,6 +59,8 @@ public class SaleOrderController extends HttpServlet {
                     forwardImportForm(request, response);
                 case "variants" ->
                     handleGetVariants(request, response);
+                case "detail" ->
+                    forwardDetail(request, response);
                 default ->
                     forwardList(request, response);
             }
@@ -83,8 +84,7 @@ public class SaleOrderController extends HttpServlet {
                     handleCreate(request, response);
                 case "update" ->
                     handleUpdate(request, response);
-                case "detail" ->
-                    forwardDetail(request, response);
+
                 case "delete" ->
                     handleDelete(request, response);
                 case "processImport" ->
@@ -118,8 +118,9 @@ public class SaleOrderController extends HttpServlet {
         sb.append("[");
         for (int i = 0; i < list.size(); i++) {
             ProductVariantDTO v = list.get(i);
-            if (i > 0)
+            if (i > 0) {
                 sb.append(",");
+            }
             sb.append("{")
                     .append("\"variantId\":").append(v.getVariantId()).append(",")
                     .append("\"variantSku\":\"").append(esc(v.getVariantSku())).append("\",")
@@ -133,8 +134,9 @@ public class SaleOrderController extends HttpServlet {
     }
 
     private String esc(String s) {
-        if (s == null)
+        if (s == null) {
             return "";
+        }
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
@@ -270,7 +272,7 @@ public class SaleOrderController extends HttpServlet {
         String requestedShipStr = request.getParameter("requestedShipDate");
         Date requestedShipDate = null;
         if (requestedShipStr == null || requestedShipStr.isBlank()) {
-            fieldErrors.put("expectedDeliveryDate", "Expected Delivery Date is required");
+            fieldErrors.put("requestedShipDates", "Request Delivery Date is required");
         } else {
             try {
                 requestedShipDate = Date.valueOf(requestedShipStr); // yyyy-MM-dd
@@ -425,9 +427,13 @@ public class SaleOrderController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/sales-orders");
             return;
         }
-
+        if (soService.hasGdnForSo(soId)) {
+            ToastUtil.setToast(request, "error",
+                    "Unable to update Sales Order because GDN is already available.");
+            response.sendRedirect(request.getContextPath() + "/sales-orders");
+            return;
+        }
         List<SaleOrderLineDTO> lines = soService.getSaleOrderDetailLines(soId);
-
         request.setAttribute("so", so);
         request.setAttribute("lines", lines);
         request.setAttribute("customers", customerDao.getActiveCustomers());
@@ -462,7 +468,6 @@ public class SaleOrderController extends HttpServlet {
             response.sendRedirect(request.getContextPath() + "/sales-orders");
             return;
         }
-
         String soNumber = request.getParameter("soNumber");
         String customerStr = request.getParameter("customerId");
         long customerId = (customerStr == null || customerStr.isBlank()) ? 0L : Long.parseLong(customerStr);
@@ -643,12 +648,18 @@ public class SaleOrderController extends HttpServlet {
         }
 
         SaleOrderHeaderDTO so = soService.getSaleOrderHeader(soId);
+        String page = request.getParameter("page");
+        String listUrl = request.getContextPath() + "/sales-orders";
+        listUrl += (page != null && !page.isBlank()) ? "?page=" + page : "";
+
         if (so != null && "CLOSED".equalsIgnoreCase(so.getStatus())) {
             ToastUtil.setToast(request, "error", "Cannot delete Sales Order with status CLOSED.");
-            String page = request.getParameter("page");
-            String redirectUrl = request.getContextPath() + "/sales-orders";
-            redirectUrl += (page != null && !page.isBlank()) ? "?page=" + page : "";
-            response.sendRedirect(redirectUrl);
+            response.sendRedirect(listUrl);
+            return;
+        }
+        if (so != null && soService.hasGdnForSo(soId)) {
+            ToastUtil.setToast(request, "error", "Unable to delete Sales Order because GDN is already available.");
+            response.sendRedirect(listUrl);
             return;
         }
 
@@ -658,10 +669,7 @@ public class SaleOrderController extends HttpServlet {
         } else {
             ToastUtil.setToast(request, "error", "Sales Order not found.");
         }
-        String page = request.getParameter("page");
-        String redirectUrl = request.getContextPath() + "/sales-orders";
-        redirectUrl += (page != null && !page.isBlank()) ? "?page=" + page : "";
-        response.sendRedirect(redirectUrl);
+        response.sendRedirect(listUrl);
     }
 
     @Override

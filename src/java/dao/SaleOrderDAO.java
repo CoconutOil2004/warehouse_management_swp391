@@ -128,6 +128,17 @@ public class SaleOrderDAO extends DBContext {
         }
     }
 
+    /** Any GDN row linked to this SO (same rule as outbound create: one SO may have one GDN record). */
+    public boolean hasGdnForSo(long soId) throws Exception {
+        String sql = "SELECT 1 FROM goods_delivery_note WHERE so_id = ? LIMIT 1";
+        try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setLong(1, soId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
     public boolean existsBySoNumber(String soNumber) throws Exception {
         String sql = "SELECT 1 FROM sales_order WHERE so_number = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {

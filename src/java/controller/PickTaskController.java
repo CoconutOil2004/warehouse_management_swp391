@@ -1,14 +1,5 @@
 package controller;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import dao.GoodsDeliveryNoteDAO;
 import dao.PickTaskDAO;
 import dao.PickWaveDAO;
@@ -22,14 +13,22 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import model.User;
 
-@WebServlet(name = "PickTaskController", urlPatterns = { "/pick-task" })
+@WebServlet(name = "PickTaskController", urlPatterns = {"/pick-task"})
 public class PickTaskController extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
 
@@ -47,20 +46,20 @@ public class PickTaskController extends HttpServlet {
                 case "assign-lines" -> handleAssignLinesForm(request, response);
                 case "pick" -> handlePickLine(request, response);
                 default -> response.sendRedirect(
-                        request.getContextPath() + "/pick-task?action=myTasks");
+                    request.getContextPath() + "/pick-task?action=myTasks");
             }
         } catch (Exception e) {
             Logger.getLogger(PickTaskController.class.getName()).log(
-                    Level.SEVERE,
-                    null,
-                    e);
+            Level.SEVERE,
+            null,
+            e);
             throw new ServletException(e);
         }
     }
 
     private void handleMyTasks(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         User user = (User) request.getSession().getAttribute("USER");
         if (user == null) {
             response.sendRedirect(request.getContextPath() + "/authen?action=login");
@@ -74,10 +73,10 @@ public class PickTaskController extends HttpServlet {
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         String status = request.getParameter("status");
         List<PickTaskDTO> tasks = pickTaskDao.getMyPickTasks(
-                user.getUserId(),
-                status,
-                pageSize,
-                offset);
+        user.getUserId(),
+        status,
+        pageSize,
+        offset);
         int totalTasks = pickTaskDao.countMyPickTasks(user.getUserId(), status);
         int totalPages = (int) Math.ceil((double) totalTasks / pageSize);
 
@@ -88,13 +87,13 @@ public class PickTaskController extends HttpServlet {
         request.setAttribute("size", (long) pageSize);
         request.setAttribute("total", (long) totalTasks);
         request
-                .getRequestDispatcher("/WEB-INF/views/outbound/pick-task-list.jsp")
-                .forward(request, response);
+        .getRequestDispatcher("/WEB-INF/views/outbound/pick-task-list.jsp")
+        .forward(request, response);
     }
 
     private void handleDetail(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         User user = (User) request.getSession().getAttribute("USER");
         if (user == null) {
             response.sendRedirect(request.getContextPath() + "/authen?action=login");
@@ -104,7 +103,7 @@ public class PickTaskController extends HttpServlet {
         Long pickTaskId = parseLong(request.getParameter("id"), -1);
         if (pickTaskId <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myTasks");
+            request.getContextPath() + "/pick-task?action=myTasks");
             return;
         }
 
@@ -112,30 +111,30 @@ public class PickTaskController extends HttpServlet {
         PickTaskDTO task = pickTaskDao.getPickTaskById(pickTaskId);
         if (task == null) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myTasks");
+            request.getContextPath() + "/pick-task?action=myTasks");
             return;
         }
 
         // Check if user has any lines assigned in this task
         List<PickTaskLineDTO> taskLines = pickTaskDao.getPickTaskLines(pickTaskId);
         boolean hasAssignedLine = taskLines.stream()
-                .anyMatch(l -> l.getAssignedTo() != null && l.getAssignedTo().equals(user.getUserId()));
+        .anyMatch(l -> l.getAssignedTo() != null && l.getAssignedTo().equals(user.getUserId()));
 
         if (!hasAssignedLine) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myTasks");
+            request.getContextPath() + "/pick-task?action=myTasks");
             return;
         }
 
         request.setAttribute("task", task);
         request
-                .getRequestDispatcher("/WEB-INF/views/outbound/pick-task-detail.jsp")
-                .forward(request, response);
+        .getRequestDispatcher("/WEB-INF/views/outbound/pick-task-detail.jsp")
+        .forward(request, response);
     }
 
     private void handleAssignForm(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         User user = (User) request.getSession().getAttribute("USER");
         if (user == null) {
             response.sendRedirect(request.getContextPath() + "/authen?action=login");
@@ -144,14 +143,14 @@ public class PickTaskController extends HttpServlet {
         String roles = user.getRoleNames() != null ? user.getRoleNames() : "";
         if (!roles.contains("ADMIN") && !roles.contains("WAREHOUSE_MANAGER")) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myTasks");
+            request.getContextPath() + "/pick-task?action=myTasks");
             return;
         }
 
         Long waveId = parseLong(request.getParameter("waveId"), -1);
         if (waveId <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/goods-delivery-note?action=list");
+            request.getContextPath() + "/goods-delivery-note?action=list");
             return;
         }
 
@@ -162,7 +161,7 @@ public class PickTaskController extends HttpServlet {
         dto.PickWaveDTO wave = waveDao.getWaveById(waveId);
         if (wave == null) {
             response.sendRedirect(
-                    request.getContextPath() + "/goods-delivery-note?action=list");
+            request.getContextPath() + "/goods-delivery-note?action=list");
             return;
         }
 
@@ -185,16 +184,16 @@ public class PickTaskController extends HttpServlet {
         request.setAttribute("suggestions", suggestions);
         request.setAttribute("unassignedLines", unassignedLines);
         request
-                .getRequestDispatcher("/WEB-INF/views/outbound/pick-task-assign.jsp")
-                .forward(request, response);
+        .getRequestDispatcher("/WEB-INF/views/outbound/pick-task-assign.jsp")
+        .forward(request, response);
     }
 
     /**
      * Show lines assigned to current user (for PDA/Mobile).
      */
     private void handleMyLines(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         User user = (User) request.getSession().getAttribute("USER");
         if (user == null) {
             response.sendRedirect(request.getContextPath() + "/authen?action=login");
@@ -207,16 +206,16 @@ public class PickTaskController extends HttpServlet {
         request.setAttribute("lines", lines);
         request.setAttribute("user", user);
         request
-                .getRequestDispatcher("/WEB-INF/views/outbound/pick-my-lines.jsp")
-                .forward(request, response);
+        .getRequestDispatcher("/WEB-INF/views/outbound/pick-my-lines.jsp")
+        .forward(request, response);
     }
 
     /**
      * Show form for line assignment (new line-level assignment).
      */
     private void handleAssignLinesForm(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         User user = (User) request.getSession().getAttribute("USER");
         if (user == null) {
             response.sendRedirect(request.getContextPath() + "/authen?action=login");
@@ -225,14 +224,14 @@ public class PickTaskController extends HttpServlet {
         String roles = user.getRoleNames() != null ? user.getRoleNames() : "";
         if (!roles.contains("ADMIN") && !roles.contains("WAREHOUSE_MANAGER")) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myTasks");
+            request.getContextPath() + "/pick-task?action=myTasks");
             return;
         }
 
         Long waveId = parseLong(request.getParameter("waveId"), -1);
         if (waveId <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/goods-delivery-note?action=list");
+            request.getContextPath() + "/goods-delivery-note?action=list");
             return;
         }
 
@@ -250,16 +249,16 @@ public class PickTaskController extends HttpServlet {
         request.setAttribute("warehouseStaff", warehouseStaff);
         request.setAttribute("staffWorkload", staffWorkload);
         request
-                .getRequestDispatcher("/WEB-INF/views/outbound/pick-line-assign.jsp")
-                .forward(request, response);
+        .getRequestDispatcher("/WEB-INF/views/outbound/pick-line-assign.jsp")
+        .forward(request, response);
     }
 
     /**
      * Show pick execution page for a single line.
      */
     private void handlePickLine(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         User user = (User) request.getSession().getAttribute("USER");
         if (user == null) {
             response.sendRedirect(request.getContextPath() + "/authen?action=login");
@@ -269,7 +268,7 @@ public class PickTaskController extends HttpServlet {
         Long lineId = parseLong(request.getParameter("id"), -1);
         if (lineId <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myLines");
+            request.getContextPath() + "/pick-task?action=myLines");
             return;
         }
 
@@ -286,7 +285,7 @@ public class PickTaskController extends HttpServlet {
 
         if (targetLine == null) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myLines");
+            request.getContextPath() + "/pick-task?action=myLines");
             return;
         }
 
@@ -296,7 +295,7 @@ public class PickTaskController extends HttpServlet {
             if (wave == null || !"RELEASED".equals(wave.getStatus())) {
                 request.getSession().setAttribute("error", "Wave is not released yet. Please wait for release.");
                 response.sendRedirect(
-                        request.getContextPath() + "/pick-task?action=myLines");
+                request.getContextPath() + "/pick-task?action=myLines");
                 return;
             }
         }
@@ -304,14 +303,14 @@ public class PickTaskController extends HttpServlet {
         request.setAttribute("line", targetLine);
         request.setAttribute("myLines", myLines);
         request
-                .getRequestDispatcher("/WEB-INF/views/outbound/pick-task-execute.jsp")
-                .forward(request, response);
+        .getRequestDispatcher("/WEB-INF/views/outbound/pick-task-execute.jsp")
+        .forward(request, response);
     }
 
     @Override
     protected void doPost(
-            HttpServletRequest request,
-            HttpServletResponse response) throws ServletException, IOException {
+    HttpServletRequest request,
+    HttpServletResponse response) throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
 
@@ -336,27 +335,27 @@ public class PickTaskController extends HttpServlet {
                 case "complete" -> handleComplete(request, response);
                 case "save-pick" -> handleSavePick(request, response);
                 default -> response.sendRedirect(
-                        request.getContextPath() + "/pick-task?action=myTasks");
+                    request.getContextPath() + "/pick-task?action=myTasks");
             }
         } catch (Exception e) {
             Logger.getLogger(PickTaskController.class.getName()).log(
-                    Level.SEVERE,
-                    null,
-                    e);
+            Level.SEVERE,
+            null,
+            e);
             throw new ServletException(e);
         }
     }
 
     private void handleAssign(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         Long pickTaskId = parseLong(request.getParameter("pickTaskId"), -1);
         Long assignedTo = parseLong(request.getParameter("assignedTo"), -1);
         Long waveId = parseLong(request.getParameter("waveId"), -1);
 
         if (pickTaskId <= 0 || assignedTo <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myTasks");
+            request.getContextPath() + "/pick-task?action=myTasks");
             return;
         }
 
@@ -373,32 +372,33 @@ public class PickTaskController extends HttpServlet {
         }
 
         if (waveId > 0) {
+            pickTaskDao.checkAndAutoReleaseWave(waveId);
             request
-                    .getSession()
-                    .setAttribute(
-                            "message",
-                            "Đã phân công nhân viên xử lý task #" + pickTaskId);
+            .getSession()
+            .setAttribute(
+            "message",
+            "Đã phân công nhân viên xử lý task #" + pickTaskId);
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
+            request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
         } else {
             request.getSession().setAttribute("message", "Phân công task thành công");
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myTasks");
+            request.getContextPath() + "/pick-task?action=myTasks");
         }
     }
 
     private void handleAssignAllBatch(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         String[] taskIdsParam = request.getParameterValues("taskIds");
         Long waveId = parseLong(request.getParameter("waveId"), -1);
 
         if (taskIdsParam == null || taskIdsParam.length == 0 || waveId <= 0) {
             response.sendRedirect(
-                    request.getContextPath()
-                            + "/pick-task?action=assign&waveId="
-                            + waveId
-                            + "&error=no_tasks");
+            request.getContextPath()
+            + "/pick-task?action=assign&waveId="
+            + waveId
+            + "&error=no_tasks");
             return;
         }
 
@@ -412,11 +412,11 @@ public class PickTaskController extends HttpServlet {
         List<Long> assignedToIds = new ArrayList<>();
 
         for (String taskIdStr : taskIdsParam) {
-            Long taskId = Long.parseLong(taskIdStr);
+            Long taskId = Long.valueOf(taskIdStr);
             String assignedToParam = request.getParameter("assignedTo_" + taskId);
 
             if (assignedToParam != null && !assignedToParam.isEmpty()) {
-                Long assignedTo = Long.parseLong(assignedToParam);
+                Long assignedTo = Long.valueOf(assignedToParam);
                 if (assignedTo > 0) {
                     assignedTaskIds.add(taskId);
                     assignedToIds.add(assignedTo);
@@ -426,10 +426,10 @@ public class PickTaskController extends HttpServlet {
 
         if (assignedTaskIds.isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath()
-                            + "/pick-task?action=assign&waveId="
-                            + waveId
-                            + "&error=no_selection");
+            request.getContextPath()
+            + "/pick-task?action=assign&waveId="
+            + waveId
+            + "&error=no_selection");
             return;
         }
 
@@ -452,37 +452,39 @@ public class PickTaskController extends HttpServlet {
             }
         }
 
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
+
         request
-                .getSession()
-                .setAttribute(
-                        "message",
-                        "Đã phân công " + assignedTaskIds.size() + " tasks thành công");
+        .getSession()
+        .setAttribute(
+        "message",
+        "Đã phân công " + assignedTaskIds.size() + " tasks thành công");
         response.sendRedirect(
-                request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
+        request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
     }
 
     private void handleBatchAssign(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         String[] pickTaskIdsParam = request.getParameterValues("pickTaskIds");
         Long assignedTo = parseLong(request.getParameter("assignedTo"), -1);
         Long waveId = parseLong(request.getParameter("waveId"), -1);
 
         if (pickTaskIdsParam == null
-                || pickTaskIdsParam.length == 0
-                || assignedTo <= 0) {
+        || pickTaskIdsParam.length == 0
+        || assignedTo <= 0) {
             response.sendRedirect(
-                    request.getContextPath()
-                            + "/pick-task?action=assign&waveId="
-                            + waveId
-                            + "&error=invalid_params");
+            request.getContextPath()
+            + "/pick-task?action=assign&waveId="
+            + waveId
+            + "&error=invalid_params");
             return;
         }
 
         List<Long> pickTaskIds = new java.util.ArrayList<>();
         for (String id : pickTaskIdsParam) {
             try {
-                pickTaskIds.add(Long.parseLong(id.trim()));
+                pickTaskIds.add(Long.valueOf(id.trim()));
             } catch (NumberFormatException e) {
                 // Ignore invalid IDs
             }
@@ -490,10 +492,10 @@ public class PickTaskController extends HttpServlet {
 
         if (pickTaskIds.isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath()
-                            + "/pick-task?action=assign&waveId="
-                            + waveId
-                            + "&error=no_tasks");
+            request.getContextPath()
+            + "/pick-task?action=assign&waveId="
+            + waveId
+            + "&error=no_tasks");
             return;
         }
 
@@ -512,23 +514,25 @@ public class PickTaskController extends HttpServlet {
             }
         }
 
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
+
         request
-                .getSession()
-                .setAttribute(
-                        "message",
-                        "Đã phân công " + pickTaskIds.size() + " tasks thành công");
+        .getSession()
+        .setAttribute(
+        "message",
+        "Đã phân công " + pickTaskIds.size() + " tasks thành công");
         response.sendRedirect(
-                request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
+        request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
     }
 
     private void handleAutoAssign(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         Long waveId = parseLong(request.getParameter("waveId"), -1);
 
         if (waveId <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/goods-delivery-note?action=list");
+            request.getContextPath() + "/goods-delivery-note?action=list");
             return;
         }
 
@@ -547,36 +551,38 @@ public class PickTaskController extends HttpServlet {
             }
         }
 
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
+
         request
-                .getSession()
-                .setAttribute(
-                        "message",
-                        "Auto-assign hoàn thành! Tasks đã được chia đều theo workload.");
+        .getSession()
+        .setAttribute(
+        "message",
+        "Auto-assign hoàn thành! Tasks đã được chia đều theo workload.");
         response.sendRedirect(
-                request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
+        request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
     }
 
     private void handleStart(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         Long pickTaskId = parseLong(request.getParameter("id"), -1);
         if (pickTaskId <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myTasks");
+            request.getContextPath() + "/pick-task?action=myTasks");
             return;
         }
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         pickTaskDao.startTask(pickTaskId);
         request
-                .getSession()
-                .setAttribute("message", "Đã bắt đầu thực hiện task #" + pickTaskId);
+        .getSession()
+        .setAttribute("message", "Đã bắt đầu thực hiện task #" + pickTaskId);
         response.sendRedirect(
-                request.getContextPath() + "/pick-task?action=detail&id=" + pickTaskId);
+        request.getContextPath() + "/pick-task?action=detail&id=" + pickTaskId);
     }
 
     private void handleComplete(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         Long pickTaskId = parseLong(request.getParameter("pickTaskId"), -1);
         if (pickTaskId <= 0) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -600,10 +606,10 @@ public class PickTaskController extends HttpServlet {
         String[] lineIds = request.getParameterValues("lineIds");
         String[] qtyPickedStrs = request.getParameterValues("qtyPicked");
         if (lineIds == null
-                || qtyPickedStrs == null
-                || lineIds.length != qtyPickedStrs.length) {
+        || qtyPickedStrs == null
+        || lineIds.length != qtyPickedStrs.length) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=detail&id=" + pickTaskId);
+            request.getContextPath() + "/pick-task?action=detail&id=" + pickTaskId);
             return;
         }
 
@@ -621,9 +627,9 @@ public class PickTaskController extends HttpServlet {
                     if (qty.compareTo(qtyToPick) > 0) {
                         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                         request.getSession().setAttribute("error",
-                                "Số lượng pick không được lớn hơn số lượng cần pick!");
+                        "Số lượng pick không được lớn hơn số lượng cần pick!");
                         response.sendRedirect(
-                                request.getContextPath() + "/pick-task?action=detail&id=" + pickTaskId);
+                        request.getContextPath() + "/pick-task?action=detail&id=" + pickTaskId);
                         return;
                     }
                     line.setQtyPicked(qty);
@@ -641,46 +647,38 @@ public class PickTaskController extends HttpServlet {
 
                 GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
                 gdnDao.updateGDNStatus(task.getGdnId(), "PACKING");
-                // Ensure packing record exists so it can be assigned
-                dao.PackingDAO packingDao = new dao.PackingDAO();
-                if (packingDao.getByGdnId(task.getGdnId()) == null) {
-                    packingDao.createPackingForGDN(task.getGdnId());
-                }
+                // Wait for manager to create packing session
             }
         } else {
             GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
             if (pickTaskDao.isAllTasksCompleteForGDN(task.getGdnId())) {
                 gdnDao.updateGDNStatus(task.getGdnId(), "PACKING");
-                // Ensure packing record exists so it can be assigned
-                dao.PackingDAO packingDao = new dao.PackingDAO();
-                if (packingDao.getByGdnId(task.getGdnId()) == null) {
-                    packingDao.createPackingForGDN(task.getGdnId());
-                }
+                // Wait for manager to create packing session
             }
         }
 
         request
-                .getSession()
-                .setAttribute(
-                        "message",
-                        "Hoàn thành task #" + pickTaskId + " thành công! GDN đã chuyển sang trạng thái PACKING.");
+        .getSession()
+        .setAttribute(
+        "message",
+        "Hoàn thành task #" + pickTaskId + " thành công! GDN đã chuyển sang trạng thái PACKING.");
         response.sendRedirect(
-                request.getContextPath() + "/pick-task?action=myTasks");
+        request.getContextPath() + "/pick-task?action=myTasks");
     }
 
     /**
      * Assign multiple lines to a staff member (line-level assignment).
      */
     private void handleAssignLines(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         String[] lineIdsParam = request.getParameterValues("lineIds");
         Long assignedTo = parseLong(request.getParameter("assignedTo"), -1);
         Long waveId = parseLong(request.getParameter("waveId"), -1);
 
         if (lineIdsParam == null || lineIdsParam.length == 0 || assignedTo <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId + "&error=invalid");
+            request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId + "&error=invalid");
             return;
         }
 
@@ -690,7 +688,7 @@ public class PickTaskController extends HttpServlet {
         List<Long> lineIds = new ArrayList<>();
         for (String id : lineIdsParam) {
             try {
-                lineIds.add(Long.parseLong(id.trim()));
+                lineIds.add(Long.valueOf(id.trim()));
             } catch (NumberFormatException e) {
                 // Ignore
             }
@@ -698,16 +696,18 @@ public class PickTaskController extends HttpServlet {
 
         if (lineIds.isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId + "&error=no_selection");
+            request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId + "&error=no_selection");
             return;
         }
 
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         pickTaskDao.assignLines(lineIds, assignedTo, assignedBy);
 
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
+
         request.getSession().setAttribute("message", "Đã gán " + lineIds.size() + " dòng cho nhân viên");
         response.sendRedirect(
-                request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
+        request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
     }
 
     /**
@@ -715,17 +715,17 @@ public class PickTaskController extends HttpServlet {
      * assignment).
      */
     private void handleAssignLinesBatch(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         String[] lineIdsParam = request.getParameterValues("lineIds");
         Long waveId = parseLong(request.getParameter("waveId"), -1);
 
         if (lineIdsParam == null || lineIdsParam.length == 0 || waveId <= 0) {
             response.sendRedirect(
-                    request.getContextPath()
-                            + "/pick-task?action=assign&waveId="
-                            + waveId
-                            + "&error=no_lines");
+            request.getContextPath()
+            + "/pick-task?action=assign&waveId="
+            + waveId
+            + "&error=no_lines");
             return;
         }
 
@@ -738,11 +738,11 @@ public class PickTaskController extends HttpServlet {
         Map<Long, Long> lineAssignments = new LinkedHashMap<>();
 
         for (String lineIdStr : lineIdsParam) {
-            Long lineId = Long.parseLong(lineIdStr);
+            Long lineId = Long.valueOf(lineIdStr);
             String assignedToParam = request.getParameter("assignedTo_" + lineId);
 
             if (assignedToParam != null && !assignedToParam.isEmpty()) {
-                Long assignedTo = Long.parseLong(assignedToParam);
+                Long assignedTo = Long.valueOf(assignedToParam);
                 if (assignedTo > 0) {
                     lineAssignments.put(lineId, assignedTo);
                 }
@@ -751,10 +751,10 @@ public class PickTaskController extends HttpServlet {
 
         if (lineAssignments.isEmpty()) {
             response.sendRedirect(
-                    request.getContextPath()
-                            + "/pick-task?action=assign&waveId="
-                            + waveId
-                            + "&error=no_selection");
+            request.getContextPath()
+            + "/pick-task?action=assign&waveId="
+            + waveId
+            + "&error=no_selection");
             return;
         }
 
@@ -780,26 +780,28 @@ public class PickTaskController extends HttpServlet {
             }
         }
 
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
+
         request
-                .getSession()
-                .setAttribute(
-                        "message",
-                        "Đã phân công " + lineAssignments.size() + " dòng thành công");
+        .getSession()
+        .setAttribute(
+        "message",
+        "Đã phân công " + lineAssignments.size() + " dòng thành công");
         response.sendRedirect(
-                request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
+        request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
     }
 
     /**
      * Auto-assign lines using load balancing.
      */
     private void handleAutoAssignLines(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         Long waveId = parseLong(request.getParameter("waveId"), -1);
 
         if (waveId <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/goods-delivery-note?action=list");
+            request.getContextPath() + "/goods-delivery-note?action=list");
             return;
         }
 
@@ -809,22 +811,24 @@ public class PickTaskController extends HttpServlet {
         PickTaskDAO pickTaskDao = new PickTaskDAO();
         pickTaskDao.autoAssignLines(waveId, assignedBy);
 
+        pickTaskDao.checkAndAutoReleaseWave(waveId);
+
         request.getSession().setAttribute("message", "Auto-assign hoàn thành!");
         response.sendRedirect(
-                request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
+        request.getContextPath() + "/pick-task?action=assign&waveId=" + waveId);
     }
 
     /**
      * Start picking a single line.
      */
     private void handleStartLine(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         Long lineId = parseLong(request.getParameter("lineId"), -1);
 
         if (lineId <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myLines");
+            request.getContextPath() + "/pick-task?action=myLines");
             return;
         }
 
@@ -839,21 +843,21 @@ public class PickTaskController extends HttpServlet {
 
         request.getSession().setAttribute("message", "Đã bắt đầu nhặt dòng #" + lineId);
         response.sendRedirect(
-                request.getContextPath() + "/pick-task?action=pick&id=" + lineId);
+        request.getContextPath() + "/pick-task?action=pick&id=" + lineId);
     }
 
     /**
      * Save pick result for a line.
      */
     private void handleSavePick(
-            HttpServletRequest request,
-            HttpServletResponse response) throws Exception {
+    HttpServletRequest request,
+    HttpServletResponse response) throws Exception {
         Long lineId = parseLong(request.getParameter("lineId"), -1);
         String qtyPickedStr = request.getParameter("qtyPicked");
 
         if (lineId <= 0) {
             response.sendRedirect(
-                    request.getContextPath() + "/pick-task?action=myLines");
+            request.getContextPath() + "/pick-task?action=myLines");
             return;
         }
 
@@ -880,19 +884,19 @@ public class PickTaskController extends HttpServlet {
             GoodsDeliveryNoteDAO gdnDao = new GoodsDeliveryNoteDAO();
             gdnDao.updateGDNStatus(gdnId, "PACKING");
             request.getSession().setAttribute("message",
-                    "Đã lưu kết quả nhặt hàng! GDN đã chuyển sang trạng thái PACKING.");
+            "Đã lưu kết quả nhặt hàng! GDN đã chuyển sang trạng thái PACKING.");
         } else {
             request.getSession().setAttribute("message", "Đã lưu kết quả nhặt hàng!");
         }
 
         response.sendRedirect(
-                request.getContextPath() + "/pick-task?action=myLines");
+        request.getContextPath() + "/pick-task?action=myLines");
     }
 
     private long parseLong(String raw, long def) {
         try {
             return (raw == null || raw.isBlank()) ? def : Long.parseLong(raw.trim());
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
             return def;
         }
     }

@@ -7,6 +7,7 @@
 <%@attribute name="size" %> <!-- sm | lg -->
 <%@attribute name="shape" %> <!-- circle -->
 <%@attribute name="icon" %>  <!--bootstrap icon-->
+<%@attribute name="cssClass" %> <!--additional css classes-->
 
 <c:set var="finalColor" value="${empty color ? 'primary' : color}" />
 <c:set var="sizeClass" value="${empty size ? '' : 'btn-'.concat(size)}" />

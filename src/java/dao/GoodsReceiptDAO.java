@@ -236,13 +236,20 @@ public class GoodsReceiptDAO extends DBContext {
         return list;
     }
 
-    public boolean updateStatus(Long grnId, String status, Long userId) throws SQLException {
-        String sql = "UPDATE goods_receipt SET status = ?, approved_by = ?, approved_at = NOW() WHERE grn_id = ?";
+    public boolean updateStatus(Long grnId, String status, Long userId, String note) throws SQLException {
+        boolean hasNote = (note != null && !note.isBlank());
+        String sql = "UPDATE goods_receipt SET status = ?, approved_by = ?, approved_at = NOW()"
+                + (hasNote ? ", note = ?" : "")
+                + " WHERE grn_id = ?";
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, status);
-            ps.setLong(2, userId);
-            ps.setLong(3, grnId);
+            int idx = 1;
+            ps.setString(idx++, status);
+            ps.setLong(idx++, userId);
+            if (hasNote) {
+                ps.setString(idx++, note);
+            }
+            ps.setLong(idx++, grnId);
             return ps.executeUpdate() > 0;
         }
     }

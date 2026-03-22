@@ -3,7 +3,6 @@
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 
 <t:layout title="Create Sale Order">
-
     <div class="py-4">
         <form action="${pageContext.request.contextPath}/sales-orders" method="post" id="soForm">
             <input type="hidden" name="action" value="create"/>
@@ -52,11 +51,11 @@
                     <div class="col-md-4">
                         <label class="form-label">Requested Ship Date</label>
                         <input type="date"
-                               class="form-control ${not empty fieldErrors.requestedShipDate ? 'is-invalid' : ''}"
+                               class="form-control ${not empty fieldErrors.requestedShipDates ? 'is-invalid' : ''}"
                                name="requestedShipDate"
                                value="${oldRequestedShipDate}">
-                        <c:if test="${not empty fieldErrors.requestedShipDate}">
-                            <div class="invalid-feedback d-block">${fieldErrors.requestedShipDate}</div>
+                        <c:if test="${not empty fieldErrors.requestedShipDates}">
+                            <div class="invalid-feedback d-block">${fieldErrors.requestedShipDates}</div>
                         </c:if>
                     </div>
 
