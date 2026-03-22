@@ -70,4 +70,8 @@ public class SaleOrderService {
     public boolean deleteSalesOrder(long soId) throws Exception {
         return soDao.deleteSalesOrder(soId);
     }
+
+    public boolean hasGdnForSo(long soId) throws Exception {
+        return soDao.hasGdnForSo(soId);
+    }
 }

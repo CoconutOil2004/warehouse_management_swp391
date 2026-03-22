@@ -3,7 +3,6 @@
 <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
 
 <t:layout title="Create Sale Order">
-
     <div class="py-4">
         <form action="${pageContext.request.contextPath}/sales-orders" method="post" id="soForm">
             <input type="hidden" name="action" value="create"/>
