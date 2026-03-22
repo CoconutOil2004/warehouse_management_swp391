@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8" %>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@taglib tagdir="/WEB-INF/tags/" prefix="t" %>
 
 <t:layout title="Customer Management">
@@ -57,7 +58,7 @@
                             </button>
 
                             <t:alert id="deleteModal${cst.customerId}">
-                                <jsp:attribute name="title"> Confirm Delete </jsp:attribute>
+                                <jsp:attribute name="title"> Confirm Change </jsp:attribute>
                                 <jsp:attribute name="desciption">
                                     Are you sure you want to change status of customer
                                     <strong>${cst.name}</strong>? This action cannot be undone.
@@ -79,5 +80,10 @@
                 </c:forEach>
             </jsp:body>
         </t:table>
+
+        <%-- Marker cho toast "không tìm thấy" — xử lý trong toast.jspf (DOMContentLoaded + htmx:afterSwap) --%>
+        <c:if test="${not empty emptySearchMessage}">
+            <span class="d-none js-empty-search-toast" data-empty-search-toast="${fn:escapeXml(emptySearchMessage)}" aria-hidden="true"></span>
+        </c:if>
     </jsp:body>
 </t:layout>

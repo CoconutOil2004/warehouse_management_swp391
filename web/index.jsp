@@ -697,7 +697,7 @@
 
                         if (!passValue) {
                             document.getElementById('passGroup').classList.add('has-error');
-                            document.getElementById('passwordError').textContent = "Vui lòng nhập mật khẩu";
+                            document.getElementById('passwordError').textContent = "Please enter your password";
                             isValid = false;
                         } else if (!isAllValid) {
                             document.getElementById('passGroup').classList.add('has-error');
