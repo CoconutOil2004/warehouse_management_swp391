@@ -3,6 +3,11 @@
 
 <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
 
+    <c:set var="sidebarRoleNames" value="${sessionScope.USER != null ? sessionScope.USER.roleNames : ''}" />
+    <c:set var="hideOutboundForPurchaseStaff" value="${fn:contains(sidebarRoleNames, 'PURCHASE_STAFF') && !fn:contains(sidebarRoleNames, 'ADMIN') && !fn:contains(sidebarRoleNames, 'WAREHOUSE_MANAGER')}" />
+    <c:set var="hideInboundForSaleStaff" value="${(fn:contains(sidebarRoleNames, 'SALE_STAFF') || fn:contains(sidebarRoleNames, 'SALES_STAFF')) && !fn:contains(sidebarRoleNames, 'ADMIN') && !fn:contains(sidebarRoleNames, 'WAREHOUSE_MANAGER')}" />
+    <c:set var="showWarehouseOpsSection" value="${!hideInboundForSaleStaff || !hideOutboundForPurchaseStaff}" />
+
     <!-- Sidebar - Brand -->
     <a class="sidebar-brand d-flex align-items-center justify-content-center"
         href="${pageContext.request.contextPath}/admin/dashboard">
@@ -22,12 +27,15 @@
             <span>Dashboard</span></a>
     </li>
 
+    <c:if test="${!fn:contains(sidebarRoleNames, 'ADMIN')}">
     <!-- Divider -->
     <hr class="sidebar-divider" />
 
+    <c:if test="${showWarehouseOpsSection}">
     <!-- Warehouse Operations Section -->
     <div class="sidebar-heading">Warehouse Operations</div>
 
+    <c:if test="${!hideInboundForSaleStaff}">
     <!-- Nav Item - Inbound -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseInbound"
@@ -46,7 +54,9 @@
             </div>
         </div>
     </li>
+    </c:if>
 
+    <c:if test="${!hideOutboundForPurchaseStaff}">
     <!-- Nav Item - Outbound -->
     <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseOutbound"
@@ -66,10 +76,24 @@
             </div>
         </div>
     </li>
+    </c:if>
+    </c:if>
+
+    <!-- Catalog (non-admin): luôn có link Products -->
+    <div class="sidebar-heading">Catalog</div>
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/products">
+            <i class="fas fa-fw fa-box-open"></i>
+            <span>Products</span>
+        </a>
+    </li>
+    </c:if>
+
+    <c:if test="${fn:contains(sidebarRoleNames, 'ADMIN')}">
     <!-- Divider -->
     <hr class="sidebar-divider" />
 
-    <!-- ADMIN ONLY SECTION -->
+    <!-- ADMIN ONLY: Master Data -->
     <div class="sidebar-heading">Master Data</div>
 
     <!-- Nav Item - Account Menu -->
@@ -106,18 +130,17 @@
         </div>
     </li>
 
-                <!-- Nav Item - Warehouse -->
-                <li class="nav-item">
-                    <a class="nav-link" href="${pageContext.request.contextPath}/admin/warehouse">
-                        <i class="fas fa-fw fa-warehouse"></i>
-                        <span>Warehouse</span>
-                    </a>
-                </li>
-
-
+    <!-- Nav Item - Warehouse -->
+    <li class="nav-item">
+        <a class="nav-link" href="${pageContext.request.contextPath}/admin/warehouse">
+            <i class="fas fa-fw fa-warehouse"></i>
+            <span>Warehouse</span>
+        </a>
+    </li>
 
     <!-- Divider -->
     <hr class="sidebar-divider" />
+    </c:if>
 
     <!-- Sidebar Toggler (Sidebar) -->
     <div class="text-center d-none d-md-inline">

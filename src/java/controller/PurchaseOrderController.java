@@ -27,6 +27,7 @@ import service.PurchaseOrderImportService;
 import service.PurchaseOrderService;
 import service.SupplierService;
 import util.RequestUtil;
+import util.RoleUtil;
 import util.ToastUtil;
 import util.ViewPath;
 
@@ -52,12 +53,21 @@ public class PurchaseOrderController extends HttpServlet {
             }
             switch (action) {
                 case "variants":
+                    if (blockWarehouseStaffPoMutation(request, response)) {
+                        return;
+                    }
                     handleGetVariants(request, response);
                     break;
                 case "import":
+                    if (blockWarehouseStaffPoMutation(request, response)) {
+                        return;
+                    }
                     forwardImportForm(request, response);
                     break;
                 case "edit":
+                    if (blockWarehouseStaffPoMutation(request, response)) {
+                        return;
+                    }
                     forwardEditForm(request, response);
                     break;
                 default:
@@ -81,16 +91,36 @@ public class PurchaseOrderController extends HttpServlet {
             switch (action) {
                 case "detail" ->
                     forwardDetail(request, response);
-                case "new" ->
+                case "new" -> {
+                    if (blockWarehouseStaffPoMutation(request, response)) {
+                        return;
+                    }
                     forwardCreateForm(request, response);
-                case "processImport" ->
+                }
+                case "processImport" -> {
+                    if (blockWarehouseStaffPoMutation(request, response)) {
+                        return;
+                    }
                     handleProcessImport(request, response);
-                case "create" ->
+                }
+                case "create" -> {
+                    if (blockWarehouseStaffPoMutation(request, response)) {
+                        return;
+                    }
                     handleCreate(request, response);
-                case "update" ->
+                }
+                case "update" -> {
+                    if (blockWarehouseStaffPoMutation(request, response)) {
+                        return;
+                    }
                     handleUpdate(request, response);
-                case "delete" ->
+                }
+                case "delete" -> {
+                    if (blockWarehouseStaffPoMutation(request, response)) {
+                        return;
+                    }
                     handleDelete(request, response);
+                }
                 default ->
                     forwardList(request, response);
             }
@@ -178,7 +208,20 @@ public class PurchaseOrderController extends HttpServlet {
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("size", size);
         request.setAttribute("total", totalRecords);
+        request.setAttribute("canManagePurchaseOrders",
+                !RoleUtil.isPurchaseOrderReadOnlyForWarehouseStaff(RoleUtil.roleNames(request)));
         request.getRequestDispatcher(ViewPath.PO_LIST).forward(request, response);
+    }
+
+    /** @return true if request was blocked (redirect sent). */
+    private boolean blockWarehouseStaffPoMutation(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        if (!RoleUtil.isPurchaseOrderReadOnlyForWarehouseStaff(RoleUtil.roleNames(request))) {
+            return false;
+        }
+        ToastUtil.setToast(request, "error", "You do not have permission to modify purchase orders.");
+        response.sendRedirect(request.getContextPath() + "/purchase-orders");
+        return true;
     }
 
     private void forwardDetail(HttpServletRequest request, HttpServletResponse response)

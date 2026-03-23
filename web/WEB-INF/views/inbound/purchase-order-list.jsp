@@ -12,6 +12,7 @@
 %>
 <t:layout title="Purchase Order List">
     <jsp:attribute name="actions">
+        <c:if test="${canManagePurchaseOrders}">
         <div class="d-flex align-items-center">
             <form action="${pageContext.request.contextPath}/purchase-orders" method="post" class="m-0 mr-2">
                 <input type="hidden" name="action" value="new">
@@ -22,6 +23,7 @@
                 <t:button type="submit" color="success">Import Purchase Order</t:button>
                 </form>
             </div>
+        </c:if>
     </jsp:attribute>
 
     <jsp:body>
@@ -87,6 +89,7 @@
                                     <input type="hidden" name="id" value="${po.poId}">
                                     <t:button type="submit" size="sm" variant="outline" color="primary">View</t:button>
                                     </form>
+                                    <c:if test="${canManagePurchaseOrders}">
                                     <button type="button" class="btn btn-sm btn-outline-danger"
                                             data-bs-toggle="modal" data-bs-target="#deleteModal${po.poId}">
                                     Delete
@@ -117,6 +120,7 @@
                                     <input type="hidden" name="page" value="${page}">
                                     <t:button type="submit" size="sm" variant="outline" color="primary">Edit</t:button>
                                     </form>
+                                    </c:if>
                                 </td>
                             </tr>
                     </c:forEach>
