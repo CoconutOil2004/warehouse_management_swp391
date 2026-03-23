@@ -11,14 +11,19 @@
                 <form action="${pageContext.request.contextPath}/goods-receipt" method="get"
                     class="row g-3">
                     <input type="hidden" name="action" value="list">
-                    <div class="col-md-3">
-                        <label class="form-label font-weight-bold">GRN Number</label>
-                        <input type="text" class="form-control" name="grnNumber" value="${param.grnNumber}"
-                            placeholder="Search code...">
+                    <div class="col-md-2">
+                        <label class="form-label font-weight-bold small text-uppercase">GRN Number</label>
+                        <input type="text" class="form-control form-control-sm" name="grnNumber" value="${param.grnNumber}"
+                            placeholder="Code...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label font-weight-bold small text-uppercase">Purchase Order</label>
+                        <input type="text" class="form-control form-control-sm" name="poNumber" value="${param.poNumber}"
+                            placeholder="PO Code...">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label font-weight-bold">Supplier</label>
-                        <select class="form-control" name="supplierId">
+                        <label class="form-label font-weight-bold small text-uppercase">Supplier</label>
+                        <select class="form-control form-control-sm" name="supplierId">
                             <option value="">-- All Suppliers --</option>
                             <c:forEach var="s" items="${suppliers}">
                                 <option value="${s.supplierId}" ${param.supplierId==s.supplierId
@@ -26,9 +31,9 @@
                             </c:forEach>
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label font-weight-bold">Status</label>
-                        <select class="form-control" name="status">
+                    <div class="col-md-1">
+                        <label class="form-label font-weight-bold small text-uppercase">Status</label>
+                        <select class="form-control form-control-sm" name="status">
                             <option value="">-- All --</option>
                             <option value="PENDING" ${param.status=='PENDING' ? 'selected' : '' }>PENDING
                             </option>
@@ -39,14 +44,14 @@
                         </select>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search"></i> Filter
+                        <button type="submit" class="btn btn-primary btn-sm w-100 shadow-sm">
+                            <i class="fas fa-search me-1"></i> Filter
                         </button>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
                         <a href="${pageContext.request.contextPath}/goods-receipt?action=list"
-                            class="btn btn-secondary w-100">
-                            <i class="fas fa-undo"></i> Reset
+                            class="btn btn-secondary btn-sm w-100 shadow-sm">
+                            <i class="fas fa-undo me-1"></i> Reset
                         </a>
                     </div>
                 </form>
@@ -70,7 +75,8 @@
                                 class="fas fa-sort"></i></th>
                         <th style="cursor: pointer;" onclick="toggleSort('grn_number')">GRN Number <i
                                 class="fas fa-sort"></i></th>
-                        <th>Purchase Order</th>
+                        <th style="cursor: pointer;" onclick="toggleSort('po_number')">Purchase Order <i
+                                class="fas fa-sort"></i></th>
                         <th style="cursor: pointer;" onclick="toggleSort('supplier_name')">Supplier <i
                                 class="fas fa-sort"></i></th>
                         <th style="cursor: pointer;" onclick="toggleSort('status')">Status <i
@@ -166,7 +172,7 @@
         <div class="mt-4">
             <t:pagination page="${currentPage}" pages="${totalPages}" size="${pageSize}"
                 total="${totalRecords}" url="${pageContext.request.contextPath}/goods-receipt?action=list"
-                include="[name='grnNumber'], [name='supplierId'], [name='status'], [name='sortBy'], [name='order']" />
+                include="[name='grnNumber'], [name='poNumber'], [name='supplierId'], [name='status'], [name='sortBy'], [name='order']" />
         </div>
     </div>
 

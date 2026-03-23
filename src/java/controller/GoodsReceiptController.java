@@ -89,6 +89,7 @@ public class GoodsReceiptController extends HttpServlet {
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         SupplierDAO supplierDao = new SupplierDAO();
         String grnNumber = request.getParameter("grnNumber");
+        String poNumber = request.getParameter("poNumber");
         String supplierIdStr = request.getParameter("supplierId");
         Long supplierId = (supplierIdStr != null && !supplierIdStr.isBlank()) ? Long.parseLong(supplierIdStr) : null;
         String status = request.getParameter("status");
@@ -109,9 +110,9 @@ public class GoodsReceiptController extends HttpServlet {
 
         int offset = (page - 1) * pageSize;
 
-        List<GoodsReceiptListDTO> grns = grnDao.getFilteredGRNs(grnNumber, supplierId, status, sortField, sortOrder,
+        List<GoodsReceiptListDTO> grns = grnDao.getFilteredGRNs(grnNumber, poNumber, supplierId, status, sortField, sortOrder,
                 pageSize, offset);
-        int total = grnDao.countFilteredGRNs(grnNumber, supplierId, status);
+        int total = grnDao.countFilteredGRNs(grnNumber, poNumber, supplierId, status);
         int totalPages = (int) Math.ceil((double) total / pageSize);
 
         request.setAttribute("grns", grns);
