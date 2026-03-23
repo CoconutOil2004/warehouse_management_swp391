@@ -81,7 +81,7 @@
                             <td>${so.importedByUsername}</td>
                             <td>${so.status}</td>
                             <td class="text-center">
-                                <form action="${pageContext.request.contextPath}/sales-orders" method="post" style="display:inline;">
+                                <form action="${pageContext.request.contextPath}/sales-orders" method="GET" style="display:inline;">
                                     <input type="hidden" name="action" value="detail">
                                     <input type="hidden" name="id" value="${so.soId}">
                                     <t:button type="submit" size="sm" variant="outline" color="primary">View</t:button>
@@ -112,16 +112,14 @@
                                         <input type="hidden" name="page" value="${page}">
                                     </form>
                                 </c:if>
-                                <c:if test="${so.status == 'CREATED'}">
-                                    <form action="${pageContext.request.contextPath}/sales-orders" method="get" style="display:inline;">
-                                        <input type="hidden" name="action" value="edit">
-                                        <input type="hidden" name="id" value="${so.soId}">
-                                        <input type="hidden" name="page" value="${page}">
-                                        <t:button type="submit" size="sm" variant="outline" color="primary">Edit</t:button>
-                                        </form>
-                                </c:if>
-                            </td>
-                        </tr>
+                                <form action="${pageContext.request.contextPath}/sales-orders" method="get" style="display:inline;">
+                                    <input type="hidden" name="action" value="edit">
+                                    <input type="hidden" name="id" value="${so.soId}">
+                                    <input type="hidden" name="page" value="${page}">
+                                    <t:button type="submit" size="sm" variant="outline" color="primary">Edit</t:button>
+                                </form>
+                                </td>
+                            </tr>
                     </c:forEach>
                 </c:if>
                 <c:if test="${empty sos}">

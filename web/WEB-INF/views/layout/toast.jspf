@@ -1,80 +1,116 @@
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 <%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
 
-<c:if test="${not empty sessionScope.message}">
-    <%-- Infer toast type if not provided --%>
-    <c:set var="toastType" value="${sessionScope.type}" />
-    <%-- Normalize common bootstrap-like types --%>
-    <c:if test="${toastType == 'danger'}">
-        <c:set var="toastType" value="error" />
-    </c:if>
-    <c:if test="${toastType == 'warning'}">
-        <c:set var="toastType" value="info" />
-    </c:if>
-    <c:if test="${empty toastType}">
-        <c:set var="msgLower" value="${fn:toLowerCase(sessionScope.message)}" />
-        <c:choose>
-            <c:when test="${fn:contains(msgLower, 'lỗi') or fn:contains(msgLower, 'thất bại') or fn:contains(msgLower, 'tồn tại') or fn:contains(msgLower, 'không') or fn:contains(msgLower, 'sai')}">
-                <c:set var="toastType" value="error" />
-            </c:when>
-            <c:otherwise>
-                <c:set var="toastType" value="success" />
-            </c:otherwise>
-        </c:choose>
-    </c:if>
-
-    <div id="toast" class="${toastType}">
-        <div class="toast-icon">
+<c:choose>
+    <c:when test="${not empty sessionScope.message}">
+        <c:set var="toastType" value="${sessionScope.type}" />
+        <c:if test="${toastType == 'danger'}">
+            <c:set var="toastType" value="error" />
+        </c:if>
+        <c:if test="${toastType == 'warning'}">
+            <c:set var="toastType" value="info" />
+        </c:if>
+        <c:if test="${empty toastType}">
+            <c:set var="msgLower" value="${fn:toLowerCase(sessionScope.message)}" />
             <c:choose>
-                <c:when test="${toastType == 'error'}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                </c:when>
-                <c:when test="${toastType == 'info'}">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <c:when test="${fn:contains(msgLower, 'lỗi') or fn:contains(msgLower, 'thất bại') or fn:contains(msgLower, 'tồn tại') or fn:contains(msgLower, 'không') or fn:contains(msgLower, 'sai')}">
+                    <c:set var="toastType" value="error" />
                 </c:when>
                 <c:otherwise>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    <c:set var="toastType" value="success" />
                 </c:otherwise>
             </c:choose>
+        </c:if>
+
+        <div id="toast" class="${toastType}" data-session-toast="1">
+            <div class="toast-icon">
+                <c:choose>
+                    <c:when test="${toastType == 'error'}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    </c:when>
+                    <c:when test="${toastType == 'info'}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    </c:when>
+                    <c:otherwise>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </c:otherwise>
+                </c:choose>
+            </div>
+            <div class="toast-content">${sessionScope.message}</div>
+            <div class="toast-close" onclick="closeToast()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </div>
         </div>
-        <div class="toast-content">
-            ${sessionScope.message}
+        <c:remove var="message" scope="session" />
+        <c:remove var="type" scope="session" />
+    </c:when>
+    <c:otherwise>
+        <%-- Luôn có #toast để JS (search rỗng / HTMX) cập nhật được --%>
+        <div id="toast" class="info">
+            <div class="toast-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </div>
+            <div class="toast-content"></div>
+            <div class="toast-close" onclick="closeToast()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </div>
         </div>
-        <div class="toast-close" onclick="closeToast()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </div>
-    </div>
-    <c:remove var="message" scope="session" />
-    <c:remove var="type" scope="session" />
-</c:if>
+    </c:otherwise>
+</c:choose>
 
 <script>
     function showToast() {
-        let x = document.getElementById("toast");
+        var x = document.getElementById("toast");
         if (x) {
-            // Force a reflow to restart animation if needed
             void x.offsetWidth;
             x.classList.add("show");
-
-            // Auto hide
-            setTimeout(() => {
-                x.classList.remove("show");
-            }, 3500);
+            setTimeout(function () { x.classList.remove("show"); }, 3500);
         }
     }
 
     function closeToast() {
-        let x = document.getElementById("toast");
-        if (x) {
-            x.classList.remove("show");
-        }
+        var x = document.getElementById("toast");
+        if (x) x.classList.remove("show");
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', showToast);
-    } else {
-        showToast();
+    /** Toast info (search không có kết quả) — dùng khi #toast đã có trong DOM */
+    function showToastInfoMessage(msg) {
+        var t = document.getElementById("toast");
+        if (!t || !msg) return;
+        t.className = "info";
+        var content = t.querySelector(".toast-content");
+        if (content) content.textContent = msg;
+        var iconWrap = t.querySelector(".toast-icon");
+        if (iconWrap) {
+            iconWrap.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+        }
+        void t.offsetWidth;
+        t.classList.add("show");
+        setTimeout(function () { t.classList.remove("show"); }, 3500);
     }
+
+    function tryEmptySearchToastFromRoot(root) {
+        if (!root || !root.querySelector) return;
+        var flag = root.querySelector(".js-empty-search-toast");
+        if (!flag) return;
+        var msg = flag.getAttribute("data-empty-search-toast");
+        if (msg) showToastInfoMessage(msg);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        var t = document.getElementById("toast");
+        if (t && t.getAttribute("data-session-toast") === "1") {
+            showToast();
+        }
+        tryEmptySearchToastFromRoot(document);
+    });
+
+    /* outerHTML swap: evt.detail.target có thể là #wrapper CŨ đã detach — query trên đó vẫn là HTML trước swap → phải lấy #wrapper mới từ document */
+    document.body.addEventListener("htmx:afterSwap", function (evt) {
+        if (!evt.detail || !evt.detail.target || evt.detail.target.id !== "wrapper") return;
+        var w = document.getElementById("wrapper");
+        if (w) tryEmptySearchToastFromRoot(w);
+    });
 </script>
 
 <style>
@@ -105,7 +141,6 @@
         transition: visibility 0s 0.4s, opacity 0.4s ease, transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     }
 
-    /* show animation */
     #toast.show {
         visibility: visible;
         opacity: 1;
@@ -151,19 +186,16 @@
         height: 20px;
     }
 
-    /* SUCCESS */
     #toast.success {
         background: #10B981; 
         border-left: 6px solid #059669; 
     }
 
-    /* ERROR */
     #toast.error {
         background: #EF4444; 
         border-left: 6px solid #DC2626; 
     }
 
-    /* INFO */
     #toast.info {
         background: #3B82F6; 
         border-left: 6px solid #2563EB; 

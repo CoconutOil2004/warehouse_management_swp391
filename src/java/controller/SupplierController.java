@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import model.Supplier;
 import util.ViewPath;
+import java.util.regex.Pattern;
 
 @WebServlet(name = "SupplierController", urlPatterns = {"/admin/supplier", "/admin/supplier/*"})
 public class SupplierController extends HttpServlet {
@@ -18,6 +19,8 @@ public class SupplierController extends HttpServlet {
     private static final Long DEFAULT_PAGE = 1L;
     private static final Long DEFAULT_SIZE = 10L;
     private static final int MAX_ADDRESS_LENGTH = 255;
+    private static final String EMAIL_PATTERN = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
+    private static final String PHONE_PATTERN = "^[0-9\\+\\-\\(\\)\\s]{10,15}$";
 
     private final SupplierDAO supplierDao = new SupplierDAO();
 
@@ -82,6 +85,12 @@ public class SupplierController extends HttpServlet {
             Long total = supplierDao.getPageCount(search);
             Long pages = (total + size - 1) / size;
             var suppliers = supplierDao.getList(search, sort, page, size);
+
+            boolean hasSearch = searchRaw != null && !searchRaw.isBlank();
+            if (hasSearch && total != null && total == 0) {
+                request.setAttribute("emptySearchMessage",
+                        "No matching suppliers found for your search.");
+            }
 
             request.setAttribute("page", page);
             request.setAttribute("size", size);
@@ -172,6 +181,41 @@ public class SupplierController extends HttpServlet {
                 return;
             }
 
+            if (email.isEmpty()) {
+                setToast(request.getSession(true), "Email is required", "error");
+                request.setAttribute("supplier", s);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                setToast(request.getSession(true), "Email format is invalid. Please enter a valid email address.", "error");
+                request.setAttribute("supplier", s);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                return;
+            }
+
+            if (phone.isEmpty()) {
+                setToast(request.getSession(true), "Phone is required", "error");
+                request.setAttribute("supplier", s);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                return;
+            }
+
+            if (!isValidPhone(phone)) {
+                setToast(request.getSession(true), "Phone format is invalid. Please enter a valid phone number (10-15 digits).", "error");
+                request.setAttribute("supplier", s);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                return;
+            }
+
+            if (supplierDao.phoneExists(phone, null)) {
+                setToast(request.getSession(true), "Phone number already exists", "error");
+                request.setAttribute("supplier", s);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                return;
+            }
+
             if (address.length() > MAX_ADDRESS_LENGTH) {
                 setToast(request.getSession(true),
                         "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
@@ -222,6 +266,46 @@ public class SupplierController extends HttpServlet {
             if (code.isEmpty() || name.isEmpty()) {
                 Supplier old = supplierDao.getDetail(id);
                 setToast(request.getSession(true), "Code and Name are required", "error");
+                request.setAttribute("supplier", old);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
+                return;
+            }
+
+            if (email.isEmpty()) {
+                Supplier old = supplierDao.getDetail(id);
+                setToast(request.getSession(true), "Email is required", "error");
+                request.setAttribute("supplier", old);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                Supplier old = supplierDao.getDetail(id);
+                setToast(request.getSession(true), "Email format is invalid. Please enter a valid email address.", "error");
+                request.setAttribute("supplier", old);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
+                return;
+            }
+
+            if (phone.isEmpty()) {
+                Supplier old = supplierDao.getDetail(id);
+                setToast(request.getSession(true), "Phone is required", "error");
+                request.setAttribute("supplier", old);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
+                return;
+            }
+
+            if (!isValidPhone(phone)) {
+                Supplier old = supplierDao.getDetail(id);
+                setToast(request.getSession(true), "Phone format is invalid. Please enter a valid phone number (10-15 digits).", "error");
+                request.setAttribute("supplier", old);
+                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
+                return;
+            }
+
+            if (supplierDao.phoneExists(phone, id)) {
+                Supplier old = supplierDao.getDetail(id);
+                setToast(request.getSession(true), "Phone number already exists", "error");
                 request.setAttribute("supplier", old);
                 request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
                 return;
@@ -294,5 +378,13 @@ public class SupplierController extends HttpServlet {
     private void setToast(HttpSession session, String message, String type) {
         session.setAttribute("message", message);
         session.setAttribute("type", type);
+    }
+
+    private boolean isValidEmail(String email) {
+        return Pattern.matches(EMAIL_PATTERN, email);
+    }
+
+    private boolean isValidPhone(String phone) {
+        return Pattern.matches(PHONE_PATTERN, phone);
     }
 }
