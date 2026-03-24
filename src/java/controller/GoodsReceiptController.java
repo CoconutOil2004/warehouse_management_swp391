@@ -84,6 +84,10 @@ public class GoodsReceiptController extends HttpServlet {
         }
     }
 
+    /**
+     * Goods Receipt List:
+     * Dùng handleList + getFilteredGRNs (ở GoodsReceiptDAO) để lấy dữ liệu.
+     */
     private void handleList(HttpServletRequest request, HttpServletResponse response)
             throws Exception {
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
@@ -110,7 +114,8 @@ public class GoodsReceiptController extends HttpServlet {
 
         int offset = (page - 1) * pageSize;
 
-        List<GoodsReceiptListDTO> grns = grnDao.getFilteredGRNs(grnNumber, poNumber, supplierId, status, sortField, sortOrder,
+        List<GoodsReceiptListDTO> grns = grnDao.getFilteredGRNs(grnNumber, poNumber, supplierId, status, sortField,
+                sortOrder,
                 pageSize, offset);
         int total = grnDao.countFilteredGRNs(grnNumber, poNumber, supplierId, status);
         int totalPages = (int) Math.ceil((double) total / pageSize);
@@ -148,8 +153,7 @@ public class GoodsReceiptController extends HttpServlet {
         request.setAttribute("suppliers", supplierDao.getActiveSuppliers());
         request.setAttribute("variants", grnDao.getActiveVariants());
 
-        // Ensure purchaseOrders includes the current selection if it's an edit or
-        // re-load
+        // Đảm bảo danh sách đơn mua hàng (purchaseOrders) bao gồm cả lựa chọn hiện tại nếu là trường hợp sửa hoặc tải lại trang
         Object oldPoIdAttr = request.getAttribute("oldPoId");
         Long poId = null;
         if (oldPoIdAttr != null && !oldPoIdAttr.toString().isBlank()) {
@@ -163,6 +167,13 @@ public class GoodsReceiptController extends HttpServlet {
         request.getRequestDispatcher(ViewPath.GRN_CREATE).forward(request, response);
     }
 
+    /**
+     * Goods Receipt Details:
+     * Dùng handleDetail + getById + getLinesByGrnId + getPutawayDetailsByGrnId (ở GoodsReceiptDAO).
+     * lấy thông tin header (Mã phiếu, PO, Ngày tạo, Trạng thái...).
+     * lấy danh sách sản phẩm, số lượng Good, Damaged, Missing...
+     * lấy thông tin hàng đã được xếp vào Slot nào, Zone nào.
+     */
     private void handleDetail(HttpServletRequest request, HttpServletResponse response)
             throws Exception {
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
@@ -405,7 +416,7 @@ public class GoodsReceiptController extends HttpServlet {
         }
         sb.append("]");
         sb.append("}");
-
+        //Gửi chuỗi thông tin trên cho trình duyệt
         response.getWriter().write(sb.toString());
     }
 
@@ -438,10 +449,8 @@ public class GoodsReceiptController extends HttpServlet {
         GoodsReceiptDAO grnDao = new GoodsReceiptDAO();
         User user = (User) request.getSession().getAttribute("USER");
         if (user == null) {
-            // Tạm thời gán User mặc định để test khi AuthFilter bị tắt
-            user = new User();
-            user.setUserId(1L);
-            user.setRoleNames("ADMIN");
+            response.sendRedirect(request.getContextPath() + "/login");
+            return;
         }
 
         String grnIdStr = request.getParameter("grnId");
@@ -458,7 +467,7 @@ public class GoodsReceiptController extends HttpServlet {
         } else {
             try {
                 if (grnDao.isGrnNumberExists(grnNumber, existingId)) {
-                    fieldErrors.put("grnNumber", "Mã phiếu này (" + grnNumber + ") đã tồn tại trong hệ thống!");
+                    fieldErrors.put("grnNumber", "GRN Number (" + grnNumber + ") already exists in the system!");
                 }
             } catch (SQLException e) {
                 // Ignore error for check
@@ -531,13 +540,13 @@ public class GoodsReceiptController extends HttpServlet {
 
                 if (g.add(d).compareTo(line.getQtyExpected()) > 0) {
                     fieldErrors.put("lines",
-                            "Good (thực tế) + Damaged (thực tế) không được vượt số đặt (Ordered). Phần vượt hãy nhập vào Extra (good) hoặc Extra (dmg).");
+                            "Good (actual) + Damaged (actual) cannot exceed the Ordered quantity. Please enter extra items in Extra (good) or Extra (dmg) columns.");
                     continue;
                 }
 
                 if (g.add(d).add(m).add(eg).add(ed).compareTo(java.math.BigDecimal.ZERO) <= 0) {
                     fieldErrors.put("lines",
-                            "Mỗi dòng hàng phải có ít nhất một giá trị Số lượng (Good/Damaged/Missing/Extra good/Extra damaged) lớn hơn 0.");
+                            "Each line item must have at least one quantity value (Good/Damaged/Missing/Extra good/Extra damaged) greater than zero.");
                 }
 
                 if ((eg.compareTo(BigDecimal.ZERO) > 0 || ed.compareTo(BigDecimal.ZERO) > 0)
