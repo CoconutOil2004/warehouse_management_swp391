@@ -10,6 +10,7 @@
 %>
 <t:layout title="Sale Order List">
     <jsp:attribute name="actions">
+        <c:if test="${canManageSalesOrders}">
         <div class="d-flex align-items-center">
             <form action="${pageContext.request.contextPath}/sales-orders" method="get" class="m-0 mr-2">
                 <input type="hidden" name="action" value="create">
@@ -20,6 +21,7 @@
                 <t:button type="submit" color="success">Import Sale Order</t:button>
                 </form>
             </div>
+        </c:if>
     </jsp:attribute>
 
     <jsp:body>
@@ -86,6 +88,7 @@
                                     <input type="hidden" name="id" value="${so.soId}">
                                     <t:button type="submit" size="sm" variant="outline" color="primary">View</t:button>
                                     </form>
+                                <c:if test="${canManageSalesOrders}">
                                 <c:if test="${so.status != 'CLOSED'}">
                                     <button type="button" class="btn btn-sm btn-outline-danger"
                                             data-bs-toggle="modal" data-bs-target="#deleteModal${so.soId}">
@@ -118,6 +121,7 @@
                                     <input type="hidden" name="page" value="${page}">
                                     <t:button type="submit" size="sm" variant="outline" color="primary">Edit</t:button>
                                 </form>
+                                </c:if>
                                 </td>
                             </tr>
                     </c:forEach>

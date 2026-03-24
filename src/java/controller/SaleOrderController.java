@@ -29,6 +29,7 @@ import service.ProductVariantService;
 import service.SaleOrderImportService;
 import service.SaleOrderService;
 import util.RequestUtil;
+import util.RoleUtil;
 import util.ToastUtil;
 import util.ViewPath;
 
@@ -51,14 +52,30 @@ public class SaleOrderController extends HttpServlet {
                 action = "";
             }
             switch (action) {
-                case "create" ->
+                case "create" -> {
+                    if (blockWarehouseStaffSoMutation(request, response)) {
+                        return;
+                    }
                     forwardCreateForm(request, response);
-                case "edit" ->
+                }
+                case "edit" -> {
+                    if (blockWarehouseStaffSoMutation(request, response)) {
+                        return;
+                    }
                     forwardEditForm(request, response);
-                case "import" ->
+                }
+                case "import" -> {
+                    if (blockWarehouseStaffSoMutation(request, response)) {
+                        return;
+                    }
                     forwardImportForm(request, response);
-                case "variants" ->
+                }
+                case "variants" -> {
+                    if (blockWarehouseStaffSoMutation(request, response)) {
+                        return;
+                    }
                     handleGetVariants(request, response);
+                }
                 case "detail" ->
                     forwardDetail(request, response);
                 default ->
@@ -80,15 +97,30 @@ public class SaleOrderController extends HttpServlet {
         }
         try {
             switch (action) {
-                case "create" ->
+                case "create" -> {
+                    if (blockWarehouseStaffSoMutation(request, response)) {
+                        return;
+                    }
                     handleCreate(request, response);
-                case "update" ->
+                }
+                case "update" -> {
+                    if (blockWarehouseStaffSoMutation(request, response)) {
+                        return;
+                    }
                     handleUpdate(request, response);
-
-                case "delete" ->
+                }
+                case "delete" -> {
+                    if (blockWarehouseStaffSoMutation(request, response)) {
+                        return;
+                    }
                     handleDelete(request, response);
-                case "processImport" ->
+                }
+                case "processImport" -> {
+                    if (blockWarehouseStaffSoMutation(request, response)) {
+                        return;
+                    }
                     handleProcessImport(request, response);
+                }
                 default ->
                     forwardList(request, response);
             }
@@ -181,8 +213,21 @@ public class SaleOrderController extends HttpServlet {
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("size", size);
         request.setAttribute("total", totalRecords);
+        request.setAttribute("canManageSalesOrders",
+                !RoleUtil.isSalesOrderReadOnlyForWarehouseStaff(RoleUtil.roleNames(request)));
 
         request.getRequestDispatcher(ViewPath.SO_LIST).forward(request, response);
+    }
+
+    /** @return true if request was blocked (redirect sent). */
+    private boolean blockWarehouseStaffSoMutation(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        if (!RoleUtil.isSalesOrderReadOnlyForWarehouseStaff(RoleUtil.roleNames(request))) {
+            return false;
+        }
+        ToastUtil.setToast(request, "error", "You do not have permission to modify sales orders.");
+        response.sendRedirect(request.getContextPath() + "/sales-orders?action=list");
+        return true;
     }
 
     private void forwardDetail(HttpServletRequest request, HttpServletResponse response) throws Exception {

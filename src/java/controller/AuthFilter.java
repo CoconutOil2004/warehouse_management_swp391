@@ -4,6 +4,8 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import util.RoleUtil;
+import util.ToastUtil;
 
 @WebFilter("/*")
 public class AuthFilter implements Filter {
@@ -48,6 +50,24 @@ public class AuthFilter implements Filter {
             res.sendRedirect(ctx + "/authen");
              return;
          }
+
+        if (RoleUtil.shouldBlockRequestForPurchaseStaff(req)) {
+            ToastUtil.setToast(req, "error", "You do not have permission to access this page.");
+            res.sendRedirect(ctx + "/admin/dashboard");
+            return;
+        }
+
+        if (RoleUtil.shouldBlockRequestForSaleStaff(req)) {
+            ToastUtil.setToast(req, "error", "You do not have permission to access this page.");
+            res.sendRedirect(ctx + "/admin/dashboard");
+            return;
+        }
+
+        if (RoleUtil.shouldBlockInboundOutboundForAdmin(req)) {
+            ToastUtil.setToast(req, "error", "You do not have permission to access this page.");
+            res.sendRedirect(ctx + "/admin/dashboard");
+            return;
+        }
 
         chain.doFilter(request, response);
     }

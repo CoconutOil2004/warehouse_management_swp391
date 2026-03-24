@@ -25,6 +25,8 @@ import model.Category;
 import model.Product;
 import model.User;
 import util.RequestUtil;
+import util.RoleUtil;
+import util.ToastUtil;
 
 /**
  * Product management: list (paginated), create, edit (no delete), variant
@@ -53,18 +55,37 @@ public class ProductController extends HttpServlet {
         response.setCharacterEncoding("UTF-8");
         String action = request.getParameter("action");
         try {
+            String rn = RoleUtil.roleNames(request);
+            boolean purchaseRO = RoleUtil.isPurchaseStaffRestricted(rn);
+            boolean saleRO = RoleUtil.isSaleStaffRestricted(rn);
+            boolean catalogReadOnly = purchaseRO || saleRO;
             switch (action == null ? "" : action) {
                 case "detail":
                     handleGetDetail(request, response);
                     break;
                 case "create":
+                    if (catalogReadOnly) {
+                        ToastUtil.setToast(request, "error", "You do not have permission to create products.");
+                        response.sendRedirect(base());
+                        return;
+                    }
                     request.setAttribute("openCreateModal", true);
                     handleList(request, response);
                     break;
                 case "edit":
+                    if (catalogReadOnly) {
+                        ToastUtil.setToast(request, "error", "You do not have permission to edit products.");
+                        response.sendRedirect(base());
+                        return;
+                    }
                     forwardEdit(request, response);
                     break;
                 case "variants":
+                    if (purchaseRO) {
+                        ToastUtil.setToast(request, "error", "You do not have permission to manage variants.");
+                        response.sendRedirect(base());
+                        return;
+                    }
                     forwardVariantMatrix(request, response);
                     break;
                 default:
@@ -82,6 +103,11 @@ public class ProductController extends HttpServlet {
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
+        if (RoleUtil.isPurchaseStaffRestricted(RoleUtil.roleNames(request))) {
+            ToastUtil.setToast(request, "error", "You do not have permission to modify products.");
+            response.sendRedirect(base());
+            return;
+        }
         String action = request.getParameter("action");
         try {
             switch (action == null ? "" : action) {
@@ -169,6 +195,11 @@ public class ProductController extends HttpServlet {
         request.setAttribute("filterName", filterName);
         request.setAttribute("sortBy", sortBy);
         request.setAttribute("sortOrder", sortOrder);
+        String rn = RoleUtil.roleNames(request);
+        boolean purchaseRO = RoleUtil.isPurchaseStaffRestricted(rn);
+        boolean saleRO = RoleUtil.isSaleStaffRestricted(rn);
+        request.setAttribute("productReadOnly", purchaseRO || saleRO);
+        request.setAttribute("productSaleStaffVariantView", saleRO);
         request.getRequestDispatcher("WEB-INF/views/product/product-list.jsp").forward(request, response);
     }
 
