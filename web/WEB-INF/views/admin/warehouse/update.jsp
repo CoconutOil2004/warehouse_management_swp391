@@ -22,7 +22,8 @@
                                         <label for="code" class="form-label">
                                             Code <span class="text-danger">*</span>
                                         </label>
-                                        <input type="text" class="form-control" id="code" name="code" required
+                                        <input type="text" class="form-control" id="code" name="code" 
+                                              
                                             value="${warehouse.code}" placeholder="Example: WH001">
                                     </div>
 
@@ -30,7 +31,7 @@
                                         <label for="name" class="form-label">
                                             Name <span class="text-danger">*</span>
                                         </label>
-                                        <input type="text" class="form-control" id="name" name="name" required
+                                        <input type="text" class="form-control" id="name" name="name" 
                                             value="${warehouse.name}" placeholder="Warehouse Name">
                                     </div>
                                 </div>

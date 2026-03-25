@@ -274,6 +274,23 @@ public class AuthenticationController extends HttpServlet {
         return email != null && EMAIL_PATTERN.matcher(email).matches();
     }
 
+    /**
+     * Cùng quy tắc với trang đăng nhập ({@code web/index.jsp}): ít nhất 8 ký tự,
+     * một chữ hoa, một chữ số. Trả về thông báo lỗi hoặc {@code null} nếu hợp lệ.
+     */
+    private static String passwordStrengthError(String password) {
+        if (password.length() < 8) {
+            return "Password must be at least 8 characters long";
+        }
+        if (password.chars().noneMatch(Character::isUpperCase)) {
+            return "Password must contain at least one uppercase letter";
+        }
+        if (password.chars().noneMatch(Character::isDigit)) {
+            return "Password must contain at least one digit (0–9)";
+        }
+        return null;
+    }
+
     private void handleVerifyOtp(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String otp = trimOrEmpty(request.getParameter("otp"));
@@ -354,6 +371,13 @@ public class AuthenticationController extends HttpServlet {
         // validate input
         if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
             request.setAttribute("error", "Please enter a new password");
+            request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
+            return;
+        }
+
+        String strengthErr = passwordStrengthError(newPassword);
+        if (strengthErr != null) {
+            request.setAttribute("error", strengthErr);
             request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
             return;
         }

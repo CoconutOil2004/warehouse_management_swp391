@@ -231,15 +231,6 @@ public class WarehouseController extends HttpServlet {
             return;
         }
 
-        if (address != null && address.length() > MAX_ADDRESS_LENGTH) {
-            setToast(request,
-                    "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
-                    "error");
-            request.setAttribute("warehouse", warehouse);
-            request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/create.jsp").forward(request, response);
-            return;
-        }
-
         boolean created;
         try {
             created = dao.create(warehouse);
@@ -262,7 +253,7 @@ public class WarehouseController extends HttpServlet {
             return;
         }
 
-        request.getSession().setAttribute("message", "Warehouse created successfully.");
+        setToast(request, "Warehouse created successfully.", "success");
         response.sendRedirect(request.getContextPath() + "/admin/warehouse");
     }
 
@@ -308,15 +299,6 @@ public class WarehouseController extends HttpServlet {
             return;
         }
 
-        if (address != null && address.length() > MAX_ADDRESS_LENGTH) {
-            setToast(request,
-                    "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
-                    "error");
-            request.setAttribute("warehouse", warehouse);
-            request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/update.jsp").forward(request, response);
-            return;
-        }
-
         boolean updated;
         try {
             updated = dao.update(warehouse);
@@ -341,7 +323,7 @@ public class WarehouseController extends HttpServlet {
             return;
         }
 
-        request.getSession().setAttribute("message", "Warehouse updated successfully.");
+        setToast(request, "Warehouse updated successfully.", "success");
         response.sendRedirect(request.getContextPath() + "/admin/warehouse");
     }
 
@@ -416,7 +398,7 @@ public class WarehouseController extends HttpServlet {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Failed to delete warehouse.");
             return;
         }
-        request.getSession().setAttribute("message", "Warehouse deleted successfully.");
+        setToast(request, "Warehouse deleted successfully.", "success");
         response.sendRedirect(request.getContextPath() + "/admin/warehouse");
     }
 
@@ -437,7 +419,7 @@ public class WarehouseController extends HttpServlet {
         }
 
         // htmx will follow redirect and swap the returned HTML into #wrapper
-        request.getSession().setAttribute("message", "Warehouse deleted successfully.");
+        setToast(request, "Warehouse deleted successfully.", "success");
         response.sendRedirect(request.getContextPath() + "/admin/warehouse");
     }
 
@@ -448,12 +430,24 @@ public class WarehouseController extends HttpServlet {
         if (warehouse.getName() == null || warehouse.getName().isBlank()) {
             return "Name is required.";
         }
+        String address = warehouse.getAddress();
+        if (address != null && address.length() > MAX_ADDRESS_LENGTH) {
+            return "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.";
+        }
+        if (!isCreate) {
+            String status = warehouse.getStatus();
+            if (status != null && !status.isBlank()
+                    && !"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
+                return "Invalid status.";
+            }
+        }
         return null;
     }
 
     private void setToast(HttpServletRequest request, String message, String type) {
-        request.getSession(true).setAttribute("message", message);
-        request.getSession(true).setAttribute("type", type);
+        var session = request.getSession(true);
+        session.setAttribute("message", message);
+        session.setAttribute("type", type);
     }
 
     private int parseInt(String raw, int def) {
