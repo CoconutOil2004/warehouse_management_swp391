@@ -201,6 +201,16 @@
                         font-size: 14px;
                     }
 
+                    .alert-success {
+                        background: rgba(85, 239, 196, 0.15);
+                        border: 1px solid rgba(85, 239, 196, 0.2);
+                        color: #b8fff4;
+                        padding: 15px;
+                        border-radius: 16px;
+                        margin-bottom: 25px;
+                        font-size: 14px;
+                    }
+
                     @keyframes fadeIn {
                         from {
                             opacity: 0;
@@ -250,8 +260,12 @@
                         </form>
 
                         <div class="footer-links">
-                            <a href="<%=request.getContextPath()%>/authen?action=forgot"><i class="fas fa-sync-alt"
-                                    style="margin-right:5px;"></i> Resend OTP</a>
+                            <form action="<%=request.getContextPath()%>/authen" method="post" style="margin-bottom: 15px;">
+                                <input type="hidden" name="action" value="resend-otp" />
+                                <button type="submit" class="btn-action" style="height: 48px; font-size: 15px;">
+                                    <i class="fas fa-sync-alt" style="margin-right:8px;"></i> Resend OTP
+                                </button>
+                            </form>
                             <a href="<%=request.getContextPath()%>/authen" style="opacity: 0.6;">Cancel verify</a>
                         </div>
                     </div>

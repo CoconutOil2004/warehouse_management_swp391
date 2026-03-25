@@ -6,9 +6,11 @@
 
 <t:layout title="Products">
     <jsp:attribute name="actions">
+        <c:if test="${productReadOnly != true}">
         <a href="${pageContext.request.contextPath}/products?action=create" class="btn btn-success">
             <i class="fas fa-plus me-1"></i>Create Product
         </a>
+        </c:if>
     </jsp:attribute>
 
     <jsp:body>
@@ -73,8 +75,12 @@
                                         title="View">
                                     View
                                 </button>
+                                <c:if test="${productReadOnly != true}">
                                 <a href="${pageContext.request.contextPath}/products?action=edit&id=${p.productId}&page=${page}&size=${size}" class="btn btn-sm btn-outline-primary me-1" title="Edit">Edit</a>
-                                <a href="${pageContext.request.contextPath}/products?action=variants&id=${p.productId}&page=${page}&size=${size}" class="btn btn-sm btn-outline-info" title="Manage Variants">Variants</a>
+                                </c:if>
+                                <c:if test="${productReadOnly != true || productSaleStaffVariantView == true}">
+                                <a href="${pageContext.request.contextPath}/products?action=variants&id=${p.productId}&page=${page}&size=${size}" class="btn btn-sm btn-outline-info" title="Variants">Variants</a>
+                                </c:if>
                             </td>
                         </tr>
                     </c:forEach>
@@ -87,6 +93,7 @@
             </jsp:body>
         </t:table>
 
+        <c:if test="${productReadOnly != true}">
         <!-- Create Product Modal -->
         <div class="modal fade" id="createProductModal" tabindex="-1" aria-labelledby="createProductModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -153,7 +160,9 @@
                 </div>
             </div>
         </div>
+        </c:if>
 
+        <c:if test="${productReadOnly != true}">
         <!-- Edit Product Modal -->
         <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
@@ -215,6 +224,7 @@
                 </div>
             </div>
         </div>
+        </c:if>
 
         <!-- View Product Modal (read-only, show variants) -->
         <div class="modal fade" id="viewProductModal" tabindex="-1" aria-labelledby="viewProductModalLabel" aria-hidden="true">
@@ -286,6 +296,7 @@
             </div>
         </div>
 
+        <c:if test="${productReadOnly != true || productSaleStaffVariantView == true}">
         <!-- Variant Modal: fit màn hình, nội dung cuộn bên trong -->
         <div class="modal fade" id="variantMatrixModal" tabindex="-1" aria-labelledby="variantModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable variant-modal-dialog">
@@ -319,6 +330,7 @@
                                 </div>
                             </c:if>
 
+                            <c:if test="${productReadOnly != true}">
                             <p class="small text-muted mb-3">Select colors (swatches) and sizes by category, then click Generate Variant to create combinations. You can set variants to Inactive below.</p>
 
                             <form id="variantMatrixForm" action="${pageContext.request.contextPath}/products" method="post">
@@ -383,6 +395,7 @@
 
                                 <button type="submit" class="btn btn-success"><i class="fas fa-plus-circle me-1"></i>Generate Variant</button>
                             </form>
+                            </c:if>
 
                             <hr class="my-4">
                             <h6 class="fw-semibold mb-2"><i class="fas fa-list me-1"></i> Variant list</h6>
@@ -394,7 +407,9 @@
                                             <th class="border-0 text-center" style="width:22%;">Color</th>
                                             <th class="border-0 text-center" style="width:12%;">Size</th>
                                             <th class="border-0 text-center" style="width:18%;">Status</th>
+                                            <c:if test="${productReadOnly != true}">
                                             <th class="border-0 text-center" style="width:20%;">Action</th>
+                                            </c:if>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -409,6 +424,7 @@
                                                 </td>
                                                 <td class="text-center">${v.size}</td>
                                                 <td class="text-center"><span class="badge bg-${v.status == 'ACTIVE' ? 'success' : 'secondary'}">${v.status}</span></td>
+                                                <c:if test="${productReadOnly != true}">
                                                 <td class="text-center">
                                                     <c:if test="${v.status == 'ACTIVE'}">
                                                         <form method="post" action="${pageContext.request.contextPath}/products" class="d-inline">
@@ -425,10 +441,11 @@
                                                         </form>
                                                     </c:if>
                                                 </td>
+                                                </c:if>
                                             </tr>
                                         </c:forEach>
                                         <c:if test="${empty variantMatrixProduct.variants}">
-                                            <tr><td colspan="5" class="text-muted text-center py-3">No variants yet. Select colors and sizes, then click Generate Variant.</td></tr>
+                                            <tr><td colspan="${productReadOnly == true ? 4 : 5}" class="text-muted text-center py-3"><c:choose><c:when test="${productReadOnly == true}">No variants.</c:when><c:otherwise>No variants yet. Select colors and sizes, then click Generate Variant.</c:otherwise></c:choose></td></tr>
                                         </c:if>
                                     </tbody>
                                 </table>
@@ -438,6 +455,7 @@
                 </div>
             </div>
         </div>
+        </c:if>
         <style>
             /* Modal variant fit màn hình: chiều cao tối đa theo viewport, body cuộn bên trong */
             .variant-modal-dialog { max-width: min(96vw, 720px); max-height: 90vh; }

@@ -4,11 +4,12 @@ import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.*;
 import java.io.IOException;
+import util.CurrentUserUtil;
+import util.RoleUtil;
+import util.ToastUtil;
 
 @WebFilter("/*")
 public class AuthFilter implements Filter {
-
-    private static final String SESSION_USER_KEY = "USER";
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -41,13 +42,31 @@ public class AuthFilter implements Filter {
         res.setDateHeader("Expires", 0);
 
         HttpSession session = req.getSession(false);
-        Object user = (session == null) ? null : session.getAttribute(SESSION_USER_KEY);
+        Object user = (session == null) ? null : session.getAttribute(CurrentUserUtil.SESSION_USER_KEY);
 
 
         if (user == null) {
             res.sendRedirect(ctx + "/authen");
              return;
          }
+
+        if (RoleUtil.shouldBlockRequestForPurchaseStaff(req)) {
+            ToastUtil.setToast(req, "error", "You do not have permission to access this page.");
+            res.sendRedirect(ctx + "/admin/dashboard");
+            return;
+        }
+
+        if (RoleUtil.shouldBlockRequestForSaleStaff(req)) {
+            ToastUtil.setToast(req, "error", "You do not have permission to access this page.");
+            res.sendRedirect(ctx + "/admin/dashboard");
+            return;
+        }
+
+        if (RoleUtil.shouldBlockInboundOutboundForAdmin(req)) {
+            ToastUtil.setToast(req, "error", "You do not have permission to access this page.");
+            res.sendRedirect(ctx + "/admin/dashboard");
+            return;
+        }
 
         chain.doFilter(request, response);
     }

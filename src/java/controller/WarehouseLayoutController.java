@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import model.User;
+import util.RoleUtil;
+import util.ToastUtil;
 
 @WebServlet(name = "WarehouseLayoutController", urlPatterns = {"/warehouse-layout"})
 public class WarehouseLayoutController extends HttpServlet {
@@ -30,7 +32,12 @@ public class WarehouseLayoutController extends HttpServlet {
             throws ServletException, IOException {
         
         request.setCharacterEncoding("UTF-8");
-        
+        if (RoleUtil.shouldHideWarehouseLayout(RoleUtil.roleNames(request))) {
+            ToastUtil.setToast(request, "error", "You do not have permission to access warehouse layout.");
+            response.sendRedirect(request.getContextPath() + "/admin/dashboard");
+            return;
+        }
+
         String action = request.getParameter("action");
         
         try {
@@ -53,7 +60,12 @@ public class WarehouseLayoutController extends HttpServlet {
         
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
-        
+        if (RoleUtil.shouldHideWarehouseLayout(RoleUtil.roleNames(request))) {
+            ToastUtil.setToast(request, "error", "You do not have permission to access warehouse layout.");
+            response.sendRedirect(request.getContextPath() + "/admin/dashboard");
+            return;
+        }
+
         String action = request.getParameter("action");
         
         try {

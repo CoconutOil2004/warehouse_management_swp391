@@ -17,6 +17,7 @@ import java.util.Map;
 import service.RoleService;
 import service.UserService;
 import service.WarehouseService;
+import util.CurrentUserUtil;
 import util.ViewPath;
 
 @WebServlet(name = "UserController", urlPatterns = {"/admin/user", "/admin/user/*"})
@@ -74,7 +75,7 @@ public class UserController extends HttpServlet {
                 isDeleted = "1".equals(isDeletedRaw) || "true".equalsIgnoreCase(isDeletedRaw);
             }
 
-            Long currentUserId = ((model.User) request.getSession().getAttribute("USER")).getUserId();
+            Long currentUserId = CurrentUserUtil.getUserId(request);
             PageResponseDTO<UserDTO> pageResponse = userService.getPagedList(search, sort, page, size, roleId, status, isDeleted, currentUserId);
 
             request.setAttribute("page", page);
@@ -165,7 +166,7 @@ public class UserController extends HttpServlet {
             uReq.setRoleIds(java.util.Arrays.stream(rIds).map(Long::valueOf).toList());
         }
 
-        Long createdBy = (Long) request.getSession().getAttribute("userId");
+        Long createdBy = CurrentUserUtil.getUserId(request);
 
         try {
             userService.create(uReq, createdBy);
