@@ -1,5 +1,15 @@
 package controller;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import dao.GoodsDeliveryNoteDAO;
 import dao.PackingDAO;
 import dao.UserDAO;
@@ -13,15 +23,6 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import model.PackingLineConfig;
 import model.PackingTask;
 import model.User;
@@ -415,15 +416,18 @@ public class PackingController extends HttpServlet {
 
                 gdnDao.updateGDNLineQuantities(gdnLineId, qtyPicked, calculatedQtyPacked);
 
-                // Check completion
-                if (packingDao.isAllTasksDoneForSession(sessionId)) {
-                    packingDao.completeSession(sessionId);
+                // Check completion for this specific line
+                if (packingDao.isAllTasksDoneForLine(gdnLineId)) {
+                    // This line is fully done, now check if all lines in session are done
+                    if (packingDao.isAllLinesDoneForSession(sessionId)) {
+                        packingDao.completeSession(sessionId);
 
-                    // Need to find gdnId to update GDN status
-                    PackingSessionDTO sessionDTO = packingDao.getPackingSessionById(sessionId);
-                    if (sessionDTO != null) {
-                        gdnDao.updateGDNStatus(sessionDTO.getGdnId(), "SHIPPING");
-                        gdnDao.deductInventoryOnConfirm(sessionDTO.getGdnId());
+                        // Need to find gdnId to update GDN status
+                        PackingSessionDTO sessionDTO = packingDao.getPackingSessionById(sessionId);
+                        if (sessionDTO != null) {
+                            gdnDao.updateGDNStatus(sessionDTO.getGdnId(), "SHIPPING");
+                            gdnDao.deductInventoryOnConfirm(sessionDTO.getGdnId());
+                        }
                     }
                 }
             }
