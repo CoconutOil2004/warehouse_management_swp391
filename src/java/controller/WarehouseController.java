@@ -154,7 +154,7 @@ public class WarehouseController extends HttpServlet {
         boolean hasSearch = searchRaw != null && !searchRaw.isBlank();
         if (hasSearch && total == 0) {
             request.setAttribute("emptySearchMessage",
-                    "No matching warehouses found for your search.");
+                    "No matching warehouse found for your search.");
         }
 
         request.getRequestDispatcher("/WEB-INF/views/admin/warehouse/list.jsp").forward(request, response);

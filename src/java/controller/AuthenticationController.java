@@ -16,7 +16,7 @@ import util.ViewPath;
 public class AuthenticationController extends HttpServlet {
 
     private static final String SESSION_USER_KEY = "USER";
-    private static final boolean IS_OTP_ENABLED = false;
+    private static final boolean IS_OTP_ENABLED = true;
 
     /** Định dạng email cơ bản (local@domain.tld) */
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
@@ -164,7 +164,7 @@ public class AuthenticationController extends HttpServlet {
         }
 
         if (!isValidEmailFormat(email)) {
-            request.setAttribute("error", "Invalid email format. Example: name@example.com");
+            request.setAttribute("error", "Invalid email format");
             request.setAttribute("email", email);
             request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
             return;
