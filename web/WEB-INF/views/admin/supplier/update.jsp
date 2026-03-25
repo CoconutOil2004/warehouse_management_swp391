@@ -22,7 +22,7 @@
                                         <label for="code" class="form-label">
                                             Code <span class="text-danger">*</span>
                                         </label>
-                                        <input type="text" class="form-control" id="code" name="code" required
+                                        <input type="text" class="form-control" id="code" name="code" 
                                             value="${supplier.code}" placeholder="Example: SUP001">
                                     </div>
 
@@ -30,7 +30,7 @@
                                         <label for="name" class="form-label">
                                             Name <span class="text-danger">*</span>
                                         </label>
-                                        <input type="text" class="form-control" id="name" name="name" required
+                                        <input type="text" class="form-control" id="name" name="name" 
                                             value="${supplier.name}" placeholder="Supplier Name">
                                     </div>
                                 </div>
@@ -41,7 +41,7 @@
                                             Email <span class="text-danger">*</span>
                                         </label>
                                         <input type="email" class="form-control" id="email" name="email"
-                                            value="${supplier.email}" placeholder="contact@supplier.com" required>
+                                            value="${supplier.email}" placeholder="contact@supplier.com" >
                                     </div>
 
                                     <div class="col-md-6 mb-3">
@@ -49,8 +49,7 @@
                                             Phone <span class="text-danger">*</span>
                                         </label>
                                         <input type="tel" class="form-control" id="phone" name="phone"
-                                            value="${supplier.phone}" placeholder="0123456789" pattern="0[0-9]{9}"
-                                            title="Số điện thoại phải bắt đầu bằng số 0 và có độ dài 10 chữ số" required>
+                                            value="${supplier.phone}" placeholder="0123456789">
                                     </div>
                                 </div>
 

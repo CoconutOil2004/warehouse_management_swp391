@@ -158,6 +158,15 @@ public class CustomerController extends HttpServlet {
 
     // ======================== POST handlers ========================
 
+    private void forwardCreateWithToast(HttpServletRequest request, HttpServletResponse response,
+            Customer c, String message, String toastType)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession(true);
+        setToast(session, message, toastType);
+        request.setAttribute("customer", c);
+        request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+    }
+
     private void handleCreate(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String name = request.getParameter("name") != null ? request.getParameter("name").trim() : "";
@@ -173,81 +182,76 @@ public class CustomerController extends HttpServlet {
         c.setStatus("ACTIVE");
 
         try {
-            // Validate required fields
             if (name.isEmpty()) {
-                setToast(request.getSession(true), "Name is required", "error");
-                request.setAttribute("customer", c);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, c, "Name is required", "error");
                 return;
             }
 
             if (email.isEmpty()) {
-                setToast(request.getSession(true), "Email is required", "error");
-                request.setAttribute("customer", c);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, c, "Email is required", "error");
                 return;
             }
 
             if (!isValidEmail(email)) {
-                setToast(request.getSession(true), "Email format is invalid. Please enter a valid email address.", "error");
-                request.setAttribute("customer", c);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, c,
+                        "Email format is invalid. Please enter a valid email address.", "error");
                 return;
             }
 
             if (phone.isEmpty()) {
-                setToast(request.getSession(true), "Phone is required", "error");
-                request.setAttribute("customer", c);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, c, "Phone is required", "error");
                 return;
             }
 
             if (!isValidPhone(phone)) {
-                setToast(request.getSession(true), "Phone format is invalid. Please enter a valid phone number (10-15 digits).", "error");
-                request.setAttribute("customer", c);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, c,
+                        "Phone format is invalid. Please enter a valid phone number (10–15 characters).", "error");
                 return;
             }
 
             if (customerDao.phoneExists(phone, null)) {
-                setToast(request.getSession(true), "Phone number already exists", "error");
-                request.setAttribute("customer", c);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, c, "Phone number already exists", "error");
                 return;
             }
 
             if (address.length() > MAX_ADDRESS_LENGTH) {
-                setToast(request.getSession(true),
+                forwardCreateWithToast(request, response, c,
                         "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
                         "error");
-                request.setAttribute("customer", c);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
                 return;
             }
 
-            // Auto-generate code
             String code = customerDao.generateNextCode();
             c.setCode(code);
 
             customerDao.create(c);
+            setToast(request.getSession(true), "Customer created successfully.", "success");
             response.sendRedirect(request.getContextPath() + "/admin/customer");
         } catch (SQLException e) {
             e.printStackTrace();
-            // Friendly toast for common truncation case
             if (e.getMessage() != null && e.getMessage().toLowerCase().contains("data too long")
                     && e.getMessage().toLowerCase().contains("address")) {
-                setToast(request.getSession(true),
+                forwardCreateWithToast(request, response, c,
                         "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
                         "error");
             } else {
-                setToast(request.getSession(true), "Database error. Please try again.", "error");
+                forwardCreateWithToast(request, response, c, "Database error. Please try again.", "error");
             }
-            request.getRequestDispatcher(ViewPath.CUSTOMER_CREATE).forward(request, response);
         }
+    }
+
+    private void forwardUpdateWithToast(HttpServletRequest request, HttpServletResponse response,
+            Customer c, String message, String toastType)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession(true);
+        setToast(session, message, toastType);
+        request.setAttribute("customer", c);
+        request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
     }
 
     private void handleUpdate(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        HttpSession session = request.getSession(true);
         try {
             String idRaw = request.getParameter("id");
             if (idRaw == null) {
@@ -256,61 +260,18 @@ public class CustomerController extends HttpServlet {
             }
 
             Long id = Long.valueOf(idRaw);
+            if (customerDao.getDetail(id) == null) {
+                setToast(session, "Customer not found.", "error");
+                response.sendRedirect(request.getContextPath() + "/admin/customer");
+                return;
+            }
+
             String code = request.getParameter("code") != null ? request.getParameter("code").trim() : "";
             String name = request.getParameter("name") != null ? request.getParameter("name").trim() : "";
             String email = request.getParameter("email") != null ? request.getParameter("email").trim() : "";
             String phone = request.getParameter("phone") != null ? request.getParameter("phone").trim() : "";
             String address = request.getParameter("address") != null ? request.getParameter("address").trim() : "";
             String status = request.getParameter("status") != null ? request.getParameter("status").trim() : "ACTIVE";
-
-            // Validate required fields
-            if (code.isEmpty() || name.isEmpty()) {
-                Customer old = customerDao.getDetail(id);
-                setToast(request.getSession(true), "Code and Name are required", "error");
-                request.setAttribute("customer", old);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
-                return;
-            }
-
-            if (email.isEmpty()) {
-                Customer old = customerDao.getDetail(id);
-                setToast(request.getSession(true), "Email is required", "error");
-                request.setAttribute("customer", old);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
-                return;
-            }
-
-            if (!isValidEmail(email)) {
-                Customer old = customerDao.getDetail(id);
-                setToast(request.getSession(true), "Email format is invalid. Please enter a valid email address.", "error");
-                request.setAttribute("customer", old);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
-                return;
-            }
-
-            if (phone.isEmpty()) {
-                Customer old = customerDao.getDetail(id);
-                setToast(request.getSession(true), "Phone is required", "error");
-                request.setAttribute("customer", old);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
-                return;
-            }
-
-            if (!isValidPhone(phone)) {
-                Customer old = customerDao.getDetail(id);
-                setToast(request.getSession(true), "Phone format is invalid. Please enter a valid phone number (10-15 digits).", "error");
-                request.setAttribute("customer", old);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
-                return;
-            }
-
-            if (customerDao.phoneExists(phone, id)) {
-                Customer old = customerDao.getDetail(id);
-                setToast(request.getSession(true), "Phone number already exists", "error");
-                request.setAttribute("customer", old);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
-                return;
-            }
 
             Customer c = new Customer();
             c.setCustomerId(id);
@@ -321,39 +282,77 @@ public class CustomerController extends HttpServlet {
             c.setAddress(address);
             c.setStatus(status);
 
-            if (address.length() > MAX_ADDRESS_LENGTH) {
-                setToast(request.getSession(true),
-                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
-                        "error");
-                request.setAttribute("customer", c);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
+            if (!"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
+                forwardUpdateWithToast(request, response, c, "Invalid status.", "error");
                 return;
             }
 
-            // Check if code already exists for another customer
+            if (code.isEmpty()) {
+                forwardUpdateWithToast(request, response, c, "Code is required", "error");
+                return;
+            }
+
+            if (name.isEmpty()) {
+                forwardUpdateWithToast(request, response, c, "Name is required", "error");
+                return;
+            }
+
+            if (email.isEmpty()) {
+                forwardUpdateWithToast(request, response, c, "Email is required", "error");
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                forwardUpdateWithToast(request, response, c,
+                        "Email format is invalid. Please enter a valid email address.", "error");
+                return;
+            }
+
+            if (phone.isEmpty()) {
+                forwardUpdateWithToast(request, response, c, "Phone is required", "error");
+                return;
+            }
+
+            if (!isValidPhone(phone)) {
+                forwardUpdateWithToast(request, response, c,
+                        "Phone format is invalid. Please enter a valid phone number (10–15 characters).", "error");
+                return;
+            }
+
+            if (customerDao.phoneExists(phone, id)) {
+                forwardUpdateWithToast(request, response, c, "Phone number already exists", "error");
+                return;
+            }
+
+            if (address.length() > MAX_ADDRESS_LENGTH) {
+                forwardUpdateWithToast(request, response, c,
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
+                return;
+            }
+
             if (customerDao.codeExists(code, id)) {
-                setToast(request.getSession(true), "Customer Code already exists", "error");
-                request.setAttribute("customer", c);
-                request.getRequestDispatcher(ViewPath.CUSTOMER_UPDATE).forward(request, response);
+                forwardUpdateWithToast(request, response, c, "Customer code already exists", "error");
                 return;
             }
 
             customerDao.update(c);
+            setToast(session, "Customer updated successfully.", "success");
             response.sendRedirect(request.getContextPath() + "/admin/customer");
         } catch (SQLException e) {
             e.printStackTrace();
             if (e.getMessage() != null && e.getMessage().toLowerCase().contains("data too long")
                     && e.getMessage().toLowerCase().contains("address")) {
-                setToast(request.getSession(true),
+                setToast(session,
                         "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
                         "error");
             } else {
-                setToast(request.getSession(true), "Database error. Please try again.", "error");
+                setToast(session, "Database error. Please try again.", "error");
             }
             response.sendRedirect(request.getContextPath() + "/admin/customer");
         } catch (Exception e) {
             e.printStackTrace();
-            setToast(request.getSession(true), "An error occurred. Please try again.", "error");
+            setToast(session, "An error occurred. Please try again.", "error");
             response.sendRedirect(request.getContextPath() + "/admin/customer");
         }
     }
