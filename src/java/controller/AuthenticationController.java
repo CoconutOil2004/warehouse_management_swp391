@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.regex.Pattern;
 import model.User;
+import util.CurrentUserUtil;
 import util.PasswordUtil;
 import util.SendEmail;
 import util.ViewPath;
@@ -15,7 +16,6 @@ import util.ViewPath;
 @WebServlet(name = "AuthenticationController", urlPatterns = {"/authen"})
 public class AuthenticationController extends HttpServlet {
 
-    private static final String SESSION_USER_KEY = "USER";
     private static final boolean IS_OTP_ENABLED = false;
 
     /** Định dạng email cơ bản (local@domain.tld) */
@@ -119,7 +119,7 @@ public class AuthenticationController extends HttpServlet {
             // Nếu tắt OTP (để test nhanh)
             if (!IS_OTP_ENABLED) {
                 user.setPasswordHash(null);
-                request.getSession().setAttribute(SESSION_USER_KEY, user);
+                request.getSession().setAttribute(CurrentUserUtil.SESSION_USER_KEY, user);
                 response.sendRedirect(request.getContextPath() + "/admin/dashboard");
                 return;
             }
@@ -311,7 +311,7 @@ public class AuthenticationController extends HttpServlet {
                 User user = dao.getById(verifiedUserId);
                 if (user != null) {
                     user.setPasswordHash(null);
-                    session.setAttribute(SESSION_USER_KEY, user);
+                    session.setAttribute(CurrentUserUtil.SESSION_USER_KEY, user);
 
                     // Cleanup session
                     session.removeAttribute("AUTH_TYPE");
