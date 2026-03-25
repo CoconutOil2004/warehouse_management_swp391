@@ -1,6 +1,7 @@
 <%@page contentType="text/html" pageEncoding="UTF-8" %>
     <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <%@taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+        <%@taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
             <%@taglib tagdir="/WEB-INF/tags/" prefix="t" %>
 
                 <t:layout title="Warehouse Management">
@@ -63,5 +64,9 @@
                                 </c:forEach>
                             </jsp:body>
                         </t:table>
+
+                        <c:if test="${not empty emptySearchMessage}">
+                            <span class="d-none js-empty-search-toast" data-empty-search-toast="${fn:escapeXml(emptySearchMessage)}" aria-hidden="true"></span>
+                        </c:if>
                     </jsp:body>
                 </t:layout>

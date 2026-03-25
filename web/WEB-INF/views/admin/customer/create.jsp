@@ -21,23 +21,26 @@
                                         <label for="name" class="form-label">
                                             Name <span class="text-danger">*</span>
                                         </label>
-                                        <input type="text" class="form-control" id="name" name="name" required
+                                        <input type="text" class="form-control" id="name" name="name" 
                                             value="${customer.name}" placeholder="Customer Name">
                                     </div>
 
                                     <div class="col-md-6 mb-3">
-                                        <label for="email" class="form-label">Email</label>
+                                        <label for="email" class="form-label">
+                                            Email <span class="text-danger">*</span>
+                                        </label>
                                         <input type="email" class="form-control" id="email" name="email"
-                                            value="${customer.email}" placeholder="contact@customer.com">
+                                            value="${customer.email}" placeholder="contact@customer.com" >
                                     </div>
                                 </div>
 
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label for="phone" class="form-label">Phone</label>
+                                        <label for="phone" class="form-label">
+                                            Phone <span class="text-danger">*</span>
+                                        </label>
                                         <input type="tel" class="form-control" id="phone" name="phone"
-                                            value="${customer.phone}" placeholder="0123456789" pattern="0[0-9]{9}"
-                                            title="Số điện thoại phải bắt đầu bằng số 0 và có độ dài 10 chữ số">
+                                            value="${customer.phone}" placeholder="0123456789">
                                     </div>
                                 </div>
 

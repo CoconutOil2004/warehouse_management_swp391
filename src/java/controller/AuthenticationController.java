@@ -6,7 +6,9 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.regex.Pattern;
 import model.User;
+import util.CurrentUserUtil;
 import util.PasswordUtil;
 import util.SendEmail;
 import util.ViewPath;
@@ -14,14 +16,17 @@ import util.ViewPath;
 @WebServlet(name = "AuthenticationController", urlPatterns = {"/authen"})
 public class AuthenticationController extends HttpServlet {
 
-    private static final String SESSION_USER_KEY = "USER";
     private static final boolean IS_OTP_ENABLED = false;
+
+    /** Định dạng email cơ bản (local@domain.tld) */
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        // read action from query param
+        // đọc action từ query param
         String action = trimOrEmpty(request.getParameter("action"));
 
         // logout
@@ -67,6 +72,11 @@ public class AuthenticationController extends HttpServlet {
             return;
         }
 
+        if ("resend-otp".equalsIgnoreCase(action)) {
+            handleResendOtp(request, response);
+            return;
+        }
+
         if ("verify-otp".equalsIgnoreCase(action)) {
             handleVerifyOtp(request, response);
             return;
@@ -109,7 +119,7 @@ public class AuthenticationController extends HttpServlet {
             // Nếu tắt OTP (để test nhanh)
             if (!IS_OTP_ENABLED) {
                 user.setPasswordHash(null);
-                request.getSession().setAttribute(SESSION_USER_KEY, user);
+                request.getSession().setAttribute(CurrentUserUtil.SESSION_USER_KEY, user);
                 response.sendRedirect(request.getContextPath() + "/admin/dashboard");
                 return;
             }
@@ -153,12 +163,20 @@ public class AuthenticationController extends HttpServlet {
             return;
         }
 
+        if (!isValidEmailFormat(email)) {
+            request.setAttribute("error", "Invalid email format. Example: name@example.com");
+            request.setAttribute("email", email);
+            request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
+            return;
+        }
+
         UserDAO dao = new UserDAO();
         try {
             // Tạo OTP lưu DB + trả OTP raw để gửi email
             String otp = dao.createPasswordResetOtpByEmail(email);
             if (otp == null) {
                 request.setAttribute("error", "Email does not exist in the system");
+                request.setAttribute("email", email);
                 request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
                 return;
             }
@@ -177,6 +195,100 @@ public class AuthenticationController extends HttpServlet {
             request.setAttribute("error", "An error occurred. Please try again.");
             request.getRequestDispatcher(ViewPath.VIEW_FORGOT).forward(request, response);
         }
+    }
+
+    /**
+     * Gửi lại OTP, giữ người dùng ở màn verify (không redirect về forgot).
+     * Dựa trên session: RESET (quên mật khẩu) hoặc LOGIN (OTP sau đăng nhập).
+     */
+    private void handleResendOtp(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            response.sendRedirect(request.getContextPath() + "/authen?action=forgot");
+            return;
+        }
+
+        String authType = (String) session.getAttribute("AUTH_TYPE");
+        String resetEmail = (String) session.getAttribute("RESET_EMAIL");
+        Long preLoginUserId = toLong(session.getAttribute("PRE_LOGIN_USER_ID"));
+
+        UserDAO dao = new UserDAO();
+        try {
+            if ("RESET".equals(authType) && resetEmail != null && !resetEmail.isBlank()) {
+                if (!isValidEmailFormat(resetEmail)) {
+                    request.setAttribute("error", "Invalid session email. Please start forgot password again.");
+                    request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
+                    return;
+                }
+                String otp = dao.createPasswordResetOtpByEmail(resetEmail);
+                if (otp == null) {
+                    request.setAttribute("error", "Could not resend OTP. Please try forgot password again.");
+                    request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
+                    return;
+                }
+                SendEmail.sendOTP(resetEmail, otp);
+                request.setAttribute("message", "A new OTP has been sent to your email.");
+                request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
+                return;
+            }
+
+            if ("LOGIN".equals(authType) && preLoginUserId != null && resetEmail != null && !resetEmail.isBlank()) {
+                String otp = dao.createOtpForUser(preLoginUserId);
+                SendEmail.sendOTP(resetEmail, otp);
+                request.setAttribute("message", "A new OTP has been sent to your email.");
+                request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
+                return;
+            }
+
+            response.sendRedirect(request.getContextPath() + "/authen?action=forgot");
+        } catch (Exception e) {
+            e.printStackTrace();
+            request.setAttribute("error", "Could not resend OTP. Please try again.");
+            request.getRequestDispatcher(ViewPath.VIEW_VERIFY_OTP).forward(request, response);
+        }
+    }
+
+    private static Long toLong(Object o) {
+        if (o == null) {
+            return null;
+        }
+        if (o instanceof Long) {
+            return (Long) o;
+        }
+        if (o instanceof Integer) {
+            return ((Integer) o).longValue();
+        }
+        if (o instanceof Number) {
+            return ((Number) o).longValue();
+        }
+        try {
+            return Long.parseLong(o.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static boolean isValidEmailFormat(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email).matches();
+    }
+
+    /**
+     * Cùng quy tắc với trang đăng nhập ({@code web/index.jsp}): ít nhất 8 ký tự,
+     * một chữ hoa, một chữ số. Trả về thông báo lỗi hoặc {@code null} nếu hợp lệ.
+     */
+    private static String passwordStrengthError(String password) {
+        if (password.length() < 8) {
+            return "Password must be at least 8 characters long";
+        }
+        if (password.chars().noneMatch(Character::isUpperCase)) {
+            return "Password must contain at least one uppercase letter";
+        }
+        if (password.chars().noneMatch(Character::isDigit)) {
+            return "Password must contain at least one digit (0–9)";
+        }
+        return null;
     }
 
     private void handleVerifyOtp(HttpServletRequest request, HttpServletResponse response)
@@ -216,7 +328,7 @@ public class AuthenticationController extends HttpServlet {
                 User user = dao.getById(verifiedUserId);
                 if (user != null) {
                     user.setPasswordHash(null);
-                    session.setAttribute(SESSION_USER_KEY, user);
+                    session.setAttribute(CurrentUserUtil.SESSION_USER_KEY, user);
 
                     // Cleanup session
                     session.removeAttribute("AUTH_TYPE");
@@ -248,7 +360,7 @@ public class AuthenticationController extends HttpServlet {
         String otp = (session != null) ? (String) session.getAttribute("VERIFIED_OTP") : null;
 
         if (otp == null) {
-            // OTP not verified yet -> redirect to forgot
+            // Chưa verify OTP mà nhảy vào đây -> đá về forgot
             response.sendRedirect(request.getContextPath() + "/authen?action=forgot");
             return;
         }
@@ -259,6 +371,13 @@ public class AuthenticationController extends HttpServlet {
         // validate input
         if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
             request.setAttribute("error", "Please enter a new password");
+            request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
+            return;
+        }
+
+        String strengthErr = passwordStrengthError(newPassword);
+        if (strengthErr != null) {
+            request.setAttribute("error", strengthErr);
             request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
             return;
         }
@@ -304,7 +423,7 @@ public class AuthenticationController extends HttpServlet {
                 session.removeAttribute("OTP_CREATION_TIME");
             }
 
-            // success -> back to login
+            // thành công → quay về login
             request.setAttribute("message",
                     "Password changed successfully. Please log in again");
             request.getRequestDispatcher(ViewPath.VIEW_LOGIN).forward(request, response);

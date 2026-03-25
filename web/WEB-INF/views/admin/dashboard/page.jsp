@@ -59,6 +59,7 @@
       </div>
     </div>
 
+    <c:if test="${!hideWarehouseLayout}">
     <!-- Warehouse Layout Section -->
     <div class="row mb-4">
       <div class="col-12">
@@ -114,6 +115,7 @@
         </div>
       </div>
     </div>
+    </c:if>
 
     <!-- Product Detail Modal (same behavior as Products page) -->
     <div class="modal fade" id="viewProductModal" tabindex="-1" aria-labelledby="viewProductModalLabel" aria-hidden="true">

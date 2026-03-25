@@ -207,6 +207,21 @@ public class CustomerDAO extends DBContext implements Dao<Customer> {
         return false;
     }
 
+    public boolean phoneExists(String phone, Long excludeId) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM customer WHERE phone = ? AND (? IS NULL OR customer_id != ?)";
+        try (Connection con = DBContext.getConnection(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, phone);
+            ps.setObject(2, excludeId);
+            ps.setObject(3, excludeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getLong(1) > 0;
+                }
+            }
+        }
+        return false;
+    }
+
     private Customer mapResultSetToCustomer(ResultSet rs) throws SQLException {
         Customer c = new Customer();
         c.setCustomerId(rs.getLong("customer_id"));

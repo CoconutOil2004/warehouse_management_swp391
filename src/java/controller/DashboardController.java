@@ -11,6 +11,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import util.RoleUtil;
 import util.ViewPath;
 
 @WebServlet(name = "DashboardController", urlPatterns = {"/admin/dashboard"})
@@ -18,15 +19,19 @@ public class DashboardController extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        boolean hideWarehouseLayout = RoleUtil.shouldHideWarehouseLayout(RoleUtil.roleNames(request));
+        request.setAttribute("hideWarehouseLayout", hideWarehouseLayout);
         try {
             // Load products data
             ProductDAO productDAO = new ProductDAO();
             List<ProductListDTO> products = productDAO.getAllProducts(10, 0); // Top 10 products
             request.setAttribute("products", products);
 
-            // Load warehouses data
-            WarehouseDAO warehouseDAO = new WarehouseDAO();
-            request.setAttribute("warehouses", warehouseDAO.getAll());
+            // Load warehouses data (PURCHASE_STAFF / SALE_STAFF không dùng — tránh query thừa)
+            if (!hideWarehouseLayout) {
+                WarehouseDAO warehouseDAO = new WarehouseDAO();
+                request.setAttribute("warehouses", warehouseDAO.getAll());
+            }
 
         } catch (Exception e) {
             // Log error but don't break the page
