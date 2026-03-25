@@ -1,15 +1,21 @@
 package dao;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
+
 import context.DBContext;
 import dto.PackingLineConfigDTO;
 import dto.PackingSessionDTO;
 import dto.PackingTaskDTO;
 import model.PackingLineConfig;
 import model.PackingTask;
-
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class PackingDAO extends DBContext {
 
@@ -357,6 +363,67 @@ public class PackingDAO extends DBContext {
             ps.setLong(1, sessionId);
             ps.executeUpdate();
         }
+    }
+
+    /**
+     * Check if all lines in the session are fully done
+     */
+    public boolean isAllLinesDoneForSession(Long sessionId) throws Exception {
+        String sql = """
+                SELECT COUNT(*) FROM packing_line_config plc
+                WHERE plc.packing_session_id = ?
+                AND NOT EXISTS (
+                    SELECT 1 FROM packing_task pt 
+                    WHERE pt.packing_line_config_id = plc.packing_line_config_id 
+                    AND pt.status != 'DONE'
+                )
+                """;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, sessionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    // Check if total lines equals done lines
+                    return rs.getInt(1) == getTotalLineConfigsForSession(sessionId);
+                }
+            }
+        }
+        return false;
+    }
+
+    private int getTotalLineConfigsForSession(Long sessionId) throws Exception {
+        String sql = "SELECT COUNT(*) FROM packing_line_config WHERE packing_session_id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, sessionId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Check if all tasks for a specific line are done
+     */
+    public boolean isAllTasksDoneForLine(Long gdnLineId) throws Exception {
+        String sql = """
+                SELECT COUNT(*) FROM packing_task pt
+                JOIN packing_line_config plc ON pt.packing_line_config_id = plc.packing_line_config_id
+                WHERE plc.gdn_line_id = ? AND pt.status != 'DONE'
+                """;
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, gdnLineId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) == 0;
+                }
+            }
+        }
+        return false;
     }
 
     /**
