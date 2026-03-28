@@ -259,6 +259,15 @@
                         background-color: #fff8fa !important;
                         box-shadow: 0 0 0 0.25rem rgba(233, 30, 99, 0.12) !important;
                     }
+
+                    /* State for disabled inputs to guide user sequence */
+                    .line-row input:disabled {
+                        background-color: #f1f3f5 !important;
+                        border-color: #dee2e6 !important;
+                        cursor: not-allowed;
+                        opacity: 0.7;
+                        color: #adb5bd;
+                    }
                 </style>
 
                 <%-- Variants data: dùng data-attributes thay vì JSON để tránh quote-escaping --%>
@@ -302,6 +311,14 @@
                             };
 
                             if (!els.qExp) return;
+
+                            const gVal = els.physGood.value;
+                            const isGoodEntered = gVal !== "" && gVal !== null;
+                            
+                            // Enable/disable other inputs based on Good entry
+                            els.physDamaged.disabled = !isGoodEntered;
+                            if (els.physExtraGood) els.physExtraGood.disabled = !isGoodEntered;
+                            if (els.physExtraDamaged) els.physExtraDamaged.disabled = !isGoodEntered;
 
                             const qExp = parseFloat(els.qExp.value) || 0;
                             const qGoodPhys = parseFloat(els.physGood.value) || 0;
@@ -381,14 +398,15 @@
 </td>
 <td style="width: 130px; border-left: 2px solid #dee2e6;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-good phys-good" 
-           value="\${data && data.qtyGood ? Math.floor(data.qtyGood) : 0}" 
+           value="\${data && (data.qtyGood !== null && data.qtyGood !== undefined) ? Math.floor(data.qtyGood) : ''}" 
            oninput="handleQtyInput(this)"
-           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';">
+           onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') { this.value=''; handleQtyInput(this); }">
     <input type="hidden" class="server-good" name="lines[\${idx}].qtyGood">
 </td>
 <td style="width: 130px;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-damaged phys-damaged" 
            value="\${data && data.qtyDamaged ? Math.floor(data.qtyDamaged) : 0}" 
+           \${data && (data.qtyGood !== null && data.qtyGood !== undefined) ? '' : 'disabled'}
            oninput="handleQtyInput(this)"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';">
     <input type="hidden" class="server-damaged" name="lines[\${idx}].qtyDamaged">
@@ -396,6 +414,7 @@
 <td style="width: 120px; border-left: 2px solid #dee2e6;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-excess phys-extra-good" 
            value="\${data && data.qtyExtraGood ? Math.floor(data.qtyExtraGood) : 0}" 
+           \${data && (data.qtyGood !== null && data.qtyGood !== undefined) ? '' : 'disabled'}
            oninput="handleQtyInput(this)"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';">
     <input type="hidden" class="server-extra-good" name="lines[\${idx}].qtyExtraGood">
@@ -403,12 +422,13 @@
 <td style="width: 120px;">
     <input type="number" min="0" step="1" class="form-control form-control-sm text-center bg-extra-damaged phys-extra-damaged" 
            value="\${data && data.qtyExtraDamaged ? Math.floor(data.qtyExtraDamaged) : 0}" 
+           \${data && (data.qtyGood !== null && data.qtyGood !== undefined) ? '' : 'disabled'}
            oninput="handleQtyInput(this)"
            onfocus="if(this.value=='0') this.value='';" onblur="if(this.value=='') this.value='0';">
     <input type="hidden" class="server-extra-damaged" name="lines[\${idx}].qtyExtraDamaged">
 </td>
 <td style="width: 120px;">
-    <input type="number" class="form-control form-control-sm text-center bg-missing display-missing" readonly>
+    <input type="number" class="form-control form-control-sm text-center bg-missing display-missing" readonly disabled>
     <input type="hidden" class="server-missing" name="lines[\${idx}].qtyMissing">
 </td>
 <td>
@@ -544,7 +564,7 @@
                                                 variantId: l.variantId,
                                                 unitPrice: l.unitPrice,
                                                 qtyExpected: l.orderedQty,
-                                                qtyGood: 0, qtyDamaged: 0, qtyExtraGood: 0, qtyExtraDamaged: 0, qtyMissing: l.orderedQty,
+                                                qtyGood: null, qtyDamaged: 0, qtyExtraGood: 0, qtyExtraDamaged: 0, qtyMissing: l.orderedQty,
                                                 note: '', fromOld: false
                                             });
                                         });
