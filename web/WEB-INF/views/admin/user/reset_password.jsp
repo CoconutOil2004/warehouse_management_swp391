@@ -123,6 +123,7 @@
 
                     .form-group {
                         margin-bottom: 20px;
+                        position: relative;
                     }
 
                     .form-group label {
@@ -164,6 +165,82 @@
                         outline: none;
                         color: #fff;
                         font-size: 16px;
+                        min-width: 0;
+                    }
+
+                    .eye-toggle {
+                        cursor: pointer;
+                        color: var(--text-dim);
+                        padding: 8px;
+                        margin-right: -8px;
+                        flex-shrink: 0;
+                        transition: 0.3s;
+                    }
+
+                    .form-group.has-error .input-box {
+                        border-color: var(--error);
+                        background: rgba(255, 118, 117, 0.05);
+                    }
+
+                    .error-hint {
+                        display: none;
+                        margin-top: 8px;
+                        margin-left: 5px;
+                        color: var(--error);
+                        font-size: 12px;
+                        animation: fadeIn 0.3s ease;
+                    }
+
+                    .form-group.has-error .error-hint {
+                        display: block;
+                    }
+
+                    /* Password checklist — cùng logic với trang login (index.jsp) */
+                    .password-check-list {
+                        margin-top: 15px;
+                        padding: 15px;
+                        background: rgba(255, 255, 255, 0.03);
+                        border-radius: 12px;
+                        border: 1px solid rgba(255, 255, 255, 0.05);
+                        display: none;
+                        flex-direction: column;
+                        gap: 10px;
+                    }
+
+                    .form-group.has-focus .password-check-list,
+                    .form-group.has-error .password-check-list {
+                        display: flex;
+                    }
+
+                    .check-item {
+                        font-size: 13px;
+                        color: var(--text-dim);
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        transition: 0.3s;
+                    }
+
+                    .check-item i {
+                        font-size: 14px;
+                        width: 16px;
+                        text-align: center;
+                    }
+
+                    .check-item.valid {
+                        color: var(--success);
+                    }
+
+                    .check-item.invalid {
+                        color: var(--error);
+                    }
+
+                    .check-item.valid i {
+                        color: var(--success);
+                    }
+
+                    .check-item.invalid i {
+                        color: var(--error);
                     }
 
                     .btn-action {
@@ -181,9 +258,16 @@
                         box-shadow: 0 10px 20px rgba(78, 115, 223, 0.3);
                     }
 
-                    .btn-action:hover {
+                    .btn-action:hover:not(:disabled) {
                         transform: translateY(-3px);
                         filter: brightness(1.1);
+                    }
+
+                    .btn-action:disabled {
+                        opacity: 0.5;
+                        cursor: not-allowed;
+                        transform: none;
+                        filter: none;
                     }
 
                     .alert-error {
@@ -258,26 +342,43 @@
                             <div class="alert-success"><i class="fas fa-check-circle"></i> ${message}</div>
                         </c:if>
 
-                        <form action="<%=request.getContextPath()%>/authen" method="post">
+                        <form id="resetPasswordForm" action="<%=request.getContextPath()%>/authen" method="post"
+                            novalidate>
                             <input type="hidden" name="action" value="reset" />
 
-                            <div class="form-group">
-                                <label>New Password</label>
+                            <div class="form-group" id="newPassGroup">
+                                <label for="newPassword">New Password</label>
                                 <div class="input-box">
                                     <i class="fas fa-lock"></i>
-                                    <input type="password" name="newPassword" required placeholder="••••••••">
+                                    <input type="password" name="newPassword" id="newPassword"
+                                        autocomplete="new-password" required placeholder="••••••••">
+                                    <i class="fas fa-eye-slash eye-toggle" id="toggleNewPassword" title="Show password"></i>
                                 </div>
+                                <div class="password-check-list" id="resetPasswordCheckList">
+                                    <div class="check-item" id="resetReqLength">
+                                        <i class="fas fa-times-circle"></i> Password must be at least 8 characters long
+                                    </div>
+                                    <div class="check-item" id="resetReqUpper">
+                                        <i class="fas fa-times-circle"></i> Password must contain at least one uppercase letter
+                                    </div>
+                                    <div class="check-item" id="resetReqNumber">
+                                        <i class="fas fa-times-circle"></i> Password must contain at least one digit (0–9)
+                                    </div>
+                                </div>
+                                <span class="error-hint" id="newPasswordError">Please enter a valid password</span>
                             </div>
 
-                            <div class="form-group">
-                                <label>Confirm Password</label>
+                            <div class="form-group" id="confirmPassGroup">
+                                <label for="confirmPassword">Confirm Password</label>
                                 <div class="input-box">
                                     <i class="fas fa-check-double"></i>
-                                    <input type="password" name="confirmPassword" required placeholder="••••••••">
+                                    <input type="password" name="confirmPassword" id="confirmPassword"
+                                        autocomplete="new-password" required placeholder="••••••••">
                                 </div>
+                                <span class="error-hint" id="confirmPassError">Password confirmation does not match</span>
                             </div>
 
-                            <button type="submit" class="btn-action">Update Password</button>
+                            <button type="submit" class="btn-action" id="resetSubmitBtn">Update Password</button>
                         </form>
 
                         <div class="footer-links">
@@ -285,6 +386,122 @@
                         </div>
                     </div>
                 </div>
+
+                <script>
+                    (function () {
+                        const form = document.getElementById('resetPasswordForm');
+                        const newPassInput = document.getElementById('newPassword');
+                        const confirmInput = document.getElementById('confirmPassword');
+                        const newPassGroup = document.getElementById('newPassGroup');
+                        const confirmPassGroup = document.getElementById('confirmPassGroup');
+                        const submitBtn = document.getElementById('resetSubmitBtn');
+                        const toggleNew = document.getElementById('toggleNewPassword');
+                        const checkList = document.getElementById('resetPasswordCheckList');
+
+                        toggleNew.addEventListener('click', function () {
+                            const t = newPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                            newPassInput.setAttribute('type', t);
+                            this.classList.toggle('fa-eye');
+                            this.classList.toggle('fa-eye-slash');
+                        });
+
+                        function updateRequirement(id, isValid) {
+                            const el = document.getElementById(id);
+                            const icon = el.querySelector('i');
+                            if (isValid) {
+                                el.classList.add('valid');
+                                el.classList.remove('invalid');
+                                icon.className = 'fas fa-check-circle';
+                            } else {
+                                el.classList.remove('valid');
+                                el.classList.add('invalid');
+                                icon.className = 'fas fa-times-circle';
+                            }
+                        }
+
+                        function validateNewPassword() {
+                            const val = newPassInput.value;
+
+                            const isLengthValid = val.length >= 8;
+                            const hasUpperCase = /[A-Z]/.test(val);
+                            const hasNumber = /\d/.test(val);
+
+                            updateRequirement('resetReqLength', isLengthValid);
+                            updateRequirement('resetReqUpper', hasUpperCase);
+                            updateRequirement('resetReqNumber', hasNumber);
+
+                            const isAllValid = isLengthValid && hasUpperCase && hasNumber;
+
+                            if (val.length > 0) {
+                                checkList.style.display = 'flex';
+                                if (!isAllValid) {
+                                    newPassGroup.classList.add('has-error');
+                                    submitBtn.disabled = true;
+                                } else {
+                                    newPassGroup.classList.remove('has-error');
+                                    submitBtn.disabled = false;
+                                }
+                            } else {
+                                newPassGroup.classList.remove('has-error');
+                                checkList.style.display = '';
+                                submitBtn.disabled = false;
+                            }
+                            return isAllValid;
+                        }
+
+                        newPassInput.addEventListener('input', function () {
+                            validateNewPassword();
+                            confirmPassGroup.classList.remove('has-error');
+                        });
+                        newPassInput.addEventListener('focus', function () {
+                            newPassGroup.classList.add('has-focus');
+                        });
+
+                        confirmInput.addEventListener('input', function () {
+                            confirmPassGroup.classList.remove('has-error');
+                        });
+
+                        form.addEventListener('submit', function (e) {
+                            let ok = true;
+                            const v = newPassInput.value.trim();
+                            const c = confirmInput.value.trim();
+                            const strengthOk = validateNewPassword();
+
+                            document.getElementById('newPasswordError').textContent =
+                                'Please enter a valid password';
+
+                            if (!v) {
+                                newPassGroup.classList.add('has-error');
+                                document.getElementById('newPasswordError').textContent =
+                                    'Please enter your new password';
+                                ok = false;
+                            } else if (!strengthOk) {
+                                newPassGroup.classList.add('has-error');
+                                ok = false;
+                            } else {
+                                newPassGroup.classList.remove('has-error');
+                            }
+
+                            if (!c) {
+                                confirmPassGroup.classList.add('has-error');
+                                document.getElementById('confirmPassError').textContent =
+                                    'Please confirm your password';
+                                ok = false;
+                            } else if (v !== c) {
+                                confirmPassGroup.classList.add('has-error');
+                                document.getElementById('confirmPassError').textContent =
+                                    'Password confirmation does not match';
+                                ok = false;
+                            } else {
+                                confirmPassGroup.classList.remove('has-error');
+                            }
+
+                            if (!ok) {
+                                e.preventDefault();
+                            }
+                        });
+                    })();
+                </script>
             </body>
 
             </html>
