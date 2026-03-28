@@ -61,13 +61,13 @@
                         </p>
                     </div>
                     <div class="col-md-4 text-end">
-                        <form action="${pageContext.request.contextPath}/pick-task" method="post" class="d-inline">
+<!--                        <form action="${pageContext.request.contextPath}/pick-task" method="post" class="d-inline">
                             <input type="hidden" name="action" value="auto-assign"/>
                             <input type="hidden" name="waveId" value="${wave.waveId}"/>
                             <button type="submit" class="btn btn-outline-primary btn-sm"
                                 onclick="return confirm('Auto-assign will distribute all unassigned tasks based on workload?')">
                                 <i class="fas fa-magic me-1"></i> Auto-Assign
-                            </button>
+                            </button>-->
                         </form>
                     </div>
                 </div>

@@ -47,18 +47,19 @@
 
                         <div class="col-md-4">
                             <label class="form-label">Requested Ship Date</label>
-                            <input type="date" class="form-control"
+                            <input type="date"
+                                   class="form-control ${not empty fieldErrors.requestedShipDate ? 'is-invalid' : ''}"
                                    name="requestedShipDate"
                                    value="${so.requestedShipDate}">
                             <c:if test="${not empty fieldErrors.requestedShipDate}">
-                                <div class="text-danger small">${fieldErrors.requestedShipDate}</div>
+                                <div class="invalid-feedback d-block">${fieldErrors.requestedShipDate}</div>
                             </c:if>
                         </div>
 
                         <div class="col-12">
                             <label class="form-label">Ship To Address</label>
                             <input class="form-control ${not empty fieldErrors.shipToAddress ? 'is-invalid' : ''}"
-                                   name="shipToAddress"
+                                   name="shipToAddress" maxlength="500"
                                    value="${so.shipToAddress}">
                             <c:if test="${not empty fieldErrors.shipToAddress}">
                                 <div class="invalid-feedback d-block">${fieldErrors.shipToAddress}</div>
