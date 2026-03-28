@@ -312,16 +312,24 @@
 
                             if (!els.qExp) return;
 
+                            const qExp = parseFloat(els.qExp.value) || 0;
+                            const qGoodPhys = parseFloat(els.physGood.value) || 0;
                             const gVal = els.physGood.value;
                             const isGoodEntered = gVal !== "" && gVal !== null;
                             
-                            // Enable/disable other inputs based on Good entry
-                            els.physDamaged.disabled = !isGoodEntered;
+                            // Rule: Disable Damaged if Good fulfills order
+                            if (isGoodEntered && qGoodPhys >= qExp) {
+                                els.physDamaged.disabled = true;
+                                if (els.physDamaged.value !== "0") {
+                                    els.physDamaged.value = 0;
+                                }
+                            } else {
+                                els.physDamaged.disabled = !isGoodEntered;
+                            }
+                            
                             if (els.physExtraGood) els.physExtraGood.disabled = !isGoodEntered;
                             if (els.physExtraDamaged) els.physExtraDamaged.disabled = !isGoodEntered;
 
-                            const qExp = parseFloat(els.qExp.value) || 0;
-                            const qGoodPhys = parseFloat(els.physGood.value) || 0;
                             const qDamagedPhys = parseFloat(els.physDamaged.value) || 0;
                             const qExtraGoodPhys = parseFloat(els.physExtraGood?.value) || 0;
                             const qExtraDamagedPhys = parseFloat(els.physExtraDamaged?.value) || 0;
