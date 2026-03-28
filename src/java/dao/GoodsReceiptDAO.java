@@ -17,7 +17,7 @@ import model.PutAwayLine;
 
 public class GoodsReceiptDAO extends DBContext {
 
-    public List<dto.GoodsReceiptListDTO> getFilteredGRNs(String grnNumber, Long supplierId, String status,
+    public List<dto.GoodsReceiptListDTO> getFilteredGRNs(String grnNumber, String poNumber, Long supplierId, String status,
             String sortField,
             String sortOrder, int limit, int offset) throws SQLException {
         StringBuilder sql = new StringBuilder("""
@@ -32,6 +32,9 @@ public class GoodsReceiptDAO extends DBContext {
 
         if (grnNumber != null && !grnNumber.isBlank()) {
             sql.append(" AND gr.grn_number LIKE ?");
+        }
+        if (poNumber != null && !poNumber.isBlank()) {
+            sql.append(" AND po.po_number LIKE ?");
         }
         if (supplierId != null) {
             sql.append(" AND po.supplier_id = ?");
@@ -50,6 +53,8 @@ public class GoodsReceiptDAO extends DBContext {
             validSortField = "gr.status";
         } else if ("grn_id".equals(sortField)) {
             validSortField = "gr.grn_id";
+        } else if ("po_number".equals(sortField)) {
+            validSortField = "po.po_number";
         }
 
         String validSortOrder = "DESC";
@@ -66,6 +71,9 @@ public class GoodsReceiptDAO extends DBContext {
             int paramIdx = 1;
             if (grnNumber != null && !grnNumber.isBlank()) {
                 ps.setString(paramIdx++, "%" + grnNumber + "%");
+            }
+            if (poNumber != null && !poNumber.isBlank()) {
+                ps.setString(paramIdx++, "%" + poNumber + "%");
             }
             if (supplierId != null) {
                 ps.setLong(paramIdx++, supplierId);
@@ -96,7 +104,7 @@ public class GoodsReceiptDAO extends DBContext {
         return list;
     }
 
-    public int countFilteredGRNs(String grnNumber, Long supplierId, String status) throws SQLException {
+    public int countFilteredGRNs(String grnNumber, String poNumber, Long supplierId, String status) throws SQLException {
         StringBuilder sql = new StringBuilder("""
                     SELECT COUNT(*)
                     FROM goods_receipt gr
@@ -106,6 +114,9 @@ public class GoodsReceiptDAO extends DBContext {
 
         if (grnNumber != null && !grnNumber.isBlank()) {
             sql.append(" AND gr.grn_number LIKE ?");
+        }
+        if (poNumber != null && !poNumber.isBlank()) {
+            sql.append(" AND po.po_number LIKE ?");
         }
         if (supplierId != null) {
             sql.append(" AND po.supplier_id = ?");
@@ -119,6 +130,9 @@ public class GoodsReceiptDAO extends DBContext {
             int paramIdx = 1;
             if (grnNumber != null && !grnNumber.isBlank()) {
                 ps.setString(paramIdx++, "%" + grnNumber + "%");
+            }
+            if (poNumber != null && !poNumber.isBlank()) {
+                ps.setString(paramIdx++, "%" + poNumber + "%");
             }
             if (supplierId != null) {
                 ps.setLong(paramIdx++, supplierId);
