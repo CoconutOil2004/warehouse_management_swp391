@@ -90,13 +90,13 @@
                     <div class="card-header bg-warning text-dark py-3 d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0"><i class="bi bi-list-check me-2"></i>Unassigned Lines</h5>
                         <c:if test="${not empty unassignedLines}">
-                            <form method="post" action="${pageContext.request.contextPath}/pick-task">
+<!--                            <form method="post" action="${pageContext.request.contextPath}/pick-task">
                                 <input type="hidden" name="action" value="auto-assign-lines"/>
                                 <input type="hidden" name="waveId" value="${wave.waveId}"/>
                                 <button type="submit" class="btn btn-sm btn-outline-dark">
                                     <i class="bi bi-magic"></i> Auto Assign
                                 </button>
-                            </form>
+                            </form>-->
                         </c:if>
                     </div>
                     <div class="card-body p-0">

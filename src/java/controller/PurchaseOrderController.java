@@ -38,6 +38,8 @@ public class PurchaseOrderController extends HttpServlet {
 
     private static final int DEFAULT_PAGE = 1;
     private static final int DEFAULT_SIZE = 5;
+    /** Matches typical DB column size for {@code purchase_order.note}. */
+    private static final int PO_NOTE_MAX_LENGTH = 500;
     private final SupplierService sService = new SupplierService();
     private final ProductService pService = new ProductService();
     private final PurchaseOrderService poService = new PurchaseOrderService();
@@ -317,6 +319,15 @@ public class PurchaseOrderController extends HttpServlet {
             }
         }
         String note = request.getParameter("note");
+        if (note != null) {
+            note = note.trim();
+            if (note.isEmpty()) {
+                note = null;
+            }
+        }
+        if (note != null && note.length() > PO_NOTE_MAX_LENGTH) {
+            fieldErrors.put("note", "Note must be at most " + PO_NOTE_MAX_LENGTH + " characters");
+        }
         Long userId = CurrentUserUtil.getUserId(request);
         if (userId == null) {
             ToastUtil.setToast(request, "error", "Unable to identify the logged-in user. Please sign in again.");
@@ -526,6 +537,15 @@ public class PurchaseOrderController extends HttpServlet {
         }
 
         String note = request.getParameter("note");
+        if (note != null) {
+            note = note.trim();
+            if (note.isEmpty()) {
+                note = null;
+            }
+        }
+        if (note != null && note.length() > PO_NOTE_MAX_LENGTH) {
+            fieldErrors.put("note", "Note must be at most " + PO_NOTE_MAX_LENGTH + " characters");
+        }
 
         // --- Validate header ---
         if (poNumber == null || poNumber.isBlank()) {

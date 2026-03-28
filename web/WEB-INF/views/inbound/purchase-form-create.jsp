@@ -56,7 +56,8 @@
 
                     <div class="col-12">
                         <label class="form-label">Note</label>
-                        <textarea class="form-control" name="note" rows="2">${oldNote}</textarea>
+                        <textarea class="form-control ${not empty fieldErrors.note ? 'is-invalid' : ''}"
+                                  name="note" rows="2" maxlength="500">${oldNote}</textarea>
                         <c:if test="${not empty fieldErrors.note}">
                             <div class="text-danger small">${fieldErrors.note}</div>
                         </c:if>

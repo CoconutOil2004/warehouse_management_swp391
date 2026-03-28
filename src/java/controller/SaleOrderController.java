@@ -39,6 +39,7 @@ public class SaleOrderController extends HttpServlet {
 
     private static final int DEFAULT_PAGE = 1;
     private static final int DEFAULT_SIZE = 5;
+    private static final int SO_SHIP_ADDRESS_MAX_LEN = 500;
     private final SaleOrderService soService = new SaleOrderService();
     private final SaleOrderImportService soImportService = new SaleOrderImportService();
     private final CustomerDAO customerDao = new CustomerDAO();
@@ -306,25 +307,23 @@ public class SaleOrderController extends HttpServlet {
         request.setCharacterEncoding("UTF-8");
         Map<String, String> fieldErrors = new HashMap<>();
         String soNumber = request.getParameter("soNumber");
-        String customerStr = request.getParameter("customerId");
-        long customerId = (customerStr == null || customerStr.isBlank()) ? 0L : Long.parseLong(customerStr);
-        String shipToAddress = request.getParameter("shipToAddress");
-        if (shipToAddress == null || shipToAddress.isBlank()) {
-            fieldErrors.put("shipToAddress", "Need enter address");
-        } else if (shipToAddress.length() >= 20) {
-            fieldErrors.put("shipToAddress", "Address lenght must in range 20");
+        if (soNumber != null) {
+            soNumber = soNumber.trim();
         }
+        long customerId = RequestUtil.parseLong(request.getParameter("customerId"), 0L);
+        String shipToAddress = normalizeOptionalText(request.getParameter("shipToAddress"));
+        putShipToAddressFieldErrors(shipToAddress, fieldErrors);
         String requestedShipStr = request.getParameter("requestedShipDate");
         Date requestedShipDate = null;
         if (requestedShipStr == null || requestedShipStr.isBlank()) {
-            fieldErrors.put("requestedShipDates", "Request Delivery Date is required");
+            fieldErrors.put("requestedShipDate", "Requested ship date is required");
         } else {
             try {
                 requestedShipDate = Date.valueOf(requestedShipStr); // yyyy-MM-dd
                 // không được hôm nay hoặc quá khứ => phải > today
                 // toLocateDate() bỏ giờ lấy ngày
                 if (!requestedShipDate.toLocalDate().isAfter(java.time.LocalDate.now())) {
-                    fieldErrors.put("requestedShipDate", "Requested ship Date must be after today");
+                    fieldErrors.put("requestedShipDate", "Requested ship date must be after today");
                 }
             } catch (Exception e) {
                 fieldErrors.put("requestedShipDate", "Invalid date format");
@@ -338,7 +337,7 @@ public class SaleOrderController extends HttpServlet {
         }
         long userId = sessionUser.getUserId();
 
-        if (soNumber == null || soNumber.isBlank()) {
+        if (soNumber == null || soNumber.isEmpty()) {
             fieldErrors.put("soNumber", "SO Number is required");
         } else if (soNumber.length() > 20) {
             fieldErrors.put("soNumber", "SO Number must be at most 20 characters");
@@ -514,27 +513,30 @@ public class SaleOrderController extends HttpServlet {
             return;
         }
         String soNumber = request.getParameter("soNumber");
-        String customerStr = request.getParameter("customerId");
-        long customerId = (customerStr == null || customerStr.isBlank()) ? 0L : Long.parseLong(customerStr);
+        if (soNumber != null) {
+            soNumber = soNumber.trim();
+        }
+        long customerId = RequestUtil.parseLong(request.getParameter("customerId"), 0L);
 
         String requestedShipStr = request.getParameter("requestedShipDate");
         Date requestedShipDate = null;
         if (requestedShipStr == null || requestedShipStr.isBlank()) {
-            fieldErrors.put("requestedShipDate", "Requested Ship Date is required");
+            fieldErrors.put("requestedShipDate", "Requested ship date is required");
         } else {
             try {
                 requestedShipDate = Date.valueOf(requestedShipStr);
                 if (!requestedShipDate.toLocalDate().isAfter(java.time.LocalDate.now())) {
-                    fieldErrors.put("requestedShipDate", "Requested Ship Date must be after today");
+                    fieldErrors.put("requestedShipDate", "Requested ship date must be after today");
                 }
             } catch (Exception e) {
                 fieldErrors.put("requestedShipDate", "Invalid date format");
             }
         }
 
-        String shipToAddress = request.getParameter("shipToAddress");
+        String shipToAddress = normalizeOptionalText(request.getParameter("shipToAddress"));
+        putShipToAddressFieldErrors(shipToAddress, fieldErrors);
 
-        if (soNumber == null || soNumber.isBlank()) {
+        if (soNumber == null || soNumber.isEmpty()) {
             fieldErrors.put("soNumber", "SO Number is required");
         } else if (soNumber.length() > 20) {
             fieldErrors.put("soNumber", "SO Number must be at most 20 characters");
@@ -679,6 +681,26 @@ public class SaleOrderController extends HttpServlet {
             request.setAttribute("products", new service.ProductService().getProducts());
 
             request.getRequestDispatcher(ViewPath.SO_FORM_EDIT).forward(request, response);
+        }
+    }
+
+    /** Whitespace-only becomes null; otherwise trimmed. */
+    private static String normalizeOptionalText(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String t = raw.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private void putShipToAddressFieldErrors(String shipToAddress, Map<String, String> fieldErrors) {
+        if (shipToAddress == null) {
+            fieldErrors.put("shipToAddress", "Ship to address is required");
+            return;
+        }
+        if (shipToAddress.length() > SO_SHIP_ADDRESS_MAX_LEN) {
+            fieldErrors.put("shipToAddress",
+                    "Ship to address must be at most " + SO_SHIP_ADDRESS_MAX_LEN + " characters");
         }
     }
 
