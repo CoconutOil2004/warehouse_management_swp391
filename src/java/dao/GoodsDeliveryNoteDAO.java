@@ -348,12 +348,25 @@ public class GoodsDeliveryNoteDAO extends DBContext {
                 WHERE gdn_id = ?
             """;
 
+        String sqlCloseSo = """
+                UPDATE sales_order so
+                INNER JOIN goods_delivery_note gdn ON gdn.so_id = so.so_id AND gdn.gdn_id = ?
+                SET so.status = 'CLOSED'
+                """;
+
         try (Connection conn = getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, status);
             ps.setString(2, status);
             ps.setLong(3, gdnId);
-            return ps.executeUpdate() > 0;
+            boolean updated = ps.executeUpdate() > 0;
+            if (updated && status != null && "DONE".equalsIgnoreCase(status.trim())) {
+                try (PreparedStatement psSo = conn.prepareStatement(sqlCloseSo)) {
+                    psSo.setLong(1, gdnId);
+                    psSo.executeUpdate();
+                }
+            }
+            return updated;
         }
     }
 

@@ -335,15 +335,19 @@
                                 }
                             }
 
-                            // 2. Extra fields are enabled only if the PO quantity is fully reached (Good + Damaged >= Ordered)
-                            const canEnterExtra = isGoodEntered && isFulfilled;
+                            // 2. Extra fields logic
+                            // Extra Good can only be entered if the GOOD (Actual) already fills the entire Order
+                            const canEnterExtraGood = isGoodEntered && qGoodPhys >= qExp;
                             if (els.physExtraGood) {
-                                els.physExtraGood.disabled = !canEnterExtra;
-                                if (!canEnterExtra) els.physExtraGood.value = 0;
+                                els.physExtraGood.disabled = !canEnterExtraGood;
+                                if (!canEnterExtraGood) els.physExtraGood.value = 0;
                             }
+                            
+                            // Extra Damaged can only be entered if the PO is fully fulfilled (Good + Damaged >= Ordered)
+                            const canEnterExtraDmg = isGoodEntered && isFulfilled;
                             if (els.physExtraDamaged) {
-                                els.physExtraDamaged.disabled = !canEnterExtra;
-                                if (!canEnterExtra) els.physExtraDamaged.value = 0;
+                                els.physExtraDamaged.disabled = !canEnterExtraDmg;
+                                if (!canEnterExtraDmg) els.physExtraDamaged.value = 0;
                             }
 
                             const receivedAgainstPo = qGoodPhys + qDamagedPhys + qExtraGoodPhys;
