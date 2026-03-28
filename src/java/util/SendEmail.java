@@ -22,8 +22,8 @@ import jakarta.mail.internet.MimeMessage;
 public class SendEmail {
 
     // Lấy thông tin từ biến môi trường
-    private static final String EMAIL_SENDER = "xuanquels@gmail.com";
-    private static final String EMAIL_PASSWORD = "Opnep1204";
+    private static final String EMAIL_SENDER = "anhlhche181707@fpt.edu.vn";
+    private static final String EMAIL_PASSWORD = "slki indq ahju tags";
 
     // Tạo phiên gửi email
     private static Session getSession() {

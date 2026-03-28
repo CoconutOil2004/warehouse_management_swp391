@@ -108,7 +108,7 @@
                             <th style="width: 15%">Barcode</th>
                             <th style="width: 10%" class="text-center">Quantity</th>
                             <th style="width: 10%" class="text-end">Unit Price</th>
-                            <th style="width: 15%" class="text-end">Discount</th>
+                            <!--<th style="width: 15%" class="text-end">Discount</th>-->
                         </tr>
                     </thead>
                     <tbody>
@@ -146,10 +146,10 @@
                                             <fmt:formatNumber value="${l.unitPrice}" type="number"
                                                               minFractionDigits="0" maxFractionDigits="0"/>
                                         </td>
-                                        <td class="text-end">
+<!--                                        <td class="text-end">
                                             <fmt:formatNumber value="${l.discount}" type="number"
                                                               minFractionDigits="0" maxFractionDigits="0"/>
-                                        </td>
+                                        </td>-->
                                     </tr>
                                 </c:forEach>
                             </c:otherwise>

@@ -26,6 +26,7 @@ import service.ProductVariantService;
 import service.PurchaseOrderImportService;
 import service.PurchaseOrderService;
 import service.SupplierService;
+import util.CurrentUserUtil;
 import util.RequestUtil;
 import util.RoleUtil;
 import util.ToastUtil;
@@ -258,9 +259,11 @@ public class PurchaseOrderController extends HttpServlet {
                 response.sendRedirect(request.getContextPath() + "/purchase-orders?action=import");
                 return;
             }
-            Long userId = (Long) request.getSession().getAttribute("userId");
+            Long userId = CurrentUserUtil.getUserId(request);
             if (userId == null) {
-                userId = 1L;
+                ToastUtil.setToast(request, "error", "Unable to identify the logged-in user. Please sign in again.");
+                response.sendRedirect(request.getContextPath() + ViewPath.VIEW_LOGIN);
+                return;
             }
             PurchaseOrderImportService.ImportResult result = poImportService.importFromExcel(filePart, userId);
 
@@ -314,9 +317,11 @@ public class PurchaseOrderController extends HttpServlet {
             }
         }
         String note = request.getParameter("note");
-        Long userId = (Long) request.getSession().getAttribute("userId");
+        Long userId = CurrentUserUtil.getUserId(request);
         if (userId == null) {
-            userId = 1L;// admin
+            ToastUtil.setToast(request, "error", "Unable to identify the logged-in user. Please sign in again.");
+            response.sendRedirect(request.getContextPath() + ViewPath.VIEW_LOGIN);
+            return;
         }
         // PO Number validate
         if (poNumber == null || poNumber.isBlank()) {

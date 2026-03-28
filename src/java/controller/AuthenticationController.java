@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.regex.Pattern;
 import model.User;
+import util.CurrentUserUtil;
 import util.PasswordUtil;
 import util.SendEmail;
 import util.ViewPath;
@@ -15,7 +16,6 @@ import util.ViewPath;
 @WebServlet(name = "AuthenticationController", urlPatterns = {"/authen"})
 public class AuthenticationController extends HttpServlet {
 
-    private static final String SESSION_USER_KEY = "USER";
     private static final boolean IS_OTP_ENABLED = false;
 
     /** Định dạng email cơ bản (local@domain.tld) */
@@ -119,7 +119,7 @@ public class AuthenticationController extends HttpServlet {
             // Nếu tắt OTP (để test nhanh)
             if (!IS_OTP_ENABLED) {
                 user.setPasswordHash(null);
-                request.getSession().setAttribute(SESSION_USER_KEY, user);
+                request.getSession().setAttribute(CurrentUserUtil.SESSION_USER_KEY, user);
                 response.sendRedirect(request.getContextPath() + "/admin/dashboard");
                 return;
             }
@@ -274,6 +274,23 @@ public class AuthenticationController extends HttpServlet {
         return email != null && EMAIL_PATTERN.matcher(email).matches();
     }
 
+    /**
+     * Cùng quy tắc với trang đăng nhập ({@code web/index.jsp}): ít nhất 8 ký tự,
+     * một chữ hoa, một chữ số. Trả về thông báo lỗi hoặc {@code null} nếu hợp lệ.
+     */
+    private static String passwordStrengthError(String password) {
+        if (password.length() < 8) {
+            return "Password must be at least 8 characters long";
+        }
+        if (password.chars().noneMatch(Character::isUpperCase)) {
+            return "Password must contain at least one uppercase letter";
+        }
+        if (password.chars().noneMatch(Character::isDigit)) {
+            return "Password must contain at least one digit (0–9)";
+        }
+        return null;
+    }
+
     private void handleVerifyOtp(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String otp = trimOrEmpty(request.getParameter("otp"));
@@ -311,7 +328,7 @@ public class AuthenticationController extends HttpServlet {
                 User user = dao.getById(verifiedUserId);
                 if (user != null) {
                     user.setPasswordHash(null);
-                    session.setAttribute(SESSION_USER_KEY, user);
+                    session.setAttribute(CurrentUserUtil.SESSION_USER_KEY, user);
 
                     // Cleanup session
                     session.removeAttribute("AUTH_TYPE");
@@ -354,6 +371,13 @@ public class AuthenticationController extends HttpServlet {
         // validate input
         if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
             request.setAttribute("error", "Please enter a new password");
+            request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
+            return;
+        }
+
+        String strengthErr = passwordStrengthError(newPassword);
+        if (strengthErr != null) {
+            request.setAttribute("error", strengthErr);
             request.getRequestDispatcher(ViewPath.VIEW_RESET).forward(request, response);
             return;
         }

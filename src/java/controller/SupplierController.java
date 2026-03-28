@@ -158,6 +158,15 @@ public class SupplierController extends HttpServlet {
 
     // ======================== POST handlers ========================
 
+    private void forwardCreateWithToast(HttpServletRequest request, HttpServletResponse response,
+            Supplier s, String message, String toastType)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession(true);
+        setToast(session, message, toastType);
+        request.setAttribute("supplier", s);
+        request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+    }
+
     private void handleCreate(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String name = request.getParameter("name") != null ? request.getParameter("name").trim() : "";
@@ -173,80 +182,76 @@ public class SupplierController extends HttpServlet {
         s.setStatus("ACTIVE");
 
         try {
-            // Validate required fields
             if (name.isEmpty()) {
-                setToast(request.getSession(true), "Name is required", "error");
-                request.setAttribute("supplier", s);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, s, "Name is required", "error");
                 return;
             }
 
             if (email.isEmpty()) {
-                setToast(request.getSession(true), "Email is required", "error");
-                request.setAttribute("supplier", s);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, s, "Email is required", "error");
                 return;
             }
 
             if (!isValidEmail(email)) {
-                setToast(request.getSession(true), "Email format is invalid. Please enter a valid email address.", "error");
-                request.setAttribute("supplier", s);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, s,
+                        "Email format is invalid. Please enter a valid email address.", "error");
                 return;
             }
 
             if (phone.isEmpty()) {
-                setToast(request.getSession(true), "Phone is required", "error");
-                request.setAttribute("supplier", s);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, s, "Phone is required", "error");
                 return;
             }
 
             if (!isValidPhone(phone)) {
-                setToast(request.getSession(true), "Phone format is invalid. Please enter a valid phone number (10-15 digits).", "error");
-                request.setAttribute("supplier", s);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, s,
+                        "Phone format is invalid. Please enter a valid phone number (10–15 characters).", "error");
                 return;
             }
 
             if (supplierDao.phoneExists(phone, null)) {
-                setToast(request.getSession(true), "Phone number already exists", "error");
-                request.setAttribute("supplier", s);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
+                forwardCreateWithToast(request, response, s, "Phone number already exists", "error");
                 return;
             }
 
             if (address.length() > MAX_ADDRESS_LENGTH) {
-                setToast(request.getSession(true),
+                forwardCreateWithToast(request, response, s,
                         "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
                         "error");
-                request.setAttribute("supplier", s);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
                 return;
             }
 
-            // Auto-generate code
             String code = supplierDao.generateNextCode();
             s.setCode(code);
 
             supplierDao.create(s);
+            setToast(request.getSession(true), "Supplier created successfully.", "success");
             response.sendRedirect(request.getContextPath() + "/admin/supplier");
         } catch (SQLException e) {
             e.printStackTrace();
             if (e.getMessage() != null && e.getMessage().toLowerCase().contains("data too long")
                     && e.getMessage().toLowerCase().contains("address")) {
-                setToast(request.getSession(true),
+                forwardCreateWithToast(request, response, s,
                         "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
                         "error");
             } else {
-                setToast(request.getSession(true), "Database error. Please try again.", "error");
+                forwardCreateWithToast(request, response, s, "Database error. Please try again.", "error");
             }
-            request.getRequestDispatcher(ViewPath.SUPPLIER_CREATE).forward(request, response);
         }
+    }
+
+    private void forwardUpdateWithToast(HttpServletRequest request, HttpServletResponse response,
+            Supplier s, String message, String toastType)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession(true);
+        setToast(session, message, toastType);
+        request.setAttribute("supplier", s);
+        request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
     }
 
     private void handleUpdate(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        HttpSession session = request.getSession(true);
         try {
             String idRaw = request.getParameter("id");
             if (idRaw == null) {
@@ -255,61 +260,18 @@ public class SupplierController extends HttpServlet {
             }
 
             Long id = Long.valueOf(idRaw);
+            if (supplierDao.getDetail(id) == null) {
+                setToast(session, "Supplier not found.", "error");
+                response.sendRedirect(request.getContextPath() + "/admin/supplier");
+                return;
+            }
+
             String code = request.getParameter("code") != null ? request.getParameter("code").trim() : "";
             String name = request.getParameter("name") != null ? request.getParameter("name").trim() : "";
             String email = request.getParameter("email") != null ? request.getParameter("email").trim() : "";
             String phone = request.getParameter("phone") != null ? request.getParameter("phone").trim() : "";
             String address = request.getParameter("address") != null ? request.getParameter("address").trim() : "";
             String status = request.getParameter("status") != null ? request.getParameter("status").trim() : "ACTIVE";
-
-            // Validate required fields
-            if (code.isEmpty() || name.isEmpty()) {
-                Supplier old = supplierDao.getDetail(id);
-                setToast(request.getSession(true), "Code and Name are required", "error");
-                request.setAttribute("supplier", old);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
-                return;
-            }
-
-            if (email.isEmpty()) {
-                Supplier old = supplierDao.getDetail(id);
-                setToast(request.getSession(true), "Email is required", "error");
-                request.setAttribute("supplier", old);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
-                return;
-            }
-
-            if (!isValidEmail(email)) {
-                Supplier old = supplierDao.getDetail(id);
-                setToast(request.getSession(true), "Email format is invalid. Please enter a valid email address.", "error");
-                request.setAttribute("supplier", old);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
-                return;
-            }
-
-            if (phone.isEmpty()) {
-                Supplier old = supplierDao.getDetail(id);
-                setToast(request.getSession(true), "Phone is required", "error");
-                request.setAttribute("supplier", old);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
-                return;
-            }
-
-            if (!isValidPhone(phone)) {
-                Supplier old = supplierDao.getDetail(id);
-                setToast(request.getSession(true), "Phone format is invalid. Please enter a valid phone number (10-15 digits).", "error");
-                request.setAttribute("supplier", old);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
-                return;
-            }
-
-            if (supplierDao.phoneExists(phone, id)) {
-                Supplier old = supplierDao.getDetail(id);
-                setToast(request.getSession(true), "Phone number already exists", "error");
-                request.setAttribute("supplier", old);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
-                return;
-            }
 
             Supplier s = new Supplier();
             s.setSupplierId(id);
@@ -320,39 +282,77 @@ public class SupplierController extends HttpServlet {
             s.setAddress(address);
             s.setStatus(status);
 
-            if (address.length() > MAX_ADDRESS_LENGTH) {
-                setToast(request.getSession(true),
-                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
-                        "error");
-                request.setAttribute("supplier", s);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
+            if (!"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
+                forwardUpdateWithToast(request, response, s, "Invalid status.", "error");
                 return;
             }
 
-            // Check if code already exists for another supplier
+            if (code.isEmpty()) {
+                forwardUpdateWithToast(request, response, s, "Code is required", "error");
+                return;
+            }
+
+            if (name.isEmpty()) {
+                forwardUpdateWithToast(request, response, s, "Name is required", "error");
+                return;
+            }
+
+            if (email.isEmpty()) {
+                forwardUpdateWithToast(request, response, s, "Email is required", "error");
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                forwardUpdateWithToast(request, response, s,
+                        "Email format is invalid. Please enter a valid email address.", "error");
+                return;
+            }
+
+            if (phone.isEmpty()) {
+                forwardUpdateWithToast(request, response, s, "Phone is required", "error");
+                return;
+            }
+
+            if (!isValidPhone(phone)) {
+                forwardUpdateWithToast(request, response, s,
+                        "Phone format is invalid. Please enter a valid phone number (10–15 characters).", "error");
+                return;
+            }
+
+            if (supplierDao.phoneExists(phone, id)) {
+                forwardUpdateWithToast(request, response, s, "Phone number already exists", "error");
+                return;
+            }
+
+            if (address.length() > MAX_ADDRESS_LENGTH) {
+                forwardUpdateWithToast(request, response, s,
+                        "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
+                        "error");
+                return;
+            }
+
             if (supplierDao.codeExists(code, id)) {
-                setToast(request.getSession(true), "Supplier Code already exists", "error");
-                request.setAttribute("supplier", s);
-                request.getRequestDispatcher(ViewPath.SUPPLIER_UPDATE).forward(request, response);
+                forwardUpdateWithToast(request, response, s, "Supplier code already exists", "error");
                 return;
             }
 
             supplierDao.update(s);
+            setToast(session, "Supplier updated successfully.", "success");
             response.sendRedirect(request.getContextPath() + "/admin/supplier");
         } catch (SQLException e) {
             e.printStackTrace();
             if (e.getMessage() != null && e.getMessage().toLowerCase().contains("data too long")
                     && e.getMessage().toLowerCase().contains("address")) {
-                setToast(request.getSession(true),
+                setToast(session,
                         "Address is too long (max " + MAX_ADDRESS_LENGTH + " characters). Please shorten it.",
                         "error");
             } else {
-                setToast(request.getSession(true), "Database error. Please try again.", "error");
+                setToast(session, "Database error. Please try again.", "error");
             }
             response.sendRedirect(request.getContextPath() + "/admin/supplier");
         } catch (Exception e) {
             e.printStackTrace();
-            setToast(request.getSession(true), "An error occurred. Please try again.", "error");
+            setToast(session, "An error occurred. Please try again.", "error");
             response.sendRedirect(request.getContextPath() + "/admin/supplier");
         }
     }

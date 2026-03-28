@@ -17,16 +17,12 @@ public final class RoleUtil {
     }
 
     public static String roleNames(HttpServletRequest request) {
-        if (request == null || request.getSession(false) == null) {
+        User user = CurrentUserUtil.getSessionUser(request);
+        if (user == null) {
             return "";
         }
-        Object u = request.getSession(false).getAttribute("USER");
-        if (u instanceof User) {
-            User user = (User) u;
-            String rn = user.getRoleNames();
-            return rn != null ? rn : "";
-        }
-        return "";
+        String rn = user.getRoleNames();
+        return rn != null ? rn : "";
     }
 
     public static boolean isPurchaseStaffRestricted(String roleNames) {
