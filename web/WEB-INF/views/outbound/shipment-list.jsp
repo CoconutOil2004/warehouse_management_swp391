@@ -58,8 +58,6 @@
                                             Transit (IN_TRANSIT)</option>
                                         <option value="DELIVERED" ${param.status=='DELIVERED' ? 'selected' : '' }>
                                             Delivered (DELIVERED)</option>
-                                        <option value="CANCELLED" ${param.status=='CANCELLED' ? 'selected' : '' }>
-                                            Cancelled/Failed (CANCELLED)</option>
                                     </select>
                                 </div>
                                 <div class="col-md-2">

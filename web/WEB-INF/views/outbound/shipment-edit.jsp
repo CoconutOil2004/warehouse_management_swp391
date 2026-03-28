@@ -47,8 +47,6 @@
                                                     : '' }>In Transit (IN_TRANSIT)</option>
                                                 <option value="DELIVERED" ${shipment.status=='DELIVERED' ? 'selected'
                                                     : '' }>Delivered (DELIVERED)</option>
-                                                <option value="CANCELLED" ${shipment.status=='CANCELLED' ? 'selected'
-                                                    : '' }>Cancelled/Failed (CANCELLED)</option>
                                             </select>
                                         </div>
                                     </div>
