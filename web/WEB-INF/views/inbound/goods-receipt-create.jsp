@@ -314,26 +314,38 @@
 
                             const qExp = parseFloat(els.qExp.value) || 0;
                             const qGoodPhys = parseFloat(els.physGood.value) || 0;
-                            const gVal = els.physGood.value;
-                            const isGoodEntered = gVal !== "" && gVal !== null;
-                            
-                            // Rule: Disable Damaged if Good fulfills order
-                            if (isGoodEntered && qGoodPhys >= qExp) {
-                                els.physDamaged.disabled = true;
-                                if (els.physDamaged.value !== "0") {
-                                    els.physDamaged.value = 0;
-                                }
-                            } else {
-                                els.physDamaged.disabled = !isGoodEntered;
-                            }
-                            
-                            if (els.physExtraGood) els.physExtraGood.disabled = !isGoodEntered;
-                            if (els.physExtraDamaged) els.physExtraDamaged.disabled = !isGoodEntered;
-
                             const qDamagedPhys = parseFloat(els.physDamaged.value) || 0;
                             const qExtraGoodPhys = parseFloat(els.physExtraGood?.value) || 0;
                             const qExtraDamagedPhys = parseFloat(els.physExtraDamaged?.value) || 0;
                             
+                            const gVal = els.physGood.value;
+                            const isGoodEntered = gVal !== "" && gVal !== null;
+                            
+                            // Rule: Control flow of inputs
+                            const onPoTotal = qGoodPhys + qDamagedPhys;
+                            const isFulfilled = onPoTotal >= qExp;
+
+                            // 1. Damaged is enabled only if Good is entered AND total on PO is not yet fulfilled by Good alone
+                            if (isGoodEntered && qGoodPhys < qExp) {
+                                els.physDamaged.disabled = false;
+                            } else {
+                                els.physDamaged.disabled = true;
+                                if (isGoodEntered && qGoodPhys >= qExp) {
+                                    els.physDamaged.value = 0;
+                                }
+                            }
+
+                            // 2. Extra fields are enabled only if the PO quantity is fully reached (Good + Damaged >= Ordered)
+                            const canEnterExtra = isGoodEntered && isFulfilled;
+                            if (els.physExtraGood) {
+                                els.physExtraGood.disabled = !canEnterExtra;
+                                if (!canEnterExtra) els.physExtraGood.value = 0;
+                            }
+                            if (els.physExtraDamaged) {
+                                els.physExtraDamaged.disabled = !canEnterExtra;
+                                if (!canEnterExtra) els.physExtraDamaged.value = 0;
+                            }
+
                             const receivedAgainstPo = qGoodPhys + qDamagedPhys + qExtraGoodPhys;
                             const onPoGoodDamaged = qGoodPhys + qDamagedPhys;
                             const finalMissing = Math.max(0, qExp - receivedAgainstPo);
